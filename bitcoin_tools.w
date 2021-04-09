@@ -421,6 +421,7 @@ processing the command-line options.
     use Text::CSV qw(csv);
     use Getopt::Long;
     use POSIX qw(strftime);
+    use Statistics::Descriptive;
 
     use Data::Dumper;
 
@@ -432,6 +433,8 @@ processing the command-line options.
     my $log_file = "@<AW log file@>";               # Log file
     my $verbose = @<Verbosity level@>;              # Verbose output ?
     my $poll_time = @<Blockchain poll interval@>;   # Poll interval in seconds
+    my $stats = FALSE;                              # Show statistics of blocks ?
+    my $statlog = "";                               # Block statistics log file
     my $wallet = @<AW monitor wallet@>;             # Monitor unspent funds in wallet ?
     my $wallet_pass = @<AW wallet password@>;       # Wallet password
     @<RPC configuration variables@>
@@ -442,13 +445,17 @@ processing the command-line options.
         "end=i"         => \$block_end,
         "lfile=s"       => \$log_file,
         "poll=i"        => \$poll_time,
+        "sfile=s"       => \$statlog,
         "start=i"       => \$block_start,
+        "stats"         => \$stats,
         "verbose+"      => \$verbose,
         "wallet"        => \$wallet,
         "watch=s"       => \@@watch_addrs,
         "wpass=s"       => \$wallet_pass,
         "wfile=s"       => \$watch_file
     ) || die("Command line option error");
+    
+    my $statc = $stats || ($statlog ne "");
 @}
 
 \subsection{Build list of watched addresses}
@@ -715,6 +722,12 @@ by extracting the block-level information.
 
         print("    Block $b_height " . gmtime($b_time) .
             " Transactions $b_nTx\n") if $verbose >= 1;
+            
+        my ($stat_value, $stat_size);
+        if ($statc) {
+            $stat_value = Statistics::Descriptive::Sparse->new();
+            $stat_size = Statistics::Descriptive::Sparse->new();
+        }
 @}
 
 Now loop over the transactions in the block, saving any which cite one
@@ -726,6 +739,9 @@ any references to watched addresses.
         for (my $t = 0; $t < $b_nTx; $t++) {
             #   Transaction ID
             my $t_txid = $r->{tx}->[$t]->{txid};
+            if ($statc) {
+                $stat_size->add_data($r->{tx}->[$t]->{vsize});
+            }
             #   Number of "vout" items in transaction
             my $t_nvout = scalar(@@{$r->{tx}->[$t]->{vout}});
 
@@ -739,6 +755,10 @@ any references to watched addresses.
                     #   Loop over addresses in vout item
                     for (my $a = 0; $a < $v_naddr; $a++) {
                         my $a_addr = $r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses}->[$a];
+                        my $t_value = $r->{tx}->[$t]->{vout}->[$v]->{value};
+                        if (!defined($t_value)) {
+                            $t_value = 0;
+                        }
                         my $flag = $adrh{$a_addr};
                         if ($verbose >= 3) {
                             my $pflag = $flag ? " *****" : "";
@@ -746,21 +766,65 @@ any references to watched addresses.
                         }
                         if ($flag) {
                             #   This is one of the addresses we're watching: add to the hit list
-                            my $t_value = $r->{tx}->[$t]->{vout}->[$v]->{value};
-                            if (!defined($t_value)) {
-                                $t_value = 0;
-                            }
                             push(@@hits, [ $b_height, $b_hash, $b_time, $t_txid, $a_addr, $t_value ]);
+                        }
+                        if ($statc && ($t_value > 0)) {
+                            $stat_value->add_data($t_value);
                         }
                     }
                 }
             }
         }
+        if ($statc) {
+            @<Show statistics for block@>
+        }
         return \@@hits;
     }
 @}
 
-\subsection{{\tt updateWalletAddresses} ---  Watch unspent wallet addresses}
+\subsubsection{Show statistics for block}
+
+If we're collecting statistics for blocks, output them in either/or
+primate readable form on standard output and a record appended to
+the log file specified by the {\tt -sfile} option.  Statistics include:
+
+\begin{quote}
+\begin{itemize}
+\dense
+    \item Block number (``height'')
+    \item Date and time
+    \item Number of transactions
+    \item Transaction size: minimum, maximum, mean, standard deviation,
+          and total
+    \item Value: minimum, maximum, mean, standard deviation,
+          and total
+\end{itemize}
+\end{quote}
+
+@d Show statistics for block
+@{
+    if ($stats) {
+        print("  Block $b_height  " . etime($b_time) . " $b_nTx transactions\n");
+        printf("    Size: min %d  max %d  mean %.2f  SD %.2f  Total %d\n",
+            $stat_size->min(), $stat_size->max(), $stat_size->mean(),
+            $stat_size->standard_deviation(), $stat_size->sum());
+        printf("    Value: min %.8f  max %.8g  mean %.8g  SD %.8g  Total %.8g\n",
+            $stat_value->min(), $stat_value->max(), $stat_value->mean(),
+            $stat_value->standard_deviation(), $stat_value->sum());
+    }
+    if ($statlog) {
+        open(SL, ">>$statlog");
+            printf(SL "%12d %d %d %d %d %.2f %.2f %d %.8f %.8g %.8g %.8g %.8g\n",
+                $b_height, $b_time, $b_nTx,
+                $stat_size->min(), $stat_size->max(), $stat_size->mean(),
+                $stat_size->standard_deviation(), $stat_size->sum(),
+                $stat_value->min(), $stat_value->max(), $stat_value->mean(),
+                $stat_value->standard_deviation(), $stat_value->sum());
+        close(SL);
+    }
+@}
+
+\subsection{{\tt updateWalletAddresses} --- Watch unspent wallet addresses}
 
 When the {\tt -wallet} option is specified, every time we begin a poll 
 for new blocks on the blockchain, we obtain the current list of 

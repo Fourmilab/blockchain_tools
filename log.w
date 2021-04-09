@@ -68,4 +68,15 @@ of code and adding documentation where appropriate.
 
 \date{2021 April 9}
 
+Brought the project under Git configuration control.  The
+{\tt .gitignore} file excludes everything generated from the {\tt .w}
+files by Nuweb, including itself.
 
+Added statistics collection and output to {\tt address\_watch}.  The
+{\tt -stats} option collects statistics on each block examined and
+reports the block number, date and time, number of transactions,
+total transaction size, and for both the transaction size and value
+of transactions, the minimum, maximum, mean, standard deviation,
+and total.  The {\tt -sfile} option collects the same information
+and writes it as a record to the file specified.  In the statistics
+file, the date and time is written as a Unix {\tt time()} value.
