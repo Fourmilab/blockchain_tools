@@ -129,6 +129,7 @@ Fourmilab's HotBits radioactive random number generator.
 
     use Bitcoin::Crypto::Key::Private;
     use Bitcoin::Crypto::Key::Public;
+    use Bitcoin::BIP39 qw(entropy_to_bip39_mnemonic bip39_mnemonic_to_entropy);
     use MIME::Base64;
     use LWP::Simple;
     use Getopt::Long;
@@ -150,6 +151,7 @@ Fourmilab's HotBits radioactive random number generator.
                "hexfile=s"  =>  \&arg_hexfile,
                "hotbits"    =>  \&arg_hotbits,
                "key"        =>  \&arg_key,
+               "phrase=s"   =>  \&arg_phrase,
                "random"     =>  \&arg_random,
                "repeat=i"   =>  \$repeat,
                "seed=s"     =>  \&arg_seed,
@@ -188,6 +190,7 @@ exit(0);
     @<genFromFile: Generate keys from seeds specified in a Hexfile@>
     @<genAddress: Generate address from one hexadecimal seed@>
     @<editAddress: Edit private key and public address@>
+    @<BIP39encode: Encode seed as BIP39 mnemonic phrase@>
 @}
 
 Include utility functions we employ.
@@ -199,22 +202,23 @@ Include utility functions we employ.
 
 \section{Local functions}
 
-\subsection(Command line argument handlers}
+\subsection{Command line argument handlers}
 
 @d Command line argument handlers
 @{
-    @<arg_dump: Dump the stack@>
-    @<arg_hexfile: Push seeds from hexfile on stack@>
-    @<arg_hotbits: Request seed(s) from HotBits@>
-    @<arg_key: Generate key/address from top of stack@>
-    @<arg_random: Request seed(s) from /dev/random@>
-    @<arg_seed: Push seed on stack@>
-    @<arg_urandom: Request seed(s) from /dev/urandom@>
+    @<arg\_dump: Dump the stack@>
+    @<arg\_hexfile: Push seeds from hexfile on stack@>
+    @<arg\_hotbits: Request seed(s) from HotBits@>
+    @<arg\_key: Generate key/address from top of stack@>
+    @<arg\_phrase: Specify seed as BIP39 phrase@>
+    @<arg\_random: Request seed(s) from /dev/random@>
+    @<arg\_seed: Push seed on stack@>
+    @<arg\_urandom: Request seed(s) from /dev/urandom@>
 @}
 
-\subsubsection{{\tt arg\_seed} --- {\tt -seed}: Push seed on stack}
+\subsubsection{{\tt arg\_dump} --- {\tt -dump}: Dump the stack}
 
-@d arg_dump: Dump the stack
+@d arg\_dump: Dump the stack
 @{
     sub arg_dump {
         print("  ", join("\n  ", reverse(@@seeds)), "\n");
@@ -223,7 +227,7 @@ Include utility functions we employ.
 
 \subsubsection{{\tt arg\_hexfile} --- {\tt -hexfile}: Push seeds from hexfile on stack}
 
-@d arg_hexfile: Push seeds from hexfile on stack
+@d arg\_hexfile: Push seeds from hexfile on stack
 @{
     sub arg_hexfile {
         my ($name, $value) = @@_;
@@ -237,7 +241,7 @@ Include utility functions we employ.
 
 \subsubsection{{\tt arg\_hotbits} --- {\tt -hotbits}: Request seed(s) from HotBits}
 
-@d arg_hotbits: Request seed(s) from HotBits
+@d arg\_hotbits: Request seed(s) from HotBits
 @{
     sub arg_hotbits {
         my $n = 32 * $repeat;
@@ -256,7 +260,7 @@ Include utility functions we employ.
 
 \subsubsection{{\tt arg\_key} --- {\tt -key}: Generate key/address from top of stack}
 
-@d arg_key: Generate key/address from top of stack
+@d arg\_key: Generate key/address from top of stack
 @{
     sub arg_key {
         @<Begin command repeat@>
@@ -267,9 +271,23 @@ Include utility functions we employ.
     }
 @}
 
+\subsubsection{{\tt arg\_phrase} --- {\tt -phrase}: Specify seed as BIP39 phrase}
+
+@d arg\_phrase: Specify seed as BIP39 phrase
+@{
+    sub arg_phrase {
+        my ($name, $value) = @@_;
+
+        my $seed = bip39_mnemonic_to_entropy(
+            mnemonic => $value,
+            encoding => "hex");
+        push(@@seeds, uc($seed));
+    }
+@}
+
 \subsubsection{{\tt arg\_random} --- {\tt -random}: Request seed(s) from {\tt /dev/random}}
 
-@d arg_random: Request seed(s) from /dev/random
+@d arg\_random: Request seed(s) from /dev/random
 @{
     sub arg_random {
         my $n = 32 * $repeat;
@@ -301,7 +319,7 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
 
 \subsubsection{{\tt arg\_seed} --- {\tt -seed}: Push seed on stack}
 
-@d arg_seed: Push seed on stack
+@d arg\_seed: Push seed on stack
 @{
     sub arg_seed {
         my ($name, $value) = @@_;
@@ -315,7 +333,7 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
 
 \subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
 
-@d arg_urandom: Request seed(s) from /dev/urandom
+@d arg\_urandom: Request seed(s) from /dev/urandom
 @{
     sub arg_urandom {
         my $n = 32 * $repeat;
@@ -536,6 +554,7 @@ which the user may choose whatever they prefer.
             $r .= "Private key:\n";
             $r .= "    Hexadecimal:      $phex\n";
             $r .= "    Base64:           $pb64\n";
+            $r .= BIP39encode("    BIP39:            ", $phex, 64);
 
             #   Display private key in both compressed and
             #   uncompressed  formats.
@@ -574,6 +593,46 @@ small sample.
             $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
             $r .= $ent_analysis;
        }
+        return $r;
+    }
+@}
+
+\subsection{{\tt BIP39encode} --- Encode seed as BIP39 mnemonic phrase}
+
+The function encodes a 256 bit seed as a sequence of words according
+to \href{https://en.bitcoin.it/wiki/BIP_0039}{Bitcoin Improvement
+Proposal 39} (BIP39), using the
+\href{https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt}{English word list}
+from the \href{https://github.com/trezor/python-mnemonic}{reference implementation}.
+The words are arranged in multiple lines of maximum length
+{\tt \$maxlen} using the specified {\tt \$prefix} on the first line.
+The Perl {\tt
+\href{https://metacpan.org/pod/Bitcoin::BIP39}{Bitcoin::BIP39}}
+package we use supports word lists for serveral other languages, but
+BIP39 states ``it is {\bf strongly discouraged} to use non-English
+wordlists for generating the mnemonic sentences'' (emphasis in the
+original).
+
+@d BIP39encode: Encode seed as BIP39 mnemonic phrase
+@{
+    sub BIP39encode {
+        my ($prefix, $seed, $maxlen) = @@_;
+
+        my $s = $prefix;
+        my $cont = " " x length($prefix);
+        my $r = "";
+        my $bip39 = entropy_to_bip39_mnemonic( entropy_hex => $seed );
+        my @@b39 = split(/\s+/, $bip39);
+        foreach my $word (@@b39) {
+            if ((length($s) + length($word)) > $maxlen) {
+                $s =~ s/\s+$//;
+                $r .= "$s\n";
+                $s = $cont;
+            }
+            $s .= "$word ";
+        }
+        $s =~ s/\s+$//;
+        $r .= "$s\n";
         return $r;
     }
 @}

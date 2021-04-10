@@ -90,4 +90,10 @@ bitcoin\_address}.  This will increase the flexibility of generation of
 addresses by this program.  Commands allow fetching seeds from the 
 command line, HotBits, {\tt /dev/random}, or {\tt /dev/urandom}.
 
+\date{2021 April 10}
 
+Implemented BIP39 encoding and decoding in {\tt bitcoin\_address}.
+The BIP39-encoded phrase is output along with other formats by the
+{\tt -key} command, and a seed specified by a BIP39 phrase supplied
+as a string argument may be pushed onto the stack with the {\tt -phrase}
+command.
