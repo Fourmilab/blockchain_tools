@@ -80,3 +80,14 @@ of transactions, the minimum, maximum, mean, standard deviation,
 and total.  The {\tt -sfile} option collects the same information
 and writes it as a record to the file specified.  In the statistics
 file, the date and time is written as a Unix {\tt time()} value.
+
+Re-enabled inclusion of the build number, date, and time in generated
+files.  Since these files are excluded from the Git repository by
+{\tt .gitignore}, they will not cause unnecessary update transactions.
+
+Began implementation of the stack-oriented version of {\tt 
+bitcoin\_address}.  This will increase the flexibility of generation of 
+addresses by this program.  Commands allow fetching seeds from the 
+command line, HotBits, {\tt /dev/random}, or {\tt /dev/urandom}.
+
+

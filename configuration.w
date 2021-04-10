@@ -37,6 +37,6 @@ If you want the {\tt bitcoin\_address} generator to be able to
 query the HotBits radioactive random number generator, enter
 your API key and the query URL below.
 
-@d HotBits query URL @{https://www.fourmilab.ch/cgi-bin/Hotbits.api?nbytes=32&fmt=hex&apikey=$HotBits_API_key@}
-@d HotBits API key @{FlyingBaboons@}
+@d HotBits query URL @{https://www.fourmilab.ch/cgi-bin/Hotbits.api?nbytes=[NBYTES]&fmt=hex&apikey=[APIKEY]@}
+@d HotBits API key @{Pseudorandom@}
 

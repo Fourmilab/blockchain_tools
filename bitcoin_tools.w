@@ -81,9 +81,9 @@
 %   build.w to restore the build number configuration control
 %   facility.
 %
-%i build.w
-@d Build number @{0@}
-@d Build date and time @{1900-01-01 00:00@}
+@i build.w
+%d Build number @{0@}
+%d Build date and time @{1900-01-01 00:00@}
 
 \section{Configuration}
 
@@ -140,11 +140,24 @@ Fourmilab's HotBits radioactive random number generator.
 @{
     my $opt_Format = "";
 
+    my $repeat = 1;             # Repeat command this number of times
+    my @@seeds;                 # Stack of seeds
+
     GetOptions(
-               "api=s", \$HotBits_API_key,
-               "format=s", \$opt_Format
+               "api=s"      =>  \$HotBits_API_key,
+               "dump"       =>  \&arg_dump,
+               "format=s"   =>  \$opt_Format,
+               "hexfile=s"  =>  \&arg_hexfile,
+               "hotbits"    =>  \&arg_hotbits,
+               "key"        =>  \&arg_key,
+               "random"     =>  \&arg_random,
+               "repeat=i"   =>  \$repeat,
+               "seed=s"     =>  \&arg_seed,
+               "urandom"    =>  \&arg_urandom
               ) ||
         die("Invalid command line option");
+
+exit(0);
 
     #   Get hexadecimal seed from the command line or HotBits
 
@@ -162,26 +175,187 @@ Fourmilab's HotBits radioactive random number generator.
         $HotBits = uc($ARGV[0]);
     }
 
-    print(genAddress($HotBits, $opt_Format, 1));
+    my ($priv, $pub) = genAddress($HotBits, $opt_Format, 1);
+    print(editAddress($priv, $pub, $opt_Format, 1));
 
 #my $hf = readHexfile("hotbits.html");
 #print("Read " . (length($hf) / 2) . " bytes.\n");
 #print(genFromFile($hf, $opt_Format));
 
     #   Local functions
-    
+
+    @<Command line argument handlers@>
     @<genFromFile: Generate keys from seeds specified in a Hexfile@>
     @<genAddress: Generate address from one hexadecimal seed@>
+    @<editAddress: Edit private key and public address@>
 @}
 
 Include utility functions we employ.
-    
+
 @o bitcoin_address.pl
 @{
     @<readHexfile: Read hexadecimal data from a file@>
 @}
 
 \section{Local functions}
+
+\subsection(Command line argument handlers}
+
+@d Command line argument handlers
+@{
+    @<arg_dump: Dump the stack@>
+    @<arg_hexfile: Push seeds from hexfile on stack@>
+    @<arg_hotbits: Request seed(s) from HotBits@>
+    @<arg_key: Generate key/address from top of stack@>
+    @<arg_random: Request seed(s) from /dev/random@>
+    @<arg_seed: Push seed on stack@>
+    @<arg_urandom: Request seed(s) from /dev/urandom@>
+@}
+
+\subsubsection{{\tt arg\_seed} --- {\tt -seed}: Push seed on stack}
+
+@d arg_dump: Dump the stack
+@{
+    sub arg_dump {
+        print("  ", join("\n  ", reverse(@@seeds)), "\n");
+    }
+@}
+
+\subsubsection{{\tt arg\_hexfile} --- {\tt -hexfile}: Push seeds from hexfile on stack}
+
+@d arg_hexfile: Push seeds from hexfile on stack
+@{
+    sub arg_hexfile {
+        my ($name, $value) = @@_;
+
+        my $hf = readHexfile($value);
+        while ($hf =~ s/^([\dA-F]{64})//i) {
+            push(@@seeds, $1);
+        }
+    }
+@}
+
+\subsubsection{{\tt arg\_hotbits} --- {\tt -hotbits}: Request seed(s) from HotBits}
+
+@d arg_hotbits: Request seed(s) from HotBits
+@{
+    sub arg_hotbits {
+        my $n = 32 * $repeat;
+        my $hbq = $HotBits_Query;
+        $hbq =~ s/\[NBYTES\]/$n/;
+        $hbq =~ s/\[APIKEY\]/$HotBits_API_key/;
+        my $hbr = get($hbq);
+        $hbr =~ m:<pre>(.*?\w+.*?)</pre>:s || die("Cannot parse HotBits reply: $hbr");
+        my $hf = $1;
+        $hf =~ s/\W//g;
+        while ($hf =~ s/^([\dA-F]{64})//i) {
+            push(@@seeds, $1);
+        }
+    }
+@}
+
+\subsubsection{{\tt arg\_key} --- {\tt -key}: Generate key/address from top of stack}
+
+@d arg_key: Generate key/address from top of stack
+@{
+    sub arg_key {
+        @<Begin command repeat@>
+        my $seed = pop(@@seeds);
+        my ($priv, $pub) = genAddress($seed, $opt_Format, 1);
+        print(editAddress($priv, $pub, $opt_Format, 1));
+        @<End command repeat@>
+    }
+@}
+
+\subsubsection{{\tt arg\_random} --- {\tt -random}: Request seed(s) from {\tt /dev/random}}
+
+@d arg_random: Request seed(s) from /dev/random
+@{
+    sub arg_random {
+        my $n = 32 * $repeat;
+        open(RI, "</dev/random") || die("Cannot open /dev/random");
+        my $l = 0;
+        my $rbytes;
+        while ($l < $n) {
+            my $dat;
+            my $r = read(RI, $dat, $n - $l);
+print("Requested " . ($n - $l) . " bytes, read $r\n");
+            $rbytes .= $dat;
+            $l += $r;
+            if ($l < $n) {
+                #   /dev/random exhausted: give it a rest
+                sleep(0.1);
+            }
+        }
+        close(RI);
+        while ($rbytes =~ s/^(.{32})//s) {
+            my $hn = $1;
+            my $xv;
+            while ($hn =~ s/^(.)//s) {
+                $xv .= sprintf("%02X", ord($1));
+            }
+            push(@@seeds, $xv);
+        }
+    }
+@}
+
+\subsubsection{{\tt arg\_seed} --- {\tt -seed}: Push seed on stack}
+
+@d arg_seed: Push seed on stack
+@{
+    sub arg_seed {
+        my ($name, $value) = @@_;
+
+        if ($value !~ m/^[\dA-F]{64}/i) {
+            die("Invalid seed.  Must be 64 hexadecimal digits");
+        }
+        push(@@seeds, $value);
+    }
+@}
+
+\subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
+
+@d arg_urandom: Request seed(s) from /dev/urandom
+@{
+    sub arg_urandom {
+        my $n = 32 * $repeat;
+        open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
+        my $l = 0;
+        my $rbytes;
+        while ($l < $n) {
+            my $dat;
+            my $r = read(RI, $dat, $n - $l);
+print("Requested " . ($n - $l) . " bytes, read $r\n");
+            $rbytes .= $dat;
+            $l += $r;
+            if ($l < $n) {
+                #   /dev/urandom exhausted: give it a rest
+                sleep(0.1);
+            }
+        }
+        close(RI);
+        while ($rbytes =~ s/^(.{32})//s) {
+            my $hn = $1;
+            my $xv;
+            while ($hn =~ s/^(.)//s) {
+                $xv .= sprintf("%02X", ord($1));
+            }
+            push(@@seeds, $xv);
+        }
+    }
+@}
+
+\subsubsection{Repeat command if {\tt -repeat} specified}
+
+@d Begin command repeat
+@{
+    for (my $rpt = 0; $rpt < $repeat; $rpt++) {
+@}
+
+@d End command repeat
+@{
+    }
+@}
 
 \subsection{{\tt genFromFile} --- Generate keys from seeds specified in a Hexfile}
 
@@ -199,7 +373,8 @@ with the specified \verb+$mode+.
         while ($hf =~ s/^(\w{64})//) {
             my $seed = $1;
             $n++;
-            $out .= genAddress($seed, $mode, $n);
+            my ($priv, $pub) = genAddress($seed, $mode, $n);
+            $out .= editAddress($priv, $pub, $mode, 1);
         }
 
         return $out;
@@ -210,7 +385,8 @@ with the specified \verb+$mode+.
 
 A bitcoin address and private key pair are generated from the
 argument, which specifies the 256 bit random seed as 64 hexadecimal
-digits.
+digits.  The private key and public address objects are returned
+in a list.
 
 @d genAddress: Generate address from one hexadecimal seed
 @{
@@ -240,10 +416,33 @@ Verify that we can decode the seed from the private key.
         }
 @}
 
-Encode the private key in base64.
+Generate the public Bitcoin address from the private key.  Note that
+if you're storing the private key, you needn't store the public
+address with it, since you can always re-generate it in any form
+you wish from the private key.
 
 @d genAddress: Generate address from one hexadecimal seed
 @{
+        my $pub = $priv->get_public_key();
+
+        return ($priv, $pub);
+    }
+@}
+
+\subsection{{\tt editAddress} --- Edit private key and public address}
+
+@d editAddress: Edit private key and public address
+@{
+    sub editAddress {
+        my ($priv, $pub, $mode, $n) = @@_;
+@}
+
+Extract the seed from the private key in hexadecimal and encode it
+in base64.
+
+@d editAddress: Edit private key and public address
+@{
+        my $phex = uc($priv->to_hex());
         my $pb64 = encode_base64($priv->to_bytes());
         chomp($pb64);
 @}
@@ -252,7 +451,7 @@ Generate compressed and uncompressed private keys, both encoded
 in WIF (Wallet Import Format).  This is how private keys are usually
 stored in an off-line or paper wallet.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d editAddress: Edit private key and public address
 @{
         $priv->set_compressed(TRUE);
         my $WIFc = $priv->to_wif();
@@ -267,13 +466,8 @@ address with it, since you can always re-generate it in any form
 you wish from the private key.  We generate all of the forms of
 public addresses, compressed and uncompressed.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d editAddress: Edit private key and public address
 @{
-
-        #   Generate public Bitcoin address and edit in various formats
-
-        my $pub = $priv->get_public_key();
-
         $pub->set_compressed(TRUE);
         my $pub_legacy = $pub->get_legacy_address();
         my $pub_compat = $pub->get_compat_address();
@@ -299,13 +493,12 @@ be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one of:
     \item[{\tt l}]  Public (``{\tt 1}'') public address
     \item[{\tt c}]  Compatible (``{\tt 3}'') public address
     \item[{\tt s}]  Segwit ``{\tt bc1}'' public address
-   
+
 \end{description}
 \end{quote}
 
-@d genAddress: Generate address from one hexadecimal seed
+@d editAddress: Edit private key and public address
 @{
-
         my $r = "";
 
         if ($mode =~ m/^CSV(\w*)$/) {
@@ -334,15 +527,14 @@ If \verb+$mode+ is anything else, primate-readable output is generated.
 This includes all formats of the private key and public address, from
 which the user may choose whatever they prefer.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d editAddress: Edit private key and public address
 @{
-
             #   Human-readable output
 
             #   Display private key seed in hexadecimal
 
             $r .= "Private key:\n";
-            $r .= "    Hexadecimal:      $seed\n";
+            $r .= "    Hexadecimal:      $phex\n";
             $r .= "    Base64:           $pb64\n";
 
             #   Display private key in both compressed and
@@ -366,16 +558,17 @@ which the user may choose whatever they prefer.
                   "    Hex:     $pub_hex_u\n";
 @}
 
-Take the decoded hex seed and feed it to {\tt ent} to perform
-an analysis of its randomness.  Note that when interpreting
-these results, the brevity of the seed (just 256 bits) will
-cause it to appear less than random compared to a larger
-sample.
+Take the decoded hex seed and feed it to {\tt ent} to perform an
+analysis of its randomness.  Note that when interpreting these results,
+the brevity of the seed (just 256 bits) will cause it to appear less
+than random compared to a larger sample.  We perform the randomness
+tests on a bit-level basis, as byte-level tests are useless on such a
+small sample.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d editAddress: Edit private key and public address
 @{
             $r .= "\nRandomness analysis:\n";
-            my $ent_analysis = `echo $dhex | xxd -r -p - | ent`;
+            my $ent_analysis = `echo $phex | xxd -r -p - | ent -b`;
             $ent_analysis =~ s/\n\n/\n/gs;
             $ent_analysis =~ s/^/    /mg;
             $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
@@ -454,7 +647,7 @@ processing the command-line options.
         "wpass=s"       => \$wallet_pass,
         "wfile=s"       => \$watch_file
     ) || die("Command line option error");
-    
+
     my $statc = $stats || ($statlog ne "");
 @}
 
@@ -501,7 +694,7 @@ be automatically monitored by specifying the {\tt -wallet} option.
 
 \subsection{Prompt for RPC password}
 
-If the ``{\tt rpc}'' query method was selected and no password was 
+If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
 
 @o address_watch.pl
@@ -620,7 +813,7 @@ found in them to addresses we're watching.
 
 \subsection{Save last block scanned for next run}
 
-If a block file is specified, save last block scanned so we can resume 
+If a block file is specified, save last block scanned so we can resume
 with the next block on a subsequent run.
 
 @o address_watch.pl
@@ -672,8 +865,8 @@ functions common to multiple programs.
 
 \subsection{{\tt scanBlock} --  Scan a block by index on the blockchain}
 
-The transactions in the block are scanned for references to addresses 
-on the watch list.  Any found are returned as an array of arrays, with 
+The transactions in the block are scanned for references to addresses
+on the watch list.  Any found are returned as an array of arrays, with
 each containing:
 
 \begin{quote}
@@ -688,7 +881,7 @@ each containing:
 \end{enumerate}
 \end{quote}
 
-From this, the user can recover the details of the transaction and see 
+From this, the user can recover the details of the transaction and see
 what's going on.
 
 @d scanBlock: Scan a block by index on the blockchain
@@ -722,7 +915,7 @@ by extracting the block-level information.
 
         print("    Block $b_height " . gmtime($b_time) .
             " Transactions $b_nTx\n") if $verbose >= 1;
-            
+
         my ($stat_value, $stat_size);
         if ($statc) {
             $stat_value = Statistics::Descriptive::Sparse->new();
@@ -826,15 +1019,15 @@ the log file specified by the {\tt -sfile} option.  Statistics include:
 
 \subsection{{\tt updateWalletAddresses} --- Watch unspent wallet addresses}
 
-When the {\tt -wallet} option is specified, every time we begin a poll 
-for new blocks on the blockchain, we obtain the current list of 
-addresses within the wallet which have a nonzero balance.  These are 
-automatically added to the watch list, so we'll monitor them without 
-the need for the user to manually watch them.  Since any spend 
-transaction will result in a wallet address disappearing and a new 
-change address replacing it, wallet addresses are dynamic, and this 
-keeps the monitor up to date.  On every scan, addresses previously 
-added from the wallet are removed, so on each scan the list is current 
+When the {\tt -wallet} option is specified, every time we begin a poll
+for new blocks on the blockchain, we obtain the current list of
+addresses within the wallet which have a nonzero balance.  These are
+automatically added to the watch list, so we'll monitor them without
+the need for the user to manually watch them.  Since any spend
+transaction will result in a wallet address disappearing and a new
+change address replacing it, wallet addresses are dynamic, and this
+keeps the monitor up to date.  On every scan, addresses previously
+added from the wallet are removed, so on each scan the list is current
 as of the time it began.
 
 We start by removing any previously-added wallet addresses from the
@@ -985,8 +1178,8 @@ $RPChost = "localhost";
 
 \subsection{Look up address or label in {address\_watch} log}
 
-If an address is specified, try looking up in the Bitwatch log to find 
-the transaction ID and block hash.  We accept either the Bitcoin 
+If an address is specified, try looking up in the Bitwatch log to find
+the transaction ID and block hash.  We accept either the Bitcoin
 address or the label the user assigned to it.
 
 @o confirmation_watch.pl
@@ -1037,7 +1230,7 @@ address or the label the user assigned to it.
 
 \subsection{Prompt for RPC password}
 
-If the ``{\tt rpc}'' query method was selected and no password was 
+If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
 
 @o confirmation_watch.pl
@@ -1049,10 +1242,10 @@ specified, ask the user for it from standard input.
 
 \subsection{Retrieve confirmations for transaction}
 
-Now retrieve the confirmations for the transaction. If {\tt -watch} is 
-specified, continue to watch until we've received the {\tt -confirm} 
+Now retrieve the confirmations for the transaction. If {\tt -watch} is
+specified, continue to watch until we've received the {\tt -confirm}
 number of confirmations, at which point we exit.
-    
+
 @o confirmation_watch.pl
 @{
     my $l_confirmations = -1;
@@ -1094,7 +1287,7 @@ number of confirmations, at which point we exit.
 If we've received the specified number of confirmations, exit.  If
 {\tt -watch} is specified, wait until the next poll time and check
 for new confirmations.
-    
+
 @o confirmation_watch.pl
 @{
          if ($watch && ($l_confirmations < $confirmed)) {
@@ -1106,7 +1299,7 @@ for new confirmations.
 \subsection{Utility functions}
 
 Import utility functions we share with other programs.
-    
+
 @o confirmation_watch.pl
 @{
     @<etime: Edit time to ISO 8601@>
@@ -1274,8 +1467,8 @@ $params
 EOD
 @}
 
-Build HTTP request.  Since we're sending a pure text string via POST 
-rather than a set of key, value pairs, we have to roll our own {\tt 
+Build HTTP request.  Since we're sending a pure text string via POST
+rather than a set of key, value pairs, we have to roll our own {\tt
 HTTP::Request}.
 
 @d Request via direct RPC call
@@ -1287,10 +1480,10 @@ HTTP::Request}.
     my $reply = $request->request($rq);
 @}
 
-If the request succeeded (result code 200), extract the content.  Note 
-that unlike the result returned by {\tt bitcoin-cli}, this is wrapped 
-in an outer ``{\tt result}'' object, from which we must extract the 
-actual content. We further check the error status within the reply, 
+If the request succeeded (result code 200), extract the content.  Note
+that unlike the result returned by {\tt bitcoin-cli}, this is wrapped
+in an outer ``{\tt result}'' object, from which we must extract the
+actual content. We further check the error status within the reply,
 returning {\tt undef} if it is non-null.
 
 @d Request via direct RPC call
@@ -1334,11 +1527,11 @@ Define the command-line options to set the RPC configuration variables.
 
 \section{{\tt readHexfile} --- Read hexadecimal data from a file}
 
-Read a ``hexfile'' containing hexadecimal data.  We ignore everything 
-until we find a line with at least 32 characters of valid hexadecimal 
-data and nothing else.  We then read successive lines containing 
-nothing but valid hexadecimal data and white space until encountering a 
-line which doesn't pass this test or end of file.  Returns the 
+Read a ``hexfile'' containing hexadecimal data.  We ignore everything
+until we find a line with at least 32 characters of valid hexadecimal
+data and nothing else.  We then read successive lines containing
+nothing but valid hexadecimal data and white space until encountering a
+line which doesn't pass this test or end of file.  Returns the
 hexadecimal data stream with no embedded white space.
 
 @d readHexfile: Read hexadecimal data from a file
@@ -1590,7 +1783,7 @@ implement build number consistency checking.
 \section{Git configuration}
 
 The project's source code is managed with Git.  This {\tt .gitignore}
-file excludes all file generated automatically from this master
+file excludes all files generated automatically from this master
 document from version control.
 
 @o .gitignore
