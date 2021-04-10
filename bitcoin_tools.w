@@ -147,16 +147,24 @@ Fourmilab's HotBits radioactive random number generator.
 
     GetOptions(
                "api=s"      =>  \$HotBits_API_key,
+               "drop"       =>  \&arg_drop,
                "dump"       =>  \&arg_dump,
+               "dup"        =>  \&arg_dup,
                "format=s"   =>  \$opt_Format,
                "hexfile=s"  =>  \&arg_hexfile,
                "hotbits"    =>  \&arg_hotbits,
                "key"        =>  \&arg_key,
+               "over"       =>  \&arg_over,
                "phrase=s"   =>  \&arg_phrase,
+               "pick=i"     =>  \&arg_pick,
                "random"     =>  \&arg_random,
                "repeat=i"   =>  \$repeat,
+               "roll=i"     =>  \&arg_roll,
+               "rot"        =>  \&arg_rot,
+               "rrot"       =>  \&arg_rrot,
                "seed=s"     =>  \&arg_seed,
                "sha256"     =>  \&arg_sha256,
+               "type=s"     =>  \&arg_type,
                "urandom"    =>  \&arg_urandom,
                "xor"        =>  \&arg_xor
               ) ||
@@ -208,16 +216,34 @@ Include utility functions we employ.
 
 @d Command line argument handlers
 @{
+    @<arg\_drop: Drop the top item from the stack@>
     @<arg\_dump: Dump the stack@>
+    @<arg\_dup: Duplicate the top item from the stack@>
     @<arg\_hexfile: Push seeds from hexfile on stack@>
     @<arg\_hotbits: Request seed(s) from HotBits@>
     @<arg\_key: Generate key/address from top of stack@>
+    @<arg\_over: Duplicate the second item from the stack@>
+    @<arg\_pick: Duplicate the $n$th item from the stack@>
     @<arg\_phrase: Specify seed as BIP39 phrase@>
     @<arg\_random: Request seed(s) from /dev/random@>
+    @<arg\_roll: Rotate item $n$ to top of stack@>
+    @<arg\_rot: Rotate three stack items@>
+    @<arg\_rrot: Reverse rotate three stack items@>
     @<arg\_seed: Push seed on stack@>
     @<arg\_sha256: Replace top of stack with its SHA256 hash@>
+    @<arg\_type: Print text on standard output@>
     @<arg\_urandom: Request seed(s) from /dev/urandom@>
     @<arg\_xor: Exclusive-or top two stack items@>
+@}
+
+\subsubsection{{\tt arg\_drop} --- {\tt -drop}: Drop the top item from the stack}
+
+@d arg\_drop: Drop the top item from the stack
+@{
+    sub arg_drop {
+        stackCheck(1);
+        pop(@@seeds);
+    }
 @}
 
 \subsubsection{{\tt arg\_dump} --- {\tt -dump}: Dump the stack}
@@ -226,6 +252,16 @@ Include utility functions we employ.
 @{
     sub arg_dump {
         print("  ", join("\n  ", reverse(@@seeds)), "\n");
+    }
+@}
+
+\subsubsection{{\tt arg\_dup} --- {\tt -dup}: Duplicate the top item from the stack}
+
+@d arg\_dup: Duplicate the top item from the stack
+@{
+    sub arg_dup {
+        stackCheck(1);
+        push(@@seeds, $seeds[$#seeds]);
     }
 @}
 
@@ -276,6 +312,16 @@ Include utility functions we employ.
     }
 @}
 
+\subsubsection{{\tt arg\_over} --- {\tt -over}: Duplicate the second item from the stack}
+
+@d arg\_over: Duplicate the second item from the stack
+@{
+    sub arg_over {
+        stackCheck(2);
+        push(@@seeds, $seeds[$#seeds - 1]);
+    }
+@}
+
 \subsubsection{{\tt arg\_phrase} --- {\tt -phrase}: Specify seed as BIP39 phrase}
 
 @d arg\_phrase: Specify seed as BIP39 phrase
@@ -287,6 +333,18 @@ Include utility functions we employ.
             mnemonic => $value,
             encoding => "hex");
         push(@@seeds, uc($seed));
+    }
+@}
+
+\subsubsection{{\tt arg\_pick} --- {\tt -pick} $n$: Duplicate the $n$th item from the stack}
+
+@d arg\_pick: Duplicate the $n$th item from the stack
+@{
+    sub arg_pick {
+        my ($name, $value) = @@_;
+
+        stackCheck($value + 1);
+        push(@@seeds, $seeds[$#seeds - $value]);
     }
 @}
 
@@ -302,7 +360,7 @@ Include utility functions we employ.
         while ($l < $n) {
             my $dat;
             my $r = read(RI, $dat, $n - $l);
-print("Requested " . ($n - $l) . " bytes, read $r\n");
+#print("Requested " . ($n - $l) . " bytes, read $r\n");
             $rbytes .= $dat;
             $l += $r;
             if ($l < $n) {
@@ -319,6 +377,41 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
             }
             push(@@seeds, $xv);
         }
+    }
+@}
+
+\subsubsection{{\tt arg\_roll} --- {\tt -roll} $n$: Rotate item $n$ to top of stack}
+
+@d arg\_roll: Rotate item $n$ to top of stack
+@{
+    sub arg_roll {
+        my ($name, $value) = @@_;
+
+        stackCheck($value + 1);
+        my $itemn = splice(@@seeds, -($value + 1), 1);
+        push(@@seeds, $itemn);
+    }
+@}
+
+\subsubsection{{\tt arg\_rot} --- {\tt -rot}: Rotate three stack items}
+
+@d arg\_rot: Rotate three stack items
+@{
+    sub arg_rot {
+        stackCheck(3);
+        my $item3 = splice(@@seeds, -3, 1);
+        push(@@seeds, $item3);
+    }
+@}
+
+\subsubsection{{\tt arg\_rrot} --- {\tt -rrot}: Reverse rotate three stack items}
+
+@d arg\_rrot: Reverse rotate three stack items
+@{
+    sub arg_rrot {
+        stackCheck(3);
+        my $item1 = pop(@@seeds);
+        splice(@@seeds, 2, 0, $item1);
     }
 @}
 
@@ -343,13 +436,25 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
     sub arg_sha256 {
         stackCheck(1);
         my $bytes = hexToBytes(pop(@@seeds));
-my $rhex = bytesToHex($bytes);
-print("$rhex\n");
-my $rbytes = hexToBytes($rhex);
-my $rb = bytesToHex($rbytes);
-print("$rb\n");
+#my $rhex = bytesToHex($bytes);
+#print("$rhex\n");
+#my $rbytes = hexToBytes($rhex);
+#my $rb = bytesToHex($rbytes);
+#print("$rb\n");
         my $sha256 = uc(sha256_hex($bytes));
         push(@@seeds, $sha256);
+    }
+@}
+
+\subsubsection{{\tt arg\_type} --- {\tt -type} {\em text}: Print
+    {\em text} on standard output}
+
+@d arg\_type: Print text on standard output
+@{
+    sub arg_type {
+        my ($name, $value) = @@_;
+
+        print("$value\n");
     }
 @}
 
@@ -365,7 +470,7 @@ print("$rb\n");
         while ($l < $n) {
             my $dat;
             my $r = read(RI, $dat, $n - $l);
-print("Requested " . ($n - $l) . " bytes, read $r\n");
+#print("Requested " . ($n - $l) . " bytes, read $r\n");
             $rbytes .= $dat;
             $l += $r;
             if ($l < $n) {
@@ -692,7 +797,7 @@ original).
     sub stackCheck {
         my ($required) = @@_;
         
-        if ($required < scalar(@@seeds)) {
+        if ($required > scalar(@@seeds)) {
             print("Stack underflow: $required item(s) needed, only " .
                 scalar(@@seeds) . " present.\n");
             exit(1);

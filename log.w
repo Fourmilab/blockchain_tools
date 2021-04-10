@@ -111,4 +111,18 @@ other way.
 Implemented an {\tt -xor} command to exclusive-or the two top items
 on the stack and replace them with the result.
 
+Added a full suite of FORTH-like stack commands: {\tt -drop},
+{\tt -dup}, {\tt -over}, {\tt -pick} $n$, {\tt -roll} $n$, {\tt -rot},
+and {\tt -rrot}.
+
+Added a {\tt -type} {\em message} command to output to standard output.
+
+
+\section{To do}
+
+Add -bfile to read seed(s) from binary file (uses -repeat).  General
+case of -random and -urandom.
+
+
+
 
