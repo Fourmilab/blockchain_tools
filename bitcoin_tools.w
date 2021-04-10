@@ -130,6 +130,7 @@ Fourmilab's HotBits radioactive random number generator.
     use Bitcoin::Crypto::Key::Private;
     use Bitcoin::Crypto::Key::Public;
     use Bitcoin::BIP39 qw(entropy_to_bip39_mnemonic bip39_mnemonic_to_entropy);
+    use Digest::SHA qw(sha256_hex);
     use MIME::Base64;
     use LWP::Simple;
     use Getopt::Long;
@@ -155,7 +156,9 @@ Fourmilab's HotBits radioactive random number generator.
                "random"     =>  \&arg_random,
                "repeat=i"   =>  \$repeat,
                "seed=s"     =>  \&arg_seed,
-               "urandom"    =>  \&arg_urandom
+               "sha256"     =>  \&arg_sha256,
+               "urandom"    =>  \&arg_urandom,
+               "xor"        =>  \&arg_xor
               ) ||
         die("Invalid command line option");
 
@@ -180,13 +183,12 @@ exit(0);
     my ($priv, $pub) = genAddress($HotBits, $opt_Format, 1);
     print(editAddress($priv, $pub, $opt_Format, 1));
 
-#my $hf = readHexfile("hotbits.html");
-#print("Read " . (length($hf) / 2) . " bytes.\n");
-#print(genFromFile($hf, $opt_Format));
-
     #   Local functions
 
     @<Command line argument handlers@>
+    @<stackCheck:  Check for stack underflow@>
+    @<hexToBytes: Convert hexadecimal string to binary@>
+    @<bytesToHex: Convert binary string to hexadecimal@>
     @<genFromFile: Generate keys from seeds specified in a Hexfile@>
     @<genAddress: Generate address from one hexadecimal seed@>
     @<editAddress: Edit private key and public address@>
@@ -213,7 +215,9 @@ Include utility functions we employ.
     @<arg\_phrase: Specify seed as BIP39 phrase@>
     @<arg\_random: Request seed(s) from /dev/random@>
     @<arg\_seed: Push seed on stack@>
+    @<arg\_sha256: Replace top of stack with its SHA256 hash@>
     @<arg\_urandom: Request seed(s) from /dev/urandom@>
+    @<arg\_xor: Exclusive-or top two stack items@>
 @}
 
 \subsubsection{{\tt arg\_dump} --- {\tt -dump}: Dump the stack}
@@ -263,10 +267,11 @@ Include utility functions we employ.
 @d arg\_key: Generate key/address from top of stack
 @{
     sub arg_key {
+        stackCheck($repeat);
         @<Begin command repeat@>
-        my $seed = pop(@@seeds);
-        my ($priv, $pub) = genAddress($seed, $opt_Format, 1);
-        print(editAddress($priv, $pub, $opt_Format, 1));
+            my $seed = pop(@@seeds);
+            my ($priv, $pub) = genAddress($seed, $opt_Format, 1);
+            print(editAddress($priv, $pub, $opt_Format, 1));
         @<End command repeat@>
     }
 @}
@@ -331,6 +336,23 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
     }
 @}
 
+\subsubsection{{\tt arg\_sha256} --- {\tt -sha256}: Replace top of stack with its SHA256 hash}
+
+@d arg\_sha256: Replace top of stack with its SHA256 hash
+@{
+    sub arg_sha256 {
+        stackCheck(1);
+        my $bytes = hexToBytes(pop(@@seeds));
+my $rhex = bytesToHex($bytes);
+print("$rhex\n");
+my $rbytes = hexToBytes($rhex);
+my $rb = bytesToHex($rbytes);
+print("$rb\n");
+        my $sha256 = uc(sha256_hex($bytes));
+        push(@@seeds, $sha256);
+    }
+@}
+
 \subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
 
 @d arg\_urandom: Request seed(s) from /dev/urandom
@@ -360,6 +382,32 @@ print("Requested " . ($n - $l) . " bytes, read $r\n");
             }
             push(@@seeds, $xv);
         }
+    }
+@}
+
+\subsubsection{{\tt arg\_xor} --- {\tt -xor}: Exclusive-or top two stack items}
+
+Exclusive-or the two top items on the stack, removing them and pushing
+the result.
+
+@d arg\_xor: Exclusive-or top two stack items
+@{
+    sub arg_xor {
+        stackCheck(2);
+        my $ol = hexToBytes(pop(@@seeds));
+        my $or = hexToBytes(pop(@@seeds));
+        if (length($ol) != length($or)) {
+            print("-xor: arguments are different lengths.\n");
+            exit(1);
+        }
+        my $rbytes;
+        while ($ol =~ s/^(.)//s) {
+            my $bl = ord($1);
+            $or =~ s/^(.)//s;
+            my $br = ord($1);
+            $rbytes .= chr($bl ^ $br);
+        }
+        push(@@seeds, bytesToHex($rbytes));
     }
 @}
 
@@ -634,6 +682,51 @@ original).
         $s =~ s/\s+$//;
         $r .= "$s\n";
         return $r;
+    }
+@}
+
+\subsection{{\tt stackCheck} ---  Check for stack underflow}
+
+@d stackCheck:  Check for stack underflow
+@{
+    sub stackCheck {
+        my ($required) = @@_;
+        
+        if ($required < scalar(@@seeds)) {
+            print("Stack underflow: $required item(s) needed, only " .
+                scalar(@@seeds) . " present.\n");
+            exit(1);
+        }
+    }
+@}
+
+\subsection{{\tt hexToBytes} --- Convert hexadecimal string to binary}
+
+@d hexToBytes: Convert hexadecimal string to binary
+@{
+    sub hexToBytes {
+        my ($hex) = @@_;
+        
+        my $bytes;
+        while ($hex =~ s/^([\dA-F]{2})//i) {
+            $bytes .= chr(hex($1));
+        }
+        return $bytes;
+    }
+@}
+
+\subsection{{\tt bytesToHex} --- Convert binary string to hexadecimal}
+
+@d bytesToHex: Convert binary string to hexadecimal
+@{
+    sub bytesToHex {
+        my ($bytes) = @@_;
+        
+        my $hex;
+        while ($bytes =~ s/^(.)//i) {
+            $hex .= sprintf("%02X", ord($1));
+        }
+        return $hex;
     }
 @}
 

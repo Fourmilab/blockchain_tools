@@ -97,3 +97,18 @@ The BIP39-encoded phrase is output along with other formats by the
 {\tt -key} command, and a seed specified by a BIP39 phrase supplied
 as a string argument may be pushed onto the stack with the {\tt -phrase}
 command.
+
+Added stack underflow checking to all commands that require arguments
+from the stack. The {\tt stackCheck(}$n${\tt )} function checks
+if $n$ or more arguments are on the stack and errors if fewer are
+present.
+
+Implemented a proper {\tt hexToBytes()} function to convert one of our
+strings of hexadecimal digits into a string of bytes composed of
+pairs of digits.  Naturally, there's a {\tt bytesToHex()} to go the
+other way.
+
+Implemented an {\tt -xor} command to exclusive-or the two top items
+on the stack and replace them with the result.
+
+
