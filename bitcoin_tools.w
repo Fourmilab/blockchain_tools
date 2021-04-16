@@ -131,6 +131,7 @@ Fourmilab's HotBits radioactive random number generator.
     use Bitcoin::Crypto::Key::Public;
     use Bitcoin::BIP39 qw(entropy_to_bip39_mnemonic bip39_mnemonic_to_entropy);
     use Digest::SHA qw(sha256_hex);
+    use Crypt::CBC;
     use MIME::Base64;
     use LWP::Simple;
     use Getopt::Long;
@@ -146,6 +147,7 @@ Fourmilab's HotBits radioactive random number generator.
     my @@seeds;                 # Stack of seeds
 
     GetOptions(
+               "aes"        =>  \&arg_aes,
                "api=s"      =>  \$HotBits_API_key,
                "drop"       =>  \&arg_drop,
                "dump"       =>  \&arg_dump,
@@ -166,6 +168,7 @@ Fourmilab's HotBits radioactive random number generator.
                "sha256"     =>  \&arg_sha256,
                "type=s"     =>  \&arg_type,
                "urandom"    =>  \&arg_urandom,
+               "wif=s"      =>  \&arg_wif,
                "xor"        =>  \&arg_xor
               ) ||
         die("Invalid command line option");
@@ -216,6 +219,7 @@ Include utility functions we employ.
 
 @d Command line argument handlers
 @{
+    @<arg\_aes: Encrypt second item with top of stack key@>
     @<arg\_drop: Drop the top item from the stack@>
     @<arg\_dump: Dump the stack@>
     @<arg\_dup: Duplicate the top item from the stack@>
@@ -233,7 +237,31 @@ Include utility functions we employ.
     @<arg\_sha256: Replace top of stack with its SHA256 hash@>
     @<arg\_type: Print text on standard output@>
     @<arg\_urandom: Request seed(s) from /dev/urandom@>
+    @<arg\_wif: Load seed from Wallet Input Format (WIF) private key@>
     @<arg\_xor: Exclusive-or top two stack items@>
+@}
+
+\subsubsection{{\tt arg\_aes} --- {\tt -aes}: Encrypt second item with top of stack key}
+
+@d arg\_aes: Encrypt second item with top of stack key
+@{
+    sub arg_aes {
+        stackCheck(2);
+        my $key = hexToBytes(pop(@@seeds));
+        my $plaintext = hexToBytes(pop(@@seeds));
+        my $crypt = Crypt::CBC->new(
+                        -chain_mode => "ofb",
+                        -pbkdf  => "pbkdf2",
+                        -header => "none",
+                        -key    => $key,
+                        -cipher => "Crypt::OpenSSL::AES");
+        my $codetext = $crypt->encrypt($plaintext);
+#my $rplain = $crypt->decrypt($codetext);
+#print("Plain " . length($plaintext) . " Code " . length($codetext) . "\n");
+        my $hexcode = bytesToHex($codetext);
+        push(@@seeds, $hexcode);
+#push(@@seeds, bytesToHex($rplain));
+    }
 @}
 
 \subsubsection{{\tt arg\_drop} --- {\tt -drop}: Drop the top item from the stack}
@@ -415,7 +443,7 @@ Include utility functions we employ.
     }
 @}
 
-\subsubsection{{\tt arg\_seed} --- {\tt -seed}: Push seed on stack}
+\subsubsection{{\tt arg\_seed} --- {\tt -seed} {\em hex}: Push seed on stack}
 
 @d arg\_seed: Push seed on stack
 @{
@@ -489,6 +517,24 @@ Include utility functions we employ.
         }
     }
 @}
+
+\subsubsection{{\tt arg\_wif} --- {\tt -wif} {\em key}: Push seed extracted from
+    Wallet Input Format (WIF) private key on stack}
+
+Extract the seed from the private key argument supplied in Wallet
+Import Format (WIF) and push the seed on the stack.
+
+@d arg\_wif: Load seed from Wallet Input Format (WIF) private key
+@{
+    sub arg_wif {
+        my ($name, $value) = @@_;
+
+        $priv = Bitcoin::Crypto::Key::Private->from_wif($value);
+        my $seed = $priv->to_hex();
+        push(@@seeds, uc($seed));
+    }
+@}
+
 
 \subsubsection{{\tt arg\_xor} --- {\tt -xor}: Exclusive-or top two stack items}
 
@@ -796,7 +842,7 @@ original).
 @{
     sub stackCheck {
         my ($required) = @@_;
-        
+
         if ($required > scalar(@@seeds)) {
             print("Stack underflow: $required item(s) needed, only " .
                 scalar(@@seeds) . " present.\n");
@@ -811,7 +857,7 @@ original).
 @{
     sub hexToBytes {
         my ($hex) = @@_;
-        
+
         my $bytes;
         while ($hex =~ s/^([\dA-F]{2})//i) {
             $bytes .= chr(hex($1));
@@ -826,7 +872,7 @@ original).
 @{
     sub bytesToHex {
         my ($bytes) = @@_;
-        
+
         my $hex;
         while ($bytes =~ s/^(.)//i) {
             $hex .= sprintf("%02X", ord($1));
@@ -1186,17 +1232,80 @@ any references to watched addresses.
 
 @d scanBlock: Scan a block by index on the blockchain
 @{
+        my %vincache;
+
         for (my $t = 0; $t < $b_nTx; $t++) {
             #   Transaction ID
             my $t_txid = $r->{tx}->[$t]->{txid};
             if ($statc) {
                 $stat_size->add_data($r->{tx}->[$t]->{vsize});
             }
-            #   Number of "vout" items in transaction
+@}
+
+The source of funds for the transaction is specified by one or more
+``{\tt vin}'' items.  These do not directly specify the address, but
+rather give the transaction in which the funds may be found and the
+``{\tt vout}'' item within it that contains the address(es).  To
+check for references to our addresses, we must look up each of
+these transactions, which requires that Bitcoin Core be configured
+with ``{\tt txindex=1}'', which causes it to build and maintain a
+transaction index.  If this index is absent, we cannot monitor input
+addresses.
+
+Because looking up transactions and decoding them from JSON is costly,
+we cache transactions we query in \verb+%vincache+ and serve the
+previously-retrieved and decoded objects from the cache.  This
+dramatically speeds up processing queries for many blocks.
+
+@d scanBlock: Scan a block by index on the blockchain
+@{
+            my $t_nvin = scalar(@@{$r->{tx}->[$t]->{vin}});
             my $t_nvout = scalar(@@{$r->{tx}->[$t]->{vout}});
 
-            print("  $t.  $t_txid  $t_nvout\n") if $verbose >= 2;
+            print("  $t.  $t_txid  In: $t_nvin  Out: $t_nvout\n") if $verbose >= 2;
 
+            for (my $v = 0; $v < $t_nvin; $v++) {
+                if (defined($r->{tx}->[$t]->{vin}->[$v]->{txid}) &&
+                    defined($r->{tx}->[$t]->{vin}->[$v]->{vout})) {
+                    my ($vintx, $vinn) = ($r->{tx}->[$t]->{vin}->[$v]->{txid},
+                        $r->{tx}->[$t]->{vin}->[$v]->{vout});
+                    my $vi;
+                    if (!defined($vi = $vincache{$vintx})) {
+                        my $vitx = sendRPCcommand([ "getrawtransaction",  $vintx, "true" ]);
+                        $vi = decode_json($vitx);
+                        $vincache{$vintx} = $vi;
+                    }
+#else { print("Served $vintx from cache\n"); }
+                   my $vi_naddr = scalar(@@{$vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}});
+                    #   Loop over addresses in vout item
+                    for (my $a = 0; $a < $vi_naddr; $a++) {
+                        my $a_addr = $vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}->[$a];
+                        my $t_value = $vi->{vout}->[$vinn]->{value};
+                        if (!defined($t_value)) {
+                            $t_value = 0;
+                        }
+                        my $flag = $adrh{$a_addr};
+                        if ($verbose >= 3) {
+                            my $pflag = $flag ? " *****" : "";
+                            print("      In  $v.$a.  $a_addr$pflag\n");
+                        }
+                        if ($flag) {
+                            #   This is one of the addresses we're watching: add to the hit list
+                            push(@@hits, [ $b_height, $b_hash, $b_time, $t_txid, $a_addr, -$t_value ]);
+                        }
+                    }
+                }
+            }
+@}
+
+The ``{\tt vout}'' items in the transaction specify the addresses (or
+scripts) to which the funds are to be sent.  These are more
+straightforward to process than ``{\tt vin}'' items, as the contain the
+actual address and do not require us to look up a transaction to find
+it.
+
+@d scanBlock: Scan a block by index on the blockchain
+@{
             #   Loop over vout items
             for (my $v = 0; $v < $t_nvout; $v++) {
                 if (defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}) &&
@@ -1212,7 +1321,7 @@ any references to watched addresses.
                         my $flag = $adrh{$a_addr};
                         if ($verbose >= 3) {
                             my $pflag = $flag ? " *****" : "";
-                            print("      $v.$a.  $a_addr$pflag\n");
+                            print("      Out $v.$a.  $a_addr$pflag\n");
                         }
                         if ($flag) {
                             #   This is one of the addresses we're watching: add to the hit list
@@ -1511,6 +1620,8 @@ number of confirmations, at which point we exit.
         my $txj = sendRPCcommand([ "getrawtransaction", $txID, "true", $blockHash ]);
         my $tx = decode_json($txj);
 
+        print(Data::Dumper->Dump([$tx], [ qw(Transaction) ])) if $verbose >= 2;
+
         my $t_confirmations = $tx->{confirmations};
         my $t_time = $tx->{time};
 
@@ -1563,6 +1674,165 @@ Import utility functions we share with other programs.
     @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
     @<getPassword: Prompt user to enter password@>
 @}
+
+
+
+
+\chapter{Bitcoin Transaction Fee Watcher}
+
+
+\section{Main program}
+
+\subsection{Program plumbing}
+
+@o fee_watch.pl
+@{@<Explanatory header for Perl files@>
+
+    @<Perl language modes@>
+
+    @<RPC configuration variables@>
+
+#$RPCmethod = "local";
+#$RPCmethod = "rpc";
+#$RPChost = "localhost";
+
+    use LWP;
+    use JSON;
+    use Text::CSV qw(csv);
+    use Getopt::Long;
+    use POSIX qw(strftime);
+    use Term::ReadKey;
+
+    use Data::Dumper;
+@}
+
+\subsection{Command line option processing}
+
+@o fee_watch.pl
+@{
+    my $conf_target = @<CW deem confirmed@>;        # Confirmation target in blocks
+    my $fee_file = "";                              # Fee watch log file
+    my $poll_time = @<Blockchain poll interval@>;   # Poll time for watch check
+    my $quiet = FALSE;                              # Suppress console output
+    my $verbose = @<Verbosity level@>;              # Verbose output ?
+
+    GetOptions(
+        @<RPC command line options@>
+        "confirmed=i"   => \$conf_target,
+        "ffile=s"       => \$fee_file,
+        "poll=i"        => \$poll_time,
+        "quiet"         => \$quiet,
+        "verbose+"      => \$verbose
+    ) || die("Command line option error");
+@}
+
+\subsection{Prompt for RPC password}
+
+If the ``{\tt rpc}'' query method was selected and no password was
+specified, ask the user for it from standard input.
+
+@o fee_watch.pl
+@{
+    if (($RPCmethod eq "rpc") && ($RPCpass eq "")) {
+        $RPCpass = getPassword("Bitcoin RPC password: ");
+    }
+@}
+
+\subsection{Poll fees at the specified interval}
+
+
+@o fee_watch.pl
+@{
+    my $block_start = -1;               # Last block processed
+    my $lastfee = -1;                   # Last estimated fee
+
+    while (TRUE) {
+        my $t = time();
+        my $wait = $poll_time - ($t % $poll_time);
+        print("Waiting $wait seconds until next poll.\n") if $verbose;
+        sleep($wait);
+        $t = time();
+
+        my $efj = sendRPCcommand([ "estimatesmartfee", $conf_target ]);
+        my $ef = decode_json($efj);
+        print(Data::Dumper->Dump([$ef], [ qw(estimatesmartfee) ])) if $verbose >= 2;
+
+        my $estimatedFee = $ef->{feerate};
+
+        if (!$quiet) {
+            my $feediff = "";
+            if ($lastfee >= 0) {
+                if ($lastfee != $estimatedFee) {
+                    $feediff = sprintf("  %+.8f  %+.2f%%",
+                        $estimatedFee - $lastfee,
+                        100 * (($estimatedFee - $lastfee) / $lastfee));
+                }
+            }
+            $lastfee = $estimatedFee;
+            printf("%s  Estimated fee %10.8f%s\n", etime($t), $estimatedFee, $feediff);
+        }
+
+        if ($fee_file ne "") {
+            open(FO, ">>$fee_file");
+            print(FO "1,$t," . etime($t) . ",$estimatedFee\n");
+        }
+
+        my $block_end = sendRPCcommand([ "getblockcount" ]);
+        if ($block_start < 0) {
+            $block_start = $block_end;
+        }
+
+        for (my $j = $block_start; $j <= $block_end; $j++) {
+            my $bsj = sendRPCcommand([ "getblockstats", $j ]);
+            my $bs = decode_json($bsj);
+            print(Data::Dumper->Dump([$bs], [ qw(getblockstats) ])) if $verbose >= 2;
+            my $btime = $bs->{time};
+            my ($feerate_min, $feerate_mean, $feerate_median,
+                $feerate_max) = ($bs->{minfeerate}, $bs->{avgfeerate},
+                    $bs->{medianfee}, $bs->{maxfeerate});
+            my @@feerate_percentiles = @@{$bs->{feerate_percentiles}};
+
+            if (!$quiet) {
+                printf("  Block %d  %s\n    Fee rate min %d, mean %d, median %d, max %d\n",
+                    $j, etime($btime),
+                    $feerate_min, $feerate_mean, $feerate_median, $feerate_max);
+                printf("    Fee percentiles: " .
+                    "10%% $feerate_percentiles[0]  25%% $feerate_percentiles[1]  " .
+                    "50%% $feerate_percentiles[2]  75%% $feerate_percentiles[3]  " .
+                    "90%% $feerate_percentiles[4]\n");
+            }
+            if ($fee_file ne "") {
+                print(FO "2,$btime," . etime($btime) . ",$j," .
+                    "$feerate_min,$feerate_mean,$feerate_median,$feerate_max," .
+                    "$feerate_percentiles[0],$feerate_percentiles[1]," .
+                    "$feerate_percentiles[2],$feerate_percentiles[3]," .
+                    "$feerate_percentiles[4]\n");
+            }
+        }
+        if ($fee_file ne "") {
+            close(FO);
+        }
+        $block_start = $block_end + 1;
+    }
+@}
+
+
+\subsection{Utility functions}
+
+Import utility functions we share with other programs.
+
+@o fee_watch.pl
+@{
+    @<etime: Edit time to ISO 8601@>
+    @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
+    @<getPassword: Prompt user to enter password@>
+@}
+
+
+
+
+
+
 
 \chapter{Utility Functions}
 
@@ -1922,10 +2192,14 @@ build:
 The {\tt view} target re-generates the master document containing
 all documentation and code, while {\tt peek} simply view the
 most-recently-generated document (without check if it is current).
+We delete the \LaTeX\ intermediate files so an error in an
+earlier run which might, for example, have corrupted the table of
+contents, does not wreck this one.
 
 @o Makefile.mkf
 @{
 view:
+        rm -f $(PROJECT).log $(PROJECT).toc $(PROJECT).out $(PROJECT).aux
         $(NUWEB) -o -r $(PROJECT).w
         $(LATEX) $(PROJECT).tex
         # We have to re-run Nuweb to incorporate the updated TOC

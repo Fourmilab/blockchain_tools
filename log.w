@@ -1,14 +1,14 @@
 
 \date{2021 April 5}
 
-Added a {\tt -zero} option to {\tt build\_watch\_list} to include 
-zero-balance accounts in the watch list.  By default, they are 
+Added a {\tt -zero} option to {\tt build\_watch\_list} to include
+zero-balance accounts in the watch list.  By default, they are
 excluded.
 
-Added a {\tt -wallet} option in bitwatch which scans the wallet for 
-``{\tt listunspent}'' and adds the addresses with an unspent balance to 
-the watch list.  This is re-fetched on each periodic scan of new blocks 
-so that the address list is always current whenever we look at new 
+Added a {\tt -wallet} option in bitwatch which scans the wallet for
+``{\tt listunspent}'' and adds the addresses with an unspent balance to
+the watch list.  This is re-fetched on each periodic scan of new blocks
+so that the address list is always current whenever we look at new
 blocks.
 
 Due to Perl syntactical Hell when attempting to mix explicit arrays and
@@ -17,38 +17,38 @@ watched address in a block.  I rewrote the whole mess to use only
 references, added all the requisite arrows and explicit dereferences
 and now it appears to work OK.
 
-Fixed some messiness with {\tt -verbose} handling in {\tt 
-address\_watch}.  It makes more sense now and the output is easier to 
+Fixed some messiness with {\tt -verbose} handling in {\tt
+address\_watch}.  It makes more sense now and the output is easier to
 read.
 
-Added the ability in {\tt confirmation\_watch} to specify the RPC 
-password from the keyboard with no echo or piped from standard input.  
-This is handled by a new function, {\tt getPassword(<prompt>)}, which 
+Added the ability in {\tt confirmation\_watch} to specify the RPC
+password from the keyboard with no echo or piped from standard input.
+This is handled by a new function, {\tt getPassword(<prompt>)}, which
 we can use in other cases where passwords are required.
 
-If no {\tt -wfile} was specified to {\tt address\_watch} but explicit 
-addresses were specified with -watch, an error would be reported.  
-Fixed so there's an error only if no addresses specified by either 
+If no {\tt -wfile} was specified to {\tt address\_watch} but explicit
+addresses were specified with -watch, an error would be reported.
+Fixed so there's an error only if no addresses specified by either
 mechanism.
 
 \date{2021 April 6}
 
-Added support for unlocking and unlocking wallets in {\tt 
-address\_watch} when the user has locked the wallet and {\tt -wallet} 
-is specified.  The password for the wallet is read from standard input 
-with echo disabled or may be specified with a command line option which 
+Added support for unlocking and unlocking wallets in {\tt
+address\_watch} when the user has locked the wallet and {\tt -wallet}
+is specified.  The password for the wallet is read from standard input
+with echo disabled or may be specified with a command line option which
 is, of course, in a multi-user environment, hideously insecure.
 
-Rewrote {\tt sendRPCcommand()} to accept its arguments as a reference 
-to a list instead of a string it parses.  The original scheme didn't 
-play nice with quoted arguments which contain spaces, as happens when 
-specifying pass phrases for the RPC API and wallets.  Other than 
+Rewrote {\tt sendRPCcommand()} to accept its arguments as a reference
+to a list instead of a string it parses.  The original scheme didn't
+play nice with quoted arguments which contain spaces, as happens when
+specifying pass phrases for the RPC API and wallets.  Other than
 passing a list instead of a string, nothing has changed.
 
 \date{2021 April 7}
 
-Updated {\tt confirmation\_watch} to use the new list argument {\tt 
-sendRPCcommand()} function.  There is just one call on this function in 
+Updated {\tt confirmation\_watch} to use the new list argument {\tt
+sendRPCcommand()} function.  There is just one call on this function in
 the entire program.
 
 Integrated all of the programs into a Nuweb Literate Programming
@@ -85,9 +85,9 @@ Re-enabled inclusion of the build number, date, and time in generated
 files.  Since these files are excluded from the Git repository by
 {\tt .gitignore}, they will not cause unnecessary update transactions.
 
-Began implementation of the stack-oriented version of {\tt 
-bitcoin\_address}.  This will increase the flexibility of generation of 
-addresses by this program.  Commands allow fetching seeds from the 
+Began implementation of the stack-oriented version of {\tt
+bitcoin\_address}.  This will increase the flexibility of generation of
+addresses by this program.  Commands allow fetching seeds from the
 command line, HotBits, {\tt /dev/random}, or {\tt /dev/urandom}.
 
 \date{2021 April 10}
@@ -117,6 +117,78 @@ and {\tt -rrot}.
 
 Added a {\tt -type} {\em message} command to output to standard output.
 
+\date{2021 April 11}
+
+Added code to {\tt confirmation\_watch} to dump the transaction if
+the {\tt -verbose} level is two or above.
+
+If a previous generation of the PDF document failed due to a syntax
+error in a title appearing in the table of contents, it could torpedo a
+subsequent run due to the error having been transcribed to the {\tt
+.toc} document.  I added a command to the {\tt view} target in the {\tt
+Makefile} to delete all of the intermediate files from the last run to
+avoid this happening.
+
+\date{2021 April 12}
+
+Added a {\tt -wif} option to {\tt bitcoin\_address} to extract the seed
+from a private key in Wallet Import Format (WIF) and push it on the
+stack.  The key may be in either compressed or uncompressed format.
+
+
+\date{2021 April 16}
+
+Now, it's back to {\tt address\_watch} to implement watching of
+inputs to transactions which come from addresses we're watching.
+For the application of monitoring cold storage against unauthorised
+accesses, this is a critical functionality.  Doing this requires
+being able to look up transactions by their transaction ID, and
+to do this on a Bitcoin Core node means enabling the
+{\tt txindex=1} mode on the server, which causes it to build an
+index from transaction index to the block which contains the
+transaction and, in turn, enable the {\tt getrawtransaction}
+API call to return a transaction purely from its ID, without needing
+to know in which block it appears.
+
+Enabling this requires a complete re-scan of the archived blocks
+back to the Genesis block.  At the time I did this yesterday, the
+complete blockchain was 360 Gb, and performing a complete re-scan
+and re-index, which you do by starting Bitcoin with:
+
+\begin{verbatim}
+    bitcoin-qt -rescan -reindex
+\end{verbatim}
+
+This starts a process which ran for around ten and a half hours, using
+around two CPU cores for the first nine hours, then seven cores for the
+last hour.  When it was done, the transaction index, {\tt
+indexes/txindex} was 31 Gb and we were able to retrieve transactions by
+ID.
+
+Now let's start digging into the inputs side of a transaction.  Using
+JSON dumps from a test transaction, we see a ``{\tt vin}'' section
+which contains an array of inputs to the transaction.  Each of these
+contains a ``{\tt txid}'' field with the transaction which last
+modified the input and a ``{\tt vout}'' field which identifies which of
+the output addresses in that transaction is being spent as an input to
+this one.  To learn more about the inputs, we must look up their
+transactions IDs.
+
+Looking up each input transaction, then, we examine the item in its
+``{\tt vout}'' array specified as the source, and can finally extract
+the address(es) and value associated with it.  (I don't know what it
+means for more than one address to be present in the
+``{\tt addresses}'' field of a ``{\tt vout}''.)
+
+With this analysis in place, I added analysis of inbound transactions
+to {\tt address\_watch}.  For the cold storage monitoring application,
+this is arguably the most important, since is somebody has obtained
+the private key of a cold storage vault address, the first indication
+will be a transfer to another address with the cold storage as the
+inbound funds of the thief's transaction.  The real world blockchain
+has a large number of references to the same transactions as inputs
+within the block, so I implemented a cache mechanism to that we'll only
+ever look up a transaction once per scan of a block.
 
 \section{To do}
 
