@@ -135,7 +135,6 @@ Added a {\tt -wif} option to {\tt bitcoin\_address} to extract the seed
 from a private key in Wallet Import Format (WIF) and push it on the
 stack.  The key may be in either compressed or uncompressed format.
 
-
 \date{2021 April 16}
 
 Now, it's back to {\tt address\_watch} to implement watching of
@@ -190,11 +189,126 @@ has a large number of references to the same transactions as inputs
 within the block, so I implemented a cache mechanism to that we'll only
 ever look up a transaction once per scan of a block.
 
+\date{2021 April 17}
+
+Added ``logic'' to {\tt confirmation\_watch} which allows, when
+specifying a single argument, it to be either a label looked up in the
+{\tt address\_watch} {\tt -lfile} log or a transaction ID, which may be
+specified without the block hash in which it resides if Bitcoin Core
+has been built with {\tt txindex=1}.  This is done with a hideous
+kludge which considers anything of 48 or fewer characters of which
+contains a character which is not a hexadecimal digit.  If two
+arguments are specified, they continue to be interpreted as a
+transaction index and block hash.
+
+Added a command to the {\tt build} target of the {\tt Makefile} to
+mark all the Perl programs executable when they are re-generated.
+
+\date{2021 April 18}
+
+If a source of funds in a transaction was a ``coinbase'' transaction:
+newly-created Bitcoin paid to miners in compensation for publishing
+a block, that transaction contains no addresses in its ``{\tt vout}''
+section, which caused {\tt scanBlock()} in {\tt address\_watch} to
+fail with a reference an undefined variable.  I added code to detect
+absence of an {\tt address} in source transactions and skip scanning
+them for matches to one of our watched addresses (since newly-created
+funds can't possibly come from a watched address).
+
+\date{2021 April 19}
+
+Added {\tt -help} option to all of the programs.  Those which share the
+common RPC options use a common definition of the options imported
+into the help text they print.
+
+Added analysis of reward fees paid to miners in {\tt address\_watch}.
+For each block, the value items in the ``{\tt vout}'' section of the
+first transaction (which is always the ``coinbase'' reward to the
+miner who published the block) are summed, giving the total reward.
+The portion of that which is the current standard reward for a new
+bloc, computed by the new common utility function {\tt blockReward()},
+is output and subtracted to yield the portion of the reward due to
+transaction fees.  This information is included in the status shown
+on standard ouput by the {\tt -stats} option and in the file written
+by the {\tt -sfile} option.
+
+Converted the output of the {\tt -sfile} command to proper CSV which
+may be imported directly into a spreadsheet or database.
+
+\date{2021 April 20}
+
+Implemented a configuration file and optional interactive command
+facility.  This is driven from the same option array we use
+to process command line options.  The configuration facility is
+included in each program and uses its {\tt \%option} declaration
+as a hidden parameter.  The function {\tt processCommand()}
+parses and executes a command defined in the {\tt \%options}
+hash, ignoring blank lines and ``{\tt \#}'' comments.  If an
+undefined command is submitted, a warning is given if running in
+interactive mode, but ignored otherwise.  This allows using a
+generic configuration file which specifies options which only some
+of the programs implement.
+
+A ready-to-use {\tt arg\_inter()} argument processor is provided,
+which can be invoked by a command line option (usually {\tt -inter})
+to interact with the user.  Commands and arguments are read and
+processed until interactive mode is exited with any of ``@{end@}'',
+``@{exit@}'', ``@{quit@}'', or end of file.
+
+The {\tt processConfiguration()} function provides configuration
+file support.  Called before the program processes its command line
+options, it looks for {\tt .conf} configuration files named for
+the project and the specific program and, if present, processes
+them in order.  Program configuration, if present, overrides that
+for the overall project, and both may be overridden by command line
+options.
+
+Added a {\tt -swap} command to {\tt bitcoin\_address}, which I had
+somehow overlooked on the last pass.
+
+Added a {\tt -binfile} command to {\tt bitcoin\_address}, which reads
+as any sequences of 32 bytes as exist in the file and pushes them, as
+hexadecimal seed values, onto the stack.  In the process, I found and
+fixed a bug in {\tt bytesToHex()} that caused it to be sensitive to end
+of line characters in the byte stream and updated the {\tt -random} and
+{\tt -urandom} commands to use the function rather than their own
+built-in code.
+
+Made the {\tt -type} command universal in all programs.  This allows
+it to be used in configuration files for all programs.
+
+Added a {\tt -test} command to {\tt bitcoin\_address} to run a
+bit-level randomness analysis of the seed on the top of the stack.
+The top of the stack is unchanged.  Removed the built-in randomess
+test from the {\tt key} command.
+
+\date{2021 April 21}
+
+Implemented a {\tt -pseudo} command in {\tt bitcoin\_address} which
+places one or more (it respects {\tt repeat}) pseudorandom seeds
+generated by a Mersenne Twister generator itself seeded from
+{\tt /dev/urandom} on the stack.
+
+Added {\tt -zero} and {\tt -not} commands for stack manipulation.
+
+Added a {\tt -shuffle} command, which shuffles all of the bytes
+on the stack.  All stack items are concatenated together, shuffled
+as a single byte stream, then divided back into 32 byte seeds and
+pushed back onto the stack.
+
+
 \section{To do}
 
-Add -bfile to read seed(s) from binary file (uses -repeat).  General
-case of -random and -urandom.
+Shuffle bytes command.
 
+Add ability to write the stack to a file in either hex or binary form.
 
+Accumulate value in to address as well as value out in address\_watch
+and report in statistics.
+
+Test with a password-protected wallet.
+
+Options which request passwords prompt the user interactively if given
+a blank argument.
 
 

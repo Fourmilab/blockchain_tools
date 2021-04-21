@@ -29,6 +29,8 @@
 
 \let\cleardoublepage\clearpage
 
+%   Space between paragraphs, don't indent
+\usepackage[parfill]{parskip}
 %   Keep section numbers from colliding with title in TOC
 \usepackage{tocloft}
 \cftsetindents{subsection}{4em}{4em}
@@ -45,6 +47,9 @@
 
 %   Support text wrapping around figures
 \usepackage{wrapfig}
+
+%   Add additional math notation, including \floor and \ceil
+\usepackage{mathtools}
 
 \title{\bf Fourmilab Bitcoin Tools}
 
@@ -65,6 +70,21 @@
 
 \chapter{Introduction}
 \pagenumbering{arabic}
+
+This collection of programs and utilities provides a set of tools for
+advanced users, explorers, and researchers of the Bitcoin blockchain.
+Most of the tools require access to a system (either local or remote)
+which runs a ``full node'' using the
+\href{https://bitcoin.org/en/bitcoin-core/}{Bitcoin Core} software
+and maintains a complete copy of the up-to-date Bitcoin blockchain.
+In order to use the Address Watcher, the node must maintain a
+transaction index, which is enabled by setting ``{\tt txindex=1}''
+in its {\tt bitcoin.conf} file.
+
+Some utilities (for example, the Bitcoin address generator) do not
+require access to a Bitcoin node and others may be able to be used
+on nodes which have ``pruned'' the blockchain to include only more
+recent blocks.
 
 @d Project Title @{Bitcoin Tools@}
 @d Project File Name @{bitcoin_tools@}
@@ -99,7 +119,12 @@ Include the configuration from {\tt configuration.w}.
 
 This program generates Bitcoin public address and private key pairs
 from a variety of sources of random and pseudorandom data, including
-Fourmilab's HotBits radioactive random number generator.
+Fourmilab's HotBits radioactive random number generator.  The program
+is implemented as a stack machine where command line ``options'' are
+actually commands and arguments that allow specification, generation,
+and manipulation of random and pseudorandom data, generation of Bitcoin
+private keys and public addresses from them, and their output in a
+variety of formats.
 
 \section{Main program}
 
@@ -124,7 +149,7 @@ Fourmilab's HotBits radioactive random number generator.
 #        #   Local generator for use at Fourmilab
 #        "http://10.2.0.50:5739/-h32"
 #        #   Canned constant value for testing on air-gapped machines
-#       "<pre>\n4F010C07C1C06F90929CECB53A8377D98F8406CB8ECEFFE16378A14BBE492972\n</pre>\n";
+#       "<pre>\n4F010C07C1C06F90929CECB53A8377D98F8406CB8ECEFFE16378A14BBE492972\n</pre>\n"
 #    ;
 
     use Bitcoin::Crypto::Key::Private;
@@ -134,10 +159,14 @@ Fourmilab's HotBits radioactive random number generator.
     use Crypt::CBC;
     use MIME::Base64;
     use LWP::Simple;
-    use Getopt::Long;
+    use Getopt::Long qw(GetOptionsFromArray);
+    use Data::Dumper;
 @}
 
 \subsection{Process command line options}
+
+If project- or program-level configuration files are present, process
+them, then process command line options.
 
 @o bitcoin_address.pl
 @{
@@ -146,56 +175,54 @@ Fourmilab's HotBits radioactive random number generator.
     my $repeat = 1;             # Repeat command this number of times
     my @@seeds;                 # Stack of seeds
 
+    my %options = (
+        "aes"       =>  \&arg_aes,
+        "binfile=s" =>  \&arg_binfile,
+        "drop"      =>  \&arg_drop,
+        "dump"      =>  \&arg_dump,
+        "dup"       =>  \&arg_dup,
+        "format=s"  =>  \$opt_Format,
+        "hbapik=s"  =>  \$HotBits_API_key,
+        "help"      =>  \&showHelp,
+        "hexfile=s" =>  \&arg_hexfile,
+        "hotbits"   =>  \&arg_hotbits,
+        "inter"     =>  \&arg_inter,
+        "key"       =>  \&arg_key,
+        "not"       =>  \&arg_not,
+        "over"      =>  \&arg_over,
+        "phrase=s"  =>  \&arg_phrase,
+        "pick=i"    =>  \&arg_pick,
+        "pseudo"    =>  \&arg_pseudo,
+        "random"    =>  \&arg_random,
+        "repeat=i"  =>  \$repeat,
+        "roll=i"    =>  \&arg_roll,
+        "rot"       =>  \&arg_rot,
+        "rrot"      =>  \&arg_rrot,
+        "seed=s"    =>  \&arg_seed,
+        "sha256"    =>  \&arg_sha256,
+        "shuffle"   =>  \&arg_shuffle,
+        "swap"      =>  \&arg_swap,
+        "test"      =>  \&arg_test,
+        "type=s"    =>  sub { print("$_[1]\n"); },
+        "urandom"   =>  \&arg_urandom,
+        "wif=s"     =>  \&arg_wif,
+        "xor"       =>  \&arg_xor,
+        "zero"      =>  \&arg_zero
+    );
+
+    processConfiguration();
+
     GetOptions(
-               "aes"        =>  \&arg_aes,
-               "api=s"      =>  \$HotBits_API_key,
-               "drop"       =>  \&arg_drop,
-               "dump"       =>  \&arg_dump,
-               "dup"        =>  \&arg_dup,
-               "format=s"   =>  \$opt_Format,
-               "hexfile=s"  =>  \&arg_hexfile,
-               "hotbits"    =>  \&arg_hotbits,
-               "key"        =>  \&arg_key,
-               "over"       =>  \&arg_over,
-               "phrase=s"   =>  \&arg_phrase,
-               "pick=i"     =>  \&arg_pick,
-               "random"     =>  \&arg_random,
-               "repeat=i"   =>  \$repeat,
-               "roll=i"     =>  \&arg_roll,
-               "rot"        =>  \&arg_rot,
-               "rrot"       =>  \&arg_rrot,
-               "seed=s"     =>  \&arg_seed,
-               "sha256"     =>  \&arg_sha256,
-               "type=s"     =>  \&arg_type,
-               "urandom"    =>  \&arg_urandom,
-               "wif=s"      =>  \&arg_wif,
-               "xor"        =>  \&arg_xor
+               %options
               ) ||
         die("Invalid command line option");
+@}
 
-exit(0);
+Include local and utility functions we employ.
 
-    #   Get hexadecimal seed from the command line or HotBits
-
-    my $HotBits;
-    if (scalar(@@ARGV) == 0) {
-        my $hbr;
-        if ($HotBits_Query =~ m|^https?://|) {
-            $hbr = get($HotBits_Query);
-        } else {
-            $hbr = $HotBits_Query;
-        }
-        $hbr =~ m:<pre>.*?(\w+).*?</pre>:s || die("Cannot parse HotBits reply: $hbr");
-        $HotBits = $1;
-    } else {
-        $HotBits = uc($ARGV[0]);
-    }
-
-    my ($priv, $pub) = genAddress($HotBits, $opt_Format, 1);
-    print(editAddress($priv, $pub, $opt_Format, 1));
-
+@o bitcoin_address.pl
+@{
     #   Local functions
-
     @<Command line argument handlers@>
     @<stackCheck:  Check for stack underflow@>
     @<hexToBytes: Convert hexadecimal string to binary@>
@@ -204,13 +231,13 @@ exit(0);
     @<genAddress: Generate address from one hexadecimal seed@>
     @<editAddress: Edit private key and public address@>
     @<BIP39encode: Encode seed as BIP39 mnemonic phrase@>
-@}
+    @<Pseudorandom number generator@>
+    @<shuffleBytes: Shuffle bytes@>
+    @<showHelp: Show Bitcoin address help information@>
 
-Include utility functions we employ.
-
-@o bitcoin_address.pl
-@{
+    #   Shared utility functions
     @<readHexfile: Read hexadecimal data from a file@>
+    @<Command and option processing@>
 @}
 
 \section{Local functions}
@@ -220,14 +247,17 @@ Include utility functions we employ.
 @d Command line argument handlers
 @{
     @<arg\_aes: Encrypt second item with top of stack key@>
+    @<arg\_binfile: Push seeds from binary file on stack@>
     @<arg\_drop: Drop the top item from the stack@>
     @<arg\_dump: Dump the stack@>
     @<arg\_dup: Duplicate the top item from the stack@>
     @<arg\_hexfile: Push seeds from hexfile on stack@>
     @<arg\_hotbits: Request seed(s) from HotBits@>
     @<arg\_key: Generate key/address from top of stack@>
+    @<arg\_not: Invert bits in top of stack item@>
     @<arg\_over: Duplicate the second item from the stack@>
     @<arg\_pick: Duplicate the $n$th item from the stack@>
+    @<arg\_pseudo: Generate pseudorandom seed and push on stack@>
     @<arg\_phrase: Specify seed as BIP39 phrase@>
     @<arg\_random: Request seed(s) from /dev/random@>
     @<arg\_roll: Rotate item $n$ to top of stack@>
@@ -235,10 +265,13 @@ Include utility functions we employ.
     @<arg\_rrot: Reverse rotate three stack items@>
     @<arg\_seed: Push seed on stack@>
     @<arg\_sha256: Replace top of stack with its SHA256 hash@>
-    @<arg\_type: Print text on standard output@>
+    @<arg\_shuffle: Shuffle bytes on stack@>
+    @<arg\_swap: Swap the two top items on the stack@>
+    @<arg\_test: Test the stack top item for randomness@>
     @<arg\_urandom: Request seed(s) from /dev/urandom@>
     @<arg\_wif: Load seed from Wallet Input Format (WIF) private key@>
     @<arg\_xor: Exclusive-or top two stack items@>
+    @<arg\_zero: Push all zeroes on the stack@>
 @}
 
 \subsubsection{{\tt arg\_aes} --- {\tt -aes}: Encrypt second item with top of stack key}
@@ -262,7 +295,23 @@ Include utility functions we employ.
         push(@@seeds, $hexcode);
 #push(@@seeds, bytesToHex($rplain));
     }
-@}
+@| arg_aes @}
+
+\subsubsection{{\tt arg\_binfile} --- {\tt -binfile}: Push seeds from binary file on stack}
+
+@d arg\_binfile: Push seeds from binary file on stack
+@{
+    sub arg_binfile {
+        my ($name, $value) = @@_;
+
+        open(BI, "<$value") || die("Cannot open $value");
+        my $dat;
+        while (read(BI, $dat, 32) == 32) {
+            push(@@seeds, bytesToHex($dat));
+        }
+        close(BI);
+    }
+@| arg_binfile @}
 
 \subsubsection{{\tt arg\_drop} --- {\tt -drop}: Drop the top item from the stack}
 
@@ -272,7 +321,7 @@ Include utility functions we employ.
         stackCheck(1);
         pop(@@seeds);
     }
-@}
+@| arg_drop @}
 
 \subsubsection{{\tt arg\_dump} --- {\tt -dump}: Dump the stack}
 
@@ -281,7 +330,7 @@ Include utility functions we employ.
     sub arg_dump {
         print("  ", join("\n  ", reverse(@@seeds)), "\n");
     }
-@}
+@| arg_dump @}
 
 \subsubsection{{\tt arg\_dup} --- {\tt -dup}: Duplicate the top item from the stack}
 
@@ -291,7 +340,7 @@ Include utility functions we employ.
         stackCheck(1);
         push(@@seeds, $seeds[$#seeds]);
     }
-@}
+@| arg_dup @}
 
 \subsubsection{{\tt arg\_hexfile} --- {\tt -hexfile}: Push seeds from hexfile on stack}
 
@@ -305,7 +354,7 @@ Include utility functions we employ.
             push(@@seeds, $1);
         }
     }
-@}
+@| arg_hexfile @}
 
 \subsubsection{{\tt arg\_hotbits} --- {\tt -hotbits}: Request seed(s) from HotBits}
 
@@ -324,7 +373,7 @@ Include utility functions we employ.
             push(@@seeds, $1);
         }
     }
-@}
+@| arg_hotbits @}
 
 \subsubsection{{\tt arg\_key} --- {\tt -key}: Generate key/address from top of stack}
 
@@ -338,7 +387,22 @@ Include utility functions we employ.
             print(editAddress($priv, $pub, $opt_Format, 1));
         @<End command repeat@>
     }
-@}
+@| arg_key @}
+
+\subsubsection{{\tt arg\_not} --- {\tt -not}: Invert bits in top of stack item}
+
+@d arg\_not: Invert bits in top of stack item
+@{
+    sub arg_not {
+        stackCheck(1);
+        my $b = hexToBytes(pop(@@seeds));
+        my $bi = "";
+        for (my $i = 0; $i < bytes::length($b); $i++) {
+            $bi .= sprintf("%02X", ord(bytes::substr($b, $i, 1)) ^ 0xFF);
+        }
+        push(@@seeds, $bi);
+    }
+@| arg_not @}
 
 \subsubsection{{\tt arg\_over} --- {\tt -over}: Duplicate the second item from the stack}
 
@@ -348,7 +412,7 @@ Include utility functions we employ.
         stackCheck(2);
         push(@@seeds, $seeds[$#seeds - 1]);
     }
-@}
+@| arg_over @}
 
 \subsubsection{{\tt arg\_phrase} --- {\tt -phrase}: Specify seed as BIP39 phrase}
 
@@ -362,7 +426,7 @@ Include utility functions we employ.
             encoding => "hex");
         push(@@seeds, uc($seed));
     }
-@}
+@| arg_phrase @}
 
 \subsubsection{{\tt arg\_pick} --- {\tt -pick} $n$: Duplicate the $n$th item from the stack}
 
@@ -374,7 +438,23 @@ Include utility functions we employ.
         stackCheck($value + 1);
         push(@@seeds, $seeds[$#seeds - $value]);
     }
-@}
+@| arg_pick @}
+
+\subsubsection{{\tt arg\_pseudo} --- {\tt -pseudo}: Generate pseudorandom seed and push on stack}
+
+@d arg\_pseudo: Generate pseudorandom seed and push on stack
+@{
+    sub arg_pseudo {
+        randInit();
+        @<Begin command repeat@>
+            my $s = "";
+            for (my $i = 0; $i < 32; $i++) {
+                $s .= sprintf("%02X", randNext(256));
+            }
+            push(@@seeds, $s);
+        @<End command repeat@>
+    }
+@| arg_pseudo @}
 
 \subsubsection{{\tt arg\_random} --- {\tt -random}: Request seed(s) from {\tt /dev/random}}
 
@@ -399,14 +479,10 @@ Include utility functions we employ.
         close(RI);
         while ($rbytes =~ s/^(.{32})//s) {
             my $hn = $1;
-            my $xv;
-            while ($hn =~ s/^(.)//s) {
-                $xv .= sprintf("%02X", ord($1));
-            }
-            push(@@seeds, $xv);
+            push(@@seeds, bytesToHex($hn));
         }
     }
-@}
+@| arg_random @}
 
 \subsubsection{{\tt arg\_roll} --- {\tt -roll} $n$: Rotate item $n$ to top of stack}
 
@@ -419,7 +495,7 @@ Include utility functions we employ.
         my $itemn = splice(@@seeds, -($value + 1), 1);
         push(@@seeds, $itemn);
     }
-@}
+@| arg_roll @}
 
 \subsubsection{{\tt arg\_rot} --- {\tt -rot}: Rotate three stack items}
 
@@ -430,7 +506,7 @@ Include utility functions we employ.
         my $item3 = splice(@@seeds, -3, 1);
         push(@@seeds, $item3);
     }
-@}
+@| arg_rot @}
 
 \subsubsection{{\tt arg\_rrot} --- {\tt -rrot}: Reverse rotate three stack items}
 
@@ -441,7 +517,7 @@ Include utility functions we employ.
         my $item1 = pop(@@seeds);
         splice(@@seeds, 2, 0, $item1);
     }
-@}
+@| arg_rrot @}
 
 \subsubsection{{\tt arg\_seed} --- {\tt -seed} {\em hex}: Push seed on stack}
 
@@ -455,7 +531,7 @@ Include utility functions we employ.
         }
         push(@@seeds, $value);
     }
-@}
+@| arg_seed @}
 
 \subsubsection{{\tt arg\_sha256} --- {\tt -sha256}: Replace top of stack with its SHA256 hash}
 
@@ -464,27 +540,74 @@ Include utility functions we employ.
     sub arg_sha256 {
         stackCheck(1);
         my $bytes = hexToBytes(pop(@@seeds));
-#my $rhex = bytesToHex($bytes);
-#print("$rhex\n");
-#my $rbytes = hexToBytes($rhex);
-#my $rb = bytesToHex($rbytes);
-#print("$rb\n");
         my $sha256 = uc(sha256_hex($bytes));
         push(@@seeds, $sha256);
     }
-@}
+@| arg_sha256 @}
 
-\subsubsection{{\tt arg\_type} --- {\tt -type} {\em text}: Print
-    {\em text} on standard output}
+\subsubsection{{\tt arg\_shuffle} --- {\tt -shuffle}: Shuffle bytes on stack}
 
-@d arg\_type: Print text on standard output
+Shuffle the bytes of all items on the stack.  Why would you want
+to do this?  Suppose, for example, you've obtained entropy from a
+source on the Internet and, despite retrieving it using https:, you're
+worried about the data being intercepted along the way or archived
+by the site which generated it.  You can ally that risk, in part, by
+generating a much larger quantity of data than you need, shuffling
+the bytes using a different seed generated locally, then selecting
+a key from the shuffled bytes.  If the sample from which you select
+your actual key is sufficiently large, guessing which bytes were
+chosen is intractable.
+
+@d arg\_shuffle: Shuffle bytes on stack
 @{
-    sub arg_type {
+    sub arg_shuffle {
+        stackCheck(1);
+        my $allbytes = hexToBytes(join("", @@seeds));
+        @@seeds = ( );
+        my $sbytes = bytesToHex(shuffleBytes($allbytes));
+        while ($sbytes =~ s/^(\w{64})//) {
+            push(@@seeds, $1);
+        }
+    }
+@| arg_shuffle @}
+
+\subsubsection{{\tt arg\_swap} --- {\tt -swap}: Swap the two top items on the stack}
+
+
+@d arg\_swap: Swap the two top items on the stack
+@{
+    sub arg_swap {
         my ($name, $value) = @@_;
 
-        print("$value\n");
+        stackCheck(2);
+        my $itemn = splice(@@seeds, -2, 1);
+        push(@@seeds, $itemn);
     }
-@}
+@| arg_swap @}
+
+
+\subsubsection{{\tt arg\_test} --- {\tt -test}: Test randomness of top of stack}
+
+Take the seed on the top of the stack and feed it to
+\href{https://www.fourmilab.ch/random/}{\tt ent} to perform an
+analysis of its randomness.  Note that when interpreting these results,
+the brevity of the seed (just 256 bits) will cause it to appear less
+than random compared to a larger sample.  We perform the randomness
+tests on a bit-level basis, as byte-level tests are useless on such a
+small sample.
+
+@d arg\_test: Test the stack top item for randomness
+@{
+    sub arg_test {
+        stackCheck(1);
+        my $r = "Randomness analysis:\n";
+        my $ent_analysis = `echo $seeds[$#seeds] | xxd -r -p - | ent -b`;
+        $ent_analysis =~ s/\n\n/\n/gs;
+        $ent_analysis =~ s/^/    /mg;
+        $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
+        print("$ent_analysis\n");
+    }
+@| arg_test @}
 
 \subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
 
@@ -509,14 +632,10 @@ Include utility functions we employ.
         close(RI);
         while ($rbytes =~ s/^(.{32})//s) {
             my $hn = $1;
-            my $xv;
-            while ($hn =~ s/^(.)//s) {
-                $xv .= sprintf("%02X", ord($1));
-            }
-            push(@@seeds, $xv);
+            push(@@seeds, bytesToHex($hn));
         }
     }
-@}
+@| arg_urandom @}
 
 \subsubsection{{\tt arg\_wif} --- {\tt -wif} {\em key}: Push seed extracted from
     Wallet Input Format (WIF) private key on stack}
@@ -529,11 +648,11 @@ Import Format (WIF) and push the seed on the stack.
     sub arg_wif {
         my ($name, $value) = @@_;
 
-        $priv = Bitcoin::Crypto::Key::Private->from_wif($value);
+        my $priv = Bitcoin::Crypto::Key::Private->from_wif($value);
         my $seed = $priv->to_hex();
         push(@@seeds, uc($seed));
     }
-@}
+@| arg_wif @}
 
 
 \subsubsection{{\tt arg\_xor} --- {\tt -xor}: Exclusive-or top two stack items}
@@ -547,20 +666,32 @@ the result.
         stackCheck(2);
         my $ol = hexToBytes(pop(@@seeds));
         my $or = hexToBytes(pop(@@seeds));
-        if (length($ol) != length($or)) {
+        if (bytes::length($ol) != bytes::length($or)) {
             print("-xor: arguments are different lengths.\n");
             exit(1);
         }
         my $rbytes;
-        while ($ol =~ s/^(.)//s) {
-            my $bl = ord($1);
-            $or =~ s/^(.)//s;
-            my $br = ord($1);
-            $rbytes .= chr($bl ^ $br);
+        for (my $i = 0; $i < bytes::length($ol); $i++) {
+            $rbytes .= chr(ord(bytes::substr($ol, $i, 1))) ^
+                       chr(ord(bytes::substr($or, $i, 1)));
         }
         push(@@seeds, bytesToHex($rbytes));
     }
-@}
+@| arg_xor @}
+
+\subsubsection{{\tt arg\_zero} --- {\tt -zero}: Push all zeroes on the stack}
+
+Push a value of all zero bits on the stack.  This is shortcut for
+explicitly specifying such a value with {\tt -seed}.
+
+@d arg\_zero: Push all zeroes on the stack
+@{
+    sub arg_zero {
+        @<Begin command repeat@>
+            push(@@seeds, "00" x 32);
+        @<End command repeat@>
+     }
+@| arg_zero @}
 
 \subsubsection{Repeat command if {\tt -repeat} specified}
 
@@ -596,7 +727,7 @@ with the specified \verb+$mode+.
 
         return $out;
     }
-@}
+@| genFromFile @}
 
 \subsection{{\tt genAddress} --- Generate address from one hexadecimal seed}
 
@@ -613,7 +744,7 @@ in a list.
         if ($seed !~ m/^[\dA-F]{64}/i) {
             die("Invalid seed.  Must be 64 hexadecimal digits");
         }
-@}
+@| genAddress @}
 
 Generate the private key from the hexadecimal seed.
 
@@ -652,7 +783,7 @@ you wish from the private key.
 @{
     sub editAddress {
         my ($priv, $pub, $mode, $n) = @@_;
-@}
+@| editAddress @}
 
 Extract the seed from the private key in hexadecimal and encode it
 in base64.
@@ -774,25 +905,9 @@ which the user may choose whatever they prefer.
                   "    Compat:  $pub_compat_u\n" .
                   "    Segwit:  $pub_segwit_u\n" .
                   "    Hex:     $pub_hex_u\n";
-@}
 
-Take the decoded hex seed and feed it to {\tt ent} to perform an
-analysis of its randomness.  Note that when interpreting these results,
-the brevity of the seed (just 256 bits) will cause it to appear less
-than random compared to a larger sample.  We perform the randomness
-tests on a bit-level basis, as byte-level tests are useless on such a
-small sample.
-
-@d editAddress: Edit private key and public address
-@{
-            $r .= "\nRandomness analysis:\n";
-            my $ent_analysis = `echo $phex | xxd -r -p - | ent -b`;
-            $ent_analysis =~ s/\n\n/\n/gs;
-            $ent_analysis =~ s/^/    /mg;
-            $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
-            $r .= $ent_analysis;
-       }
-        return $r;
+            return $r;
+        }
     }
 @}
 
@@ -834,7 +949,7 @@ original).
         $r .= "$s\n";
         return $r;
     }
-@}
+@| BIP39encode @}
 
 \subsection{{\tt stackCheck} ---  Check for stack underflow}
 
@@ -849,7 +964,7 @@ original).
             exit(1);
         }
     }
-@}
+@| stackCheck @}
 
 \subsection{{\tt hexToBytes} --- Convert hexadecimal string to binary}
 
@@ -864,7 +979,7 @@ original).
         }
         return $bytes;
     }
-@}
+@| hexToBytes @}
 
 \subsection{{\tt bytesToHex} --- Convert binary string to hexadecimal}
 
@@ -874,25 +989,77 @@ original).
         my ($bytes) = @@_;
 
         my $hex;
-        while ($bytes =~ s/^(.)//i) {
-            $hex .= sprintf("%02X", ord($1));
+        for (my $i = 0; $i < bytes::length($bytes); $i++) {
+            $hex .= sprintf("%02X", ord(bytes::substr($bytes, $i, 1)));
         }
         return $hex;
+    }
+@| bytesToHex @}
+
+\subsection{{\tt showHelp} --- Show help information}
+
+@d showHelp: Show Bitcoin address help information
+@{
+    sub showHelp {
+        my $help = <<"    EOD";
+perl bitcoin_address.pl [ command... ]
+  Commands and arguments:
+    -aes                Encrypt second item on stack with top of stack key
+    -binfile filename   Load seed(s) from binary file
+    -drop               Drop top item on stack
+    -dup                Duplicate top item on stack
+    -format f           Select CSV key output mode: CSVx, where x is
+                            l   Legacy public address ("1...")
+                            c   Compatible public address ("3...")
+                            s   Segwit public address ("bc1...")
+                            u   Uncompressed public address
+                            q   Uncompressed private key
+    -hbapik hbapikey    Specify HotBits API key
+    -help               Print this message
+    -hexfile filename   Load hexadecimal seed(s) from filename
+    -hotbits            Get seed(s) from HotBits, place on stack
+    -inter              Process interactive commands
+    -key                Generate public address/private key from stack seed
+    -not                Invert stack top
+    -over               Duplicate second item on stack to top
+    -phrase "words..."  Specify seed as BIP36 menemonic phrase
+    -pick n             Duplicate the nth item on the stack to top
+    -pseudo             Generate pseudorandom seed and push on stack
+    -random             Obtain a seed from /dev/random, push on stack
+    -repeat n           Repeat following commands n times
+    -roll n             Rotate item n to top of stack
+    -rot                Rotate the top three stack items
+    -rrot               Reverse rotate top three stack items
+    -seed hex           Push the hexadecimal seed on top of stack
+    -sha256             Replace top of stack with its SHA256 digest
+    -shuffle            Shuffle all bytes on stack
+    -swap               Swap the two top items on the stack
+    -test               Test randomness of top of stack
+    -type Any text      Display text argument on standard output
+    -urandom            Obtain a seed from /dev/urandom, push on stack
+    -wif                Push seed extracted from Wallet Input Format private key
+    -xor                Bitwise exclusive-or top two stack items
+    -zero               Push zeroes on stack
+EOD
+        $help =~ s/^    //gm;
+        print($help);
+        exit(0);
     }
 @}
 
 \chapter{Bitcoin Address Watcher}
 
 This program monitors the blockchain and, whenever new blocks are
-added, scans them for transactions involving a watch list, which may
-be specified on the command line or in a file.  For every transaction
-inolving that address, output and an optional permanent log entry
-is generated showing:
+added, scans them for transactions involving a watch list, which may be
+specified on the command line, from a file, or from the user's wallet.
+For every transaction inolving that address, whether as input or
+output, a message on standard output and an optional permanent log
+entry is generated showing:
 
 \begin{quote}
 \begin{enumerate}
 \dense
-    \item   Label (if any) from the watch list file
+    \item   Label (if any) from the watch list file or wallet
     \item   Bitcoin address
     \item   Value of transaction in BTC
     \item   Date and time
@@ -915,7 +1082,7 @@ processing the command-line options.
     use LWP;
     use JSON;
     use Text::CSV qw(csv);
-    use Getopt::Long;
+    use Getopt::Long qw(GetOptionsFromArray);
     use POSIX qw(strftime);
     use Statistics::Descriptive;
 
@@ -935,20 +1102,28 @@ processing the command-line options.
     my $wallet_pass = @<AW wallet password@>;       # Wallet password
     @<RPC configuration variables@>
 
-    GetOptions(
+    my %options = (
         @<RPC command line options@>
         "bfile=s"       => \$block_file,
         "end=i"         => \$block_end,
+        "help"          => \&showHelp,
         "lfile=s"       => \$log_file,
         "poll=i"        => \$poll_time,
         "sfile=s"       => \$statlog,
         "start=i"       => \$block_start,
         "stats"         => \$stats,
+        "type=s"        =>  sub { print("$_[1]\n"); },
         "verbose+"      => \$verbose,
         "wallet"        => \$wallet,
         "watch=s"       => \@@watch_addrs,
         "wpass=s"       => \$wallet_pass,
         "wfile=s"       => \$watch_file
+    );
+
+    processConfiguration();
+
+    GetOptions(
+        %options
     ) || die("Command line option error");
 
     my $statc = $stats || ($statlog ne "");
@@ -961,6 +1136,9 @@ may be specified on the command line with the {\tt -watch} option, or
 read from a (single) file specified by the {\tt -wfile} option.  In
 addition, addresses in the user's wallet with an unspent balance can
 be automatically monitored by specifying the {\tt -wallet} option.
+When watching wallet addresses, we re-fetch the list for every poll
+of the blockchain to accommodate any changes due to transactions since
+the previous poll.
 
 @o address_watch.pl
 @{
@@ -1157,11 +1335,14 @@ functions common to multiple programs.
     #   Local functions
     @<scanBlock: Scan a block by index on the blockchain@>
     @<updateWalletAddresses: Watch unspent wallet addresses@>
+    @<showHelp: Show address watch help information@>
 
     #   Utility functions
     @<etime: Edit time to ISO 8601@>
+    @<Command and option processing@>
     @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
     @<getPassword: Prompt user to enter password@>
+    @<blockReward: Compute reward for mining block@>
 @}
 
 \section{Local functions}
@@ -1217,9 +1398,10 @@ by extracting the block-level information.
         my $b_nTx = $r->{nTx};              # Transactions in block
 
         print("    Block $b_height " . gmtime($b_time) .
-            " Transactions $b_nTx\n") if $verbose >= 1;
+              " Transactions $b_nTx\n") if $verbose >= 1;
 
         my ($stat_value, $stat_size);
+        my $stat_reward = 0;
         if ($statc) {
             $stat_value = Statistics::Descriptive::Sparse->new();
             $stat_size = Statistics::Descriptive::Sparse->new();
@@ -1257,6 +1439,13 @@ we cache transactions we query in \verb+%vincache+ and serve the
 previously-retrieved and decoded objects from the cache.  This
 dramatically speeds up processing queries for many blocks.
 
+One additional wrinkle is that an input transaction may have its source
+be the ``coinbase'': newly-created Bitcoin paid to miners as incentive
+for publishing blocks.  These transactions have no previous transaction
+and hence no addresses in their ``{\tt vout}'' section.  Since there
+are no addresses to check, we needn't examine such transactions
+further.
+
 @d scanBlock: Scan a block by index on the blockchain
 @{
             my $t_nvin = scalar(@@{$r->{tx}->[$t]->{vin}});
@@ -1276,22 +1465,25 @@ dramatically speeds up processing queries for many blocks.
                         $vincache{$vintx} = $vi;
                     }
 #else { print("Served $vintx from cache\n"); }
-                   my $vi_naddr = scalar(@@{$vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}});
-                    #   Loop over addresses in vout item
-                    for (my $a = 0; $a < $vi_naddr; $a++) {
-                        my $a_addr = $vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}->[$a];
-                        my $t_value = $vi->{vout}->[$vinn]->{value};
-                        if (!defined($t_value)) {
-                            $t_value = 0;
-                        }
-                        my $flag = $adrh{$a_addr};
-                        if ($verbose >= 3) {
-                            my $pflag = $flag ? " *****" : "";
-                            print("      In  $v.$a.  $a_addr$pflag\n");
-                        }
-                        if ($flag) {
-                            #   This is one of the addresses we're watching: add to the hit list
-                            push(@@hits, [ $b_height, $b_hash, $b_time, $t_txid, $a_addr, -$t_value ]);
+                    if (defined($vi->{vout}->[$vinn]->{scriptPubKey}->{addresses})) {
+                        #   This is not a "coinbase" transaction.  Scan source addresses
+                        my $vi_naddr = scalar(@@{$vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}});
+                        #   Loop over addresses in vout item
+                        for (my $a = 0; $a < $vi_naddr; $a++) {
+                            my $a_addr = $vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}->[$a];
+                            my $t_value = $vi->{vout}->[$vinn]->{value};
+                            if (!defined($t_value)) {
+                                $t_value = 0;
+                            }
+                            my $flag = $adrh{$a_addr};
+                            if ($verbose >= 3) {
+                                my $pflag = $flag ? " *****" : "";
+                                print("      In  $v.$a.  $a_addr$pflag\n");
+                            }
+                            if ($flag) {
+                                #   This is one of the addresses we're watching: add to the hit list
+                                push(@@hits, [ $b_height, $b_hash, $b_time, $t_txid, $a_addr, -$t_value ]);
+                            }
                         }
                     }
                 }
@@ -1317,6 +1509,9 @@ it.
                         my $t_value = $r->{tx}->[$t]->{vout}->[$v]->{value};
                         if (!defined($t_value)) {
                             $t_value = 0;
+                        }
+                        if ($t == 0) {
+                            $stat_reward += $t_value;
                         }
                         my $flag = $adrh{$a_addr};
                         if ($verbose >= 3) {
@@ -1364,6 +1559,9 @@ the log file specified by the {\tt -sfile} option.  Statistics include:
 @{
     if ($stats) {
         print("  Block $b_height  " . etime($b_time) . " $b_nTx transactions\n");
+        my $brw = blockReward($b_height);
+        printf("    Reward %.2f (mining block %.2f, transaction fees %.2f)\n",
+               $stat_reward, $brw, $stat_reward - $brw);
         printf("    Size: min %d  max %d  mean %.2f  SD %.2f  Total %d\n",
             $stat_size->min(), $stat_size->max(), $stat_size->mean(),
             $stat_size->standard_deviation(), $stat_size->sum());
@@ -1373,12 +1571,13 @@ the log file specified by the {\tt -sfile} option.  Statistics include:
     }
     if ($statlog) {
         open(SL, ">>$statlog");
-            printf(SL "%12d %d %d %d %d %.2f %.2f %d %.8f %.8g %.8g %.8g %.8g\n",
+            printf(SL "%12d,%d,%d,%d,%d,%.2f,%.2f,%d,%.8f,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n",
                 $b_height, $b_time, $b_nTx,
                 $stat_size->min(), $stat_size->max(), $stat_size->mean(),
                 $stat_size->standard_deviation(), $stat_size->sum(),
                 $stat_value->min(), $stat_value->max(), $stat_value->mean(),
-                $stat_value->standard_deviation(), $stat_value->sum());
+                $stat_value->standard_deviation(), $stat_value->sum(),
+                $stat_reward, blockReward($b_height));
         close(SL);
     }
 @}
@@ -1475,6 +1674,35 @@ If we unlocked the wallet, lock it again.
     }
 @}
 
+\subsection{{\tt showHelp} --- Show help information}
+
+@d showHelp: Show address watch help information
+@{
+    sub showHelp {
+        my $help = <<"    EOD";
+perl address_watch.pl [ command... ]
+  Commands and arguments:
+    -bfile filename     Set file to save last block scanned
+    -end n              Last block to scan
+    -help               Print this message
+    -lfile filename     Set log file
+    -poll n             Poll for new block every n seconds, 0 = never
+    -sfile filename     Write block statistics to named file
+    -start n            First block to scan
+    -stats              Generate block statistics
+    -type Any text      Display text argument on standard output
+    -verbose            Print debug information, more for every -verbose
+    -wallet             Scan wallet for addresses to watch
+    -wpass "pass"       Password to unlock encrypted wallet
+    -wfile filename     CSV file of addresses to watch
+  @<RPC options help information@>
+EOD
+        $help =~ s/^    //gm;
+        print($help);
+        exit(0);
+    }
+@}
+
 \chapter{Bitcoin Confirmation Watcher}
 
 This utility queries the status of a transaction and reports changes
@@ -1482,7 +1710,9 @@ in the number of confirmations it has received.  It can monitor a
 recent transaction and report new confirmations as they arrive,
 exiting when a specified number of confirmations (default 6) have
 been received.  The transaction can be specified by its transaction
-ID and the hash of the block containing it.
+ID and the hash of the block containing it.  If the server running
+Bitcoin Core is configured with ``{\tt txindex=1}'', the block hash
+need not be specified.
 
 \begin{quote}
     {\tt confirmation\_watch} {\em transaction\_id} {\em block\_hash}
@@ -1491,7 +1721,10 @@ ID and the hash of the block containing it.
 If you are running {\tt address\_watch} on the same machine and have
 configured it to write a log file, you can specify either the Bitcoin
 address or the label you've assigned to it, with the transaction ID and
-block hash retrieved from the log.
+block hash retrieved from the log.  If, for some screwball reason, a
+label is the same as a transaction ID, the label takes precedence; we
+only look for a transaction ID if the specification does not match a
+label.
 
 \begin{quote}
     {\tt confirmation\_watch} {\em address}/{\em label}
@@ -1515,7 +1748,7 @@ $RPChost = "localhost";
     use LWP;
     use JSON;
     use Text::CSV qw(csv);
-    use Getopt::Long;
+    use Getopt::Long qw(GetOptionsFromArray);
     use POSIX qw(strftime);
     use Term::ReadKey;
 
@@ -1532,13 +1765,21 @@ $RPChost = "localhost";
     my $verbose = @<Verbosity level@>;              # Verbose output ?
     my $confirmed = @<CW deem confirmed@>;          # Number of confirmations required
 
-    GetOptions(
+    my %options = (
         @<RPC command line options@>
-        "watch"         => \$watch,
-        "verbose+"      => \$verbose,
+        "confirmed=i"   => \$confirmed,
+        "help"          => \&showHelp,
         "lfile=s"       => \$log_file,
         "poll=i"        => \$poll_time,
-        "confirmed=i"   => \$confirmed
+        "type=s"        =>  sub { print("$_[1]\n"); },
+        "verbose+"      => \$verbose,
+        "watch"         => \$watch
+    );
+
+    processConfiguration();
+
+    GetOptions(
+        %options
     ) || die("Command line option error");
 @}
 
@@ -1546,41 +1787,51 @@ $RPChost = "localhost";
 
 If an address is specified, try looking up in the Bitwatch log to find
 the transaction ID and block hash.  We accept either the Bitcoin
-address or the label the user assigned to it.
+address or the label the user assigned to it.  If a single argument
+if specified, we have a kludgelet to decide whether it's a label or
+a transaction ID: if the length is less than 48 characters or it
+contains a character which isn't a valid hexadecimal digit, we deem it
+a label, otherwise it's interpreted as a transaction ID.
 
 @o confirmation_watch.pl
 @{
     if (scalar(@@ARGV) == 1) {
-        if ($log_file eq "") {
-            print("Cannot look up address or label unless log file (-lfile) specified.\n");
-            exit(2);
-        }
         my $addr = $ARGV[0];
-        my $found = FALSE;
-        #   If the address has not yet appeared in the Bitwatch log,
-        #   continue to poll until it shows up.
-        do {
-            open(LI, "<$log_file") || die("Cannot open log file $log_file");
-            while (my $l = <LI>) {
-                if (($l =~ m/^(?:\w+)?\s+$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/) ||
-                    ($l =~ m/^$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/)
-                   ) {
-                    my ($txid, $blockhash) = ($1, $2);
-                    @@ARGV = ( $txid, $blockhash );
-                    $found = TRUE;
-                    last;
+        if ((length($addr) < 48) || ($addr !~ m/[^\da-f]/i)) {
+            if ($log_file eq "") {
+                print("Cannot look up address or label unless log file (-lfile) specified.\n");
+                exit(2);
+            }
+            my $found = FALSE;
+            #   If the address has not yet appeared in the Bitwatch log,
+            #   continue to poll until it shows up.
+            do {
+                open(LI, "<$log_file") || die("Cannot open log file $log_file");
+                while (my $l = <LI>) {
+                    if (($l =~ m/^(?:\w+)?\s+$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/) ||
+                        ($l =~ m/^$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/)
+                       ) {
+                        my ($txid, $blockhash) = ($1, $2);
+                        @@ARGV = ( $txid, $blockhash );
+                        $found = TRUE;
+                        last;
+                    }
                 }
+                close(LI);
+                if ($watch && (!$found)) {
+                    print("No transaction for this address found in address_watch log.\n" .
+                          "Waiting $poll_time seconds before next check.\n") if $verbose;
+                    sleep($poll_time);
+                }
+            } while ($watch && (!$found));
+            if (!$found) {
+                print("Bitcoin address not found in Bitwatch log file.\n");
+                exit(1);
             }
-            close(LI);
-            if ($watch && (!$found)) {
-                print("No transaction for this address found in Bitwatch log.\n" .
-                      "Waiting $poll_time seconds before next check.\n") if $verbose;
-                sleep($poll_time);
-            }
-        } while ($watch && (!$found));
-        if (!$found) {
-            print("Bitcoin address not found in Bitwatch log file.\n");
-            exit(1);
+        } else {
+            #   This looks like a transaction index alone, assuming
+            #   txindex=1 allows queries without the block hash.
+            $ARGV[1] = "";
         }
     } else {
         if (scalar(@@ARGV) < 2) {
@@ -1617,7 +1868,13 @@ number of confirmations, at which point we exit.
     my $l_confirmations = -1;
 
     do {
-        my $txj = sendRPCcommand([ "getrawtransaction", $txID, "true", $blockHash ]);
+        my $query = [ "getrawtransaction", $txID, "true" ];
+        if ($blockHash ne "") {
+            push(@@$query, $blockHash);
+        }
+#print(Dumper(\$query));
+        my $txj = sendRPCcommand($query);
+#print("TXJ $txj\n");
         my $tx = decode_json($txj);
 
         print(Data::Dumper->Dump([$tx], [ qw(Transaction) ])) if $verbose >= 2;
@@ -1666,20 +1923,55 @@ for new confirmations.
 
 \subsection{Utility functions}
 
+Define our local functions.
+
+@o confirmation_watch.pl
+@{
+    @<showHelp: Show confirmation watch help information@>
+@}
+
 Import utility functions we share with other programs.
 
 @o confirmation_watch.pl
 @{
     @<etime: Edit time to ISO 8601@>
+    @<Command and option processing@>
     @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
     @<getPassword: Prompt user to enter password@>
 @}
 
+\subsection{{\tt showHelp} --- Show help information}
 
-
+@d showHelp: Show confirmation watch help information
+@{
+    sub showHelp {
+        my $help = <<"    EOD";
+perl address_watch.pl [ command... ]
+  Commands and arguments:
+    -confirmed n        Confirmations to deem transaction confirmed
+    -help               Print this message
+    -lfile filename     Log file from address_watch for looking up labels
+    -poll n             Poll for new block every n seconds, 0 = never
+    -type Any text      Display text argument on standard output
+    -verbose            Print debug information, more for every -verbose
+    -watch              Poll waiting for -confirmed confirmations
+  @<RPC options help information@>
+EOD
+        $help =~ s/^    //gm;
+        print($help);
+        exit(0);
+    }
+@}
 
 \chapter{Bitcoin Transaction Fee Watcher}
 
+This utility collects data which may be used to plot, analyse, and
+predict the evolution of Bitcoin transaction fees over time.  Data are
+collected at a specified polling interval and may be displayed on
+standard output and/or written to a log file in comma-separated format.
+Both Bitcoin Core's estimated fees and actual fee data from blocks
+added to the blockchain are reported.  No analysis is done---that's up
+to programs which read and process the log.
 
 \section{Main program}
 
@@ -1699,7 +1991,7 @@ Import utility functions we share with other programs.
     use LWP;
     use JSON;
     use Text::CSV qw(csv);
-    use Getopt::Long;
+    use Getopt::Long qw(GetOptionsFromArray);
     use POSIX qw(strftime);
     use Term::ReadKey;
 
@@ -1716,13 +2008,21 @@ Import utility functions we share with other programs.
     my $quiet = FALSE;                              # Suppress console output
     my $verbose = @<Verbosity level@>;              # Verbose output ?
 
-    GetOptions(
+    my %options = (
         @<RPC command line options@>
         "confirmed=i"   => \$conf_target,
         "ffile=s"       => \$fee_file,
+        "help"          => \&showHelp,
         "poll=i"        => \$poll_time,
         "quiet"         => \$quiet,
+        "type=s"        =>  sub { print("$_[1]\n"); },
         "verbose+"      => \$verbose
+    );
+
+    processConfiguration();
+
+    GetOptions(
+        %options
     ) || die("Command line option error");
 @}
 
@@ -1740,6 +2040,14 @@ specified, ask the user for it from standard input.
 
 \subsection{Poll fees at the specified interval}
 
+We poll for the current fees at each specified interval.  This occurs
+at an even multiple of the interval, not at intervals based upon when
+the program started.  For example, if you set the interval to 10
+minutes, polls will be at the top of the hour, 10, 20,\ldots\ etc.\
+thereafter.  In each poll, we begin by making an {\tt estimatesmartfee}
+query, which provides the estimate which the Bitcoin Core wallet
+recommends for transactions it submits.  If logging is enabled, this is
+logged as a type 1 record.
 
 @o fee_watch.pl
 @{
@@ -1776,7 +2084,17 @@ specified, ask the user for it from standard input.
             open(FO, ">>$fee_file");
             print(FO "1,$t," . etime($t) . ",$estimatedFee\n");
         }
+@}
 
+Now we query block-level statistics for all blocks which have arrived
+since the last poll.  These are obtained with {\tt getblockstats},
+which provides the minimum, maximum. mean, and median fees paid by
+transactions in the block, as well as a histogram of fees at the
+10, 25, 50, 75, and 90 percentile levels.  If logging is enabled,
+these are logged as type 2 item.
+
+@o fee_watch.pl
+@{
         my $block_end = sendRPCcommand([ "getblockcount" ]);
         if ($block_start < 0) {
             $block_start = $block_end;
@@ -1816,6 +2134,14 @@ specified, ask the user for it from standard input.
     }
 @}
 
+\subsection{Local functions}
+
+Define our local functions.
+
+@o fee_watch.pl
+@{
+    @<showHelp: Show fee watch help information@>
+@}
 
 \subsection{Utility functions}
 
@@ -1824,15 +2150,33 @@ Import utility functions we share with other programs.
 @o fee_watch.pl
 @{
     @<etime: Edit time to ISO 8601@>
+    @<Command and option processing@>
     @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
     @<getPassword: Prompt user to enter password@>
 @}
 
+\subsection{{\tt showHelp} --- Show help information}
 
-
-
-
-
+@d showHelp: Show fee watch help information
+@{
+    sub showHelp {
+        my $help = <<"    EOD";
+perl address_watch.pl [ command... ]
+  Commands and arguments:
+    -confirmed n        Confirmations to deem transaction confirmed
+    -ffile filename     Log file for fee statistics
+    -help               Print this message
+    -poll n             Poll for new block every n seconds, 0 = never
+    -quiet              Suppress console output
+    -type Any text      Display text argument on standard output
+    -verbose            Print debug information, more for every -verbose
+  @<RPC options help information@>
+EOD
+        $help =~ s/^    //gm;
+        print($help);
+        exit(0);
+    }
+@}
 
 \chapter{Utility Functions}
 
@@ -1846,6 +2190,135 @@ Import utility functions we share with other programs.
         return strftime("%F %T", gmtime($t));
     }
 @| etime @}
+
+\section{Command and option processing}
+
+These functions provide an integrated way to handle option
+specification and command whether provided as command-line
+options, from a configuration file, or entered interactively
+by the user.  All of these functions are driven by a hash
+defining commands and actions in the same form as used by
+{\tt Getopt::Long}.  Any option not defined in the hash
+will be ignored if in a configuration file (allowing the
+same file to be used by multiple programs with only some
+options in common) or reported as an error message if entered
+interactively.
+
+\subsection{{\tt processCommand} --- Parse and process command}
+
+@d Command and option processing
+@{
+    sub processCommand {
+        my ($command, $interactive) = @@_;
+
+        my ($verb, $noun) = ("", "");
+        $command =~ s/\s+$//;
+        #   Ignore blank lines and comments
+        if (($command ne "") && ($command !~ m/^\s*#/)) {
+            $command =~ m/^\s*(\w+)(?:\s+(\S.*?))?\s*$/ ||
+                die("Unable to parse command \"$command\"\n");
+            ($verb, $noun) = ($1, $2);
+            my $inop = TRUE;
+            foreach my $op (keys(%options)) {
+                $op =~ s/(?:\+|=\w+)$//;
+                if ($op eq $verb) {
+                    $inop = FALSE;
+                    last;
+                }
+            }
+            if ($inop) {
+                if ($interactive) {
+                    return ("", "") if ($verb =~ m/^(?:en|ex|qu)/);
+                    print("Unknown command/option \"$verb\".\n");
+                    return ("?", "");
+                } else {
+                    return ("", "");
+                }
+            }
+            $noun = "" if (!defined($noun));
+            my @@optarr = ( "-$verb" );
+            if ($noun ne "") {
+                push(@@optarr, $noun);
+            }
+            if (!GetOptionsFromArray(\@@optarr, %options)) {
+                if ($interactive) {
+                    print("Error in command \"$command\".\n");
+                }
+            }
+        }
+        return ($verb, $noun);
+    }
+@| processCommand @}
+
+\subsection{{\tt arg\_inter} -- Process interactive commands}
+
+A utility may process interactive commands from the user by processing
+the @{-inter@} option and calling this handler.  It prompts the user
+for commands and arguments and executes them interactively.
+Interactive mode is exited by any of the commands ``@{end@}'',
+``@{exit@}'', or ``@{quit@}'', all of which may be abbreviated to
+two characters.
+
+@d Command and option processing
+@{
+    sub arg_inter {
+        while (TRUE) {
+            print("> ");
+            my $l = <> || last;
+            chomp($l);
+            my ($v, $n) = processCommand($l, TRUE);
+            last if ($v eq "");
+        }
+    }
+@| arg_inter @}
+
+\subsection{{\tt processCommandFile} --- Process commands from file}
+
+Read and execute commands from the file named by the argument.
+Errors are ignored, allowing a general configuration file to
+be used for multiple programs, not all of which support options
+it declares.
+
+@d Command and option processing
+@{
+    sub processCommandFile {
+        my ($fname) = @@_;
+
+        open(CI, "<$fname") ||
+            die("Cannot open command file $fname");
+
+        while (my $l = <CI>) {
+            chomp($l);
+            my ($v, $n) = processCommand($l, FALSE);
+        }
+        close(CI);
+    }
+@| processCommandFile @}
+
+\subsection{{\tt processConfiguration} --- Process program configuration}
+
+We first look for a project-wide configuration file and, if present,
+process it.  Then, we look for a configuration file for a specific
+program, which will be named {\em program\_name}{\tt .conf}; if
+present, options it sets will override those in the project
+configuration file.  Options in both files can be overridden by
+those on the command line, which are processed after both configuration
+files.
+
+@d Command and option processing
+@{
+    sub processConfiguration {
+        if (-f "@<Project File Name@>.conf") {
+            processCommandFile("@<Project File Name@>.conf");
+        }
+        my $progName = "@f";
+        $progName =~ s/\.\w+$//;
+        if (-f "$progName.conf") {
+            processCommandFile("$progName.conf");
+        }
+    }
+@| processConfiguration @}
+
 
 \section{{\tt getPassword} --- Prompt user to enter password}
 
@@ -2052,6 +2525,40 @@ Define the command-line options to set the RPC configuration variables.
     "user=s"        => \$RPCuser,
 @}
 
+Define the {\tt -help} output for the RPC configuration options.
+
+@d RPC options help information
+@{
+Bitcoin API access configuration options:
+  -clipath path       Path name to execute bitcoin-cli command line utility
+  -host hostname      Host (name or IP address) where Bitcoin Core runs
+  -method which       Query method: local, rpc, ssh
+  -password "text"    Bitcoin RPC API password
+  -port n             Port for RPC API requests (default @<RPC port@>)
+  -user userid        User name for requests via ssh@}
+
+\section{{\tt blockReward} --- Compute reward for mining block}
+
+When a miner solves a hash and publishes a block, they receive a
+reward composed of a fee for the block plus all of the fees for
+transactions packed into the block.  The block reward in
+Bitcoin, $R_b$, is
+computed on a scale which declines with the block number $b$
+according to:
+
+\[
+    R_b = \frac{50}{2^{\lfloor (b+1)/210000\rfloor}}
+\]
+
+@d blockReward: Compute reward for mining block
+@{
+    sub blockReward {
+        my ($b) = @@_;
+
+        return 50 / 2 ** int(($b + 1) / 210000);
+    }
+@| blockReward @}
+
 \section{{\tt readHexfile} --- Read hexadecimal data from a file}
 
 Read a ``hexfile'' containing hexadecimal data.  We ignore everything
@@ -2095,6 +2602,87 @@ hexadecimal data stream with no embedded white space.
         return $data;
     }
 @| readHexfile @}
+
+\section{Pseudorandom number generator}
+
+We use the \href{https://en.wikipedia.org/wiki/Mersenne_Twister}{Mersenne
+Twister} algorithm as a pseudorandom number generator.  It is
+implemented in the Perl module {\tt Math::Random::MT}, which we import
+and use to create and initialise our generator, {\tt \$randGen}.
+
+\subsection{{\tt randInit} --- Initialise pseudorandom generator}
+
+Any code which requires the random generator should call {\tt
+randInit()} before requesting any data.  If the generator has not been
+initialised, a 2496 byte random seed is obtained from {\tt
+/dev/urandom} and used to initialise a new generator.  If the generator
+has been previously initialised, the call is ignored, so there's no
+need for application code to check whether a call to {\tt randInit()}
+is needed.
+
+@d Pseudorandom number generator
+@{
+    use Math::Random::MT;
+
+    my $randGen;                    # Pseudorandom number generator
+
+    sub randInit {
+        if (!defined($randGen)) {
+            my (@@seed, $rbuf);
+
+            open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
+            read(RI, $rbuf, 624 * 4) == (624 * 4) ||
+                die("Cannot read data from /dev/urandom");
+            @@seed = unpack("L4", $rbuf);
+            $randGen = Math::Random::MT->new(@@seed);
+            close(RI);
+        }
+    }
+@| randInit @}
+
+\section{{\tt randNext} --- Get next value from pseudorandom generator}
+
+The next pseudorandom value is returned by {\tt randNext(}$n${\tt )},
+where $n$ specifies the range of values returned, in the half-open
+interval $[0,n)$, that is, $0\leq r<n$, where $r$ is the random
+variate returned.  Thus, to return the value of a pseudorandom byte,
+use {\tt randNext(256)}.
+
+@d Pseudorandom number generator
+@{
+    sub randNext {
+        my ($n) = @@_;
+
+        return $randGen->rand($n);
+    }
+@| randNext @}
+
+\section{{\tt shuffleBytes} --- Shuffle bytes in string}
+
+Shuffle the bytes in a string using the
+\href{https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle}{Fisher-Yates
+shuffle} algorithm.  The pseudorandom values for the shuffle are
+obtained from the Mersenne Twister generator {\tt randNext()}.
+
+@d shuffleBytes: Shuffle bytes
+@{
+    sub shuffleBytes {
+        my ($in) = @@_;
+
+        randInit();
+        my @@bytes = unpack("C*", $in);
+
+        my $n = scalar(@@bytes);
+        for (my $i = $n - 1; $i >= 1; $i--) {
+            my $j = randNext($i + 1);
+            my $temp = $bytes[$j];
+            $bytes[$j] = $bytes[$i];
+            $bytes[$i] = $temp;
+        }
+
+        return pack("C*", @@bytes);
+    }
+@| shuffleBytes @}
 
 \chapter{Meta and Miscellaneous}
 
@@ -2181,6 +2769,7 @@ so a newly-generated {\tt Makefile} will work.
 build:
         perl tools/build/update_build.pl
         $(NUWEB) -t $(PROJECT).w
+        chmod 755 *.pl
         @@if [ \( ! -f Makefile \) -o \( Makefile.mkf -nt Makefile \) ] ; then \
                 echo Makefile.mkf is newer than Makefile ; \
                 sed "s/ \*$$//" Makefile.mkf | unexpand >Makefile ; \
@@ -2213,10 +2802,10 @@ peek:
 
 \subsection{Syntax check all Perl programs}
 
-All Perl programs in the directory tree are
-checked with {\tt perl -c}.  This requires the GNU
-{\tt find} utility, which supports the ``{\tt -quit}''
-action that allows us to stop after the first error it detects.
+All Perl programs in the directory tree are checked with {\tt perl -c}.
+This requires the GNU {\tt find} utility, which supports the ``{\tt
+-quit}'' action that allows us to stop after the first error it
+detects.
 
 @o Makefile.mkf
 @{
