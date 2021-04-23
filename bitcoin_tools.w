@@ -203,6 +203,7 @@ them, then process command line options.
         "shuffle"   =>  \&arg_shuffle,
         "swap"      =>  \&arg_swap,
         "test"      =>  \&arg_test,
+        "testall"   =>  \&arg_testall,
         "type=s"    =>  sub { print("$_[1]\n"); },
         "urandom"   =>  \&arg_urandom,
         "wif=s"     =>  \&arg_wif,
@@ -268,6 +269,7 @@ Include local and utility functions we employ.
     @<arg\_shuffle: Shuffle bytes on stack@>
     @<arg\_swap: Swap the two top items on the stack@>
     @<arg\_test: Test the stack top item for randomness@>
+    @<arg\_testall: Test entire stack contents for randomness@>
     @<arg\_urandom: Request seed(s) from /dev/urandom@>
     @<arg\_wif: Load seed from Wallet Input Format (WIF) private key@>
     @<arg\_xor: Exclusive-or top two stack items@>
@@ -585,7 +587,6 @@ chosen is intractable.
     }
 @| arg_swap @}
 
-
 \subsubsection{{\tt arg\_test} --- {\tt -test}: Test randomness of top of stack}
 
 Take the seed on the top of the stack and feed it to
@@ -605,9 +606,31 @@ small sample.
         $ent_analysis =~ s/\n\n/\n/gs;
         $ent_analysis =~ s/^/    /mg;
         $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
-        print("$ent_analysis\n");
+        print("$ent_analysis");
     }
 @| arg_test @}
+
+\subsubsection{{\tt arg\_testall} --- {\tt -testall}: Test randomness of entire stack}
+
+Tests the entire contents of the stack for randomness with
+\href{https://www.fourmilab.ch/random/}{\tt ent}.  The
+stack items are concatenated, from top to bottom, and the
+resulting bit stream is tested.  This can be used to evaluate
+random sources used to generate multiple keys.
+
+@d arg\_testall: Test entire stack contents for randomness
+@{
+    sub arg_testall {
+        stackCheck(1);
+        my $catseed = join("", @@seeds);
+        my $r = "Randomness analysis:\n";
+        my $ent_analysis = `echo $catseed | xxd -r -p - | ent -b`;
+        $ent_analysis =~ s/\n\n/\n/gs;
+        $ent_analysis =~ s/^/    /mg;
+        $ent_analysis =~ s/(of this|would exceed)/  $1/gs;
+        print("$ent_analysis");
+    }
+@| arg_testall @}
 
 \subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
 
@@ -1035,6 +1058,7 @@ perl bitcoin_address.pl [ command... ]
     -shuffle            Shuffle all bytes on stack
     -swap               Swap the two top items on the stack
     -test               Test randomness of top of stack
+    -testall            Test entire stack contents for randomness
     -type Any text      Display text argument on standard output
     -urandom            Obtain a seed from /dev/urandom, push on stack
     -wif                Push seed extracted from Wallet Input Format private key

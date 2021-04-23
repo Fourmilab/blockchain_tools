@@ -296,6 +296,10 @@ on the stack.  All stack items are concatenated together, shuffled
 as a single byte stream, then divided back into 32 byte seeds and
 pushed back onto the stack.
 
+\date{2021 April 23}
+
+Added a {\tt -testall} command to {\tt bitcoin\_address} which tests
+the entire contents of the stack for randomness with {\tt ent}.
 
 \section{To do}
 
