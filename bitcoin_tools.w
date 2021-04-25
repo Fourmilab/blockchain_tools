@@ -31,6 +31,7 @@
 
 %   Space between paragraphs, don't indent
 \usepackage[parfill]{parskip}
+
 %   Keep section numbers from colliding with title in TOC
 \usepackage{tocloft}
 \cftsetindents{subsection}{4em}{4em}
@@ -1123,7 +1124,7 @@ processing the command-line options.
     my $stats = FALSE;                              # Show statistics of blocks ?
     my $statlog = "";                               # Block statistics log file
     my $wallet = @<AW monitor wallet@>;             # Monitor unspent funds in wallet ?
-    my $wallet_pass = @<AW wallet password@>;       # Wallet password
+#   my $wallet_pass = @<AW wallet password@>;       # Wallet password
     @<RPC configuration variables@>
 
     my %options = (
@@ -1140,7 +1141,7 @@ processing the command-line options.
         "verbose+"      => \$verbose,
         "wallet"        => \$wallet,
         "watch=s"       => \@@watch_addrs,
-        "wpass=s"       => \$wallet_pass,
+#       "wpass=s"       => \$wallet_pass,
         "wfile=s"       => \$watch_file
     );
 
@@ -1626,43 +1627,49 @@ watch list.
 @{
     sub updateWalletAddresses {
         foreach my $adr (keys(%adrh)) {
-            if ($adrh{$adr}->[1] =~ m/^W/) {
-                delete($adrh{$adr});
-                print("Purged wallet address $adr\n") if ($verbose >= 2);
-            }
+#            if ($adrh{$adr}->[1] =~ m/^W/) {
+#                delete($adrh{$adr});
+#                print("Purged wallet address $adr\n") if ($verbose >= 2);
+#            }
         }
 @| updateWalletAddresses @}
 
-If the user has password-protected the wallet, attempt to unlock it.
-If the password has not been previously specified, prompt the user
-for it.
+OBSOLETE: This code was supposed to handle unlocking an encrypted
+wallet to obtain the list of addresses with unspent funds.  As of
+Bitcoin Core 0.21.0, the {\tt listunspent} API call does not require
+unlocking the wallet.  Consequently, this code is not required and
+commented out.  I'm keeping it around in case it should be needed
+for some project in the future.
+%If the user has password-protected the wallet, attempt to unlock it.
+%If the password has not been previously specified, prompt the user
+%for it.
 
 @d updateWalletAddresses: Watch unspent wallet addresses
 @{
-        #   Check wallet status and unlock if necessary
-        my ($wLocked, $wUnlocked) = (FALSE, FALSE);
-        my $wi = sendRPCcommand([ "getwalletinfo" ]);
-        if (defined($wi)) {
-            my $ws = decode_json($wi);
-            #   If "unlocked_until" not present, wallet locking not used
-            if (defined($ws->{unlocked_until})) {
-                $wLocked = ($ws->{unlocked_until} - time()) > 1;
-            }
-        }
-
-        #   If the wallet is locked, attempt to unlock it
-        if ($wLocked) {
-            #   If the wallet is locked and we have not yet obtained the
-            #   password (either from the command line or previously from
-            #   the user), prompt the user to enter it.
-            if (!defined($wallet_pass)) {
-                $wallet_pass = getPassword("Bitcoin wallet password: ");
-            }
-
-            #   Unlock the wallet for two seconds (should be more than enough)
-            sendRPCcommand([ "walletpassphrase",  "\"$wallet_pass\"", "2" ]);
-            $wUnlocked = TRUE;
-        }
+#       #   Check wallet status and unlock if necessary
+#       my ($wLocked, $wUnlocked) = (FALSE, FALSE);
+#       my $wi = sendRPCcommand([ "getwalletinfo" ]);
+#       if (defined($wi)) {
+#           my $ws = decode_json($wi);
+#           #   If "unlocked_until" not present, wallet locking not used
+#           if (defined($ws->{unlocked_until})) {
+#               $wLocked = ($ws->{unlocked_until} - time()) < 1;
+#           }
+#       }
+#
+#       #   If the wallet is locked, attempt to unlock it
+#       if ($wLocked) {
+#           #   If the wallet is locked and we have not yet obtained the
+#           #   password (either from the command line or previously from
+#           #   the user), prompt the user to enter it.
+#           if (!defined($wallet_pass)) {
+#               $wallet_pass = getPassword("Bitcoin wallet password: ");
+#           }
+#
+#           #   Unlock the wallet for two seconds (should be more than enough)
+#           sendRPCcommand([ "walletpassphrase",  "\"$wallet_pass\"", "2" ]);
+#           $wUnlocked = TRUE;
+#       }
 @}
 
 Retrieve addresses with an unspent balance from the wallet and add them
@@ -1692,9 +1699,9 @@ If we unlocked the wallet, lock it again.
 
 @d updateWalletAddresses: Watch unspent wallet addresses
 @{
-        if ($wUnlocked) {
-            sendRPCcommand([ "walletlock" ]);
-        }
+#       if ($wUnlocked) {
+#           sendRPCcommand([ "walletlock" ]);
+#       }
     }
 @}
 
@@ -1717,7 +1724,6 @@ perl address_watch.pl [ command... ]
     -type Any text      Display text argument on standard output
     -verbose            Print debug information, more for every -verbose
     -wallet             Scan wallet for addresses to watch
-    -wpass "pass"       Password to unlock encrypted wallet
     -wfile filename     CSV file of addresses to watch
   @<RPC options help information@>
 EOD

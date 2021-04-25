@@ -301,18 +301,39 @@ pushed back onto the stack.
 Added a {\tt -testall} command to {\tt bitcoin\_address} which tests
 the entire contents of the stack for randomness with {\tt ent}.
 
-\section{To do}
+\date{2021 April 24}
 
-Shuffle bytes command.
+Tested {\tt address\_watch} with an encrypted wallet.  It turns out
+that you only need to unlock the wallet with its encryption key for
+functions which require private keys, such as sending funds or
+(duh!) retrieving private keys.  Consequently, since the only query we
+make of the wallet is {\tt listunspent}, which does not return
+private keys, there is no need to worry about unlocking and re-locking
+the wallet for our requests.  I commented out the unlock/lock code,
+keeping it around just in case it should come in handy for some
+further project which requires unlocked access to the wallet.
+
+\section{To do}
 
 Add ability to write the stack to a file in either hex or binary form.
 
 Accumulate value in to address as well as value out in address\_watch
 and report in statistics.
 
-Test with a password-protected wallet.
-
 Options which request passwords prompt the user interactively if given
 a blank argument.
+
+Guarantee that seeds entered as hex are upper case.
+
+Ethereum address generation.  Note that uncompressed public key from
+seed is the same as for Bitcoin.  We then must use keccak256 to
+generate the Ethereum public address.
+
+Need -clear to clear stack.
+
+Intelligent purging of wallet watched addresses: in order to see out
+transactions for addresses in wallet depleted to zero, don't purge
+a wallet address that doesn't show up in listunspent until two block
+after it disappeared from that list.
 
 
