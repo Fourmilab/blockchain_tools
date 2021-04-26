@@ -131,7 +131,7 @@ variety of formats.
 
 \subsection{Program plumbing}
 
-@o bitcoin_address.pl
+@o blockchain_address.pl
 @{@<Explanatory header for Perl files@>
 
     #   Generate Bitcoin private keys and public address pairs
@@ -158,6 +158,7 @@ variety of formats.
     use Bitcoin::BIP39 qw(entropy_to_bip39_mnemonic bip39_mnemonic_to_entropy);
     use Digest::SHA qw(sha256_hex);
     use Crypt::CBC;
+    use Crypt::Digest::Keccak256 qw(keccak256_hex);
     use MIME::Base64;
     use LWP::Simple;
     use Getopt::Long qw(GetOptionsFromArray);
@@ -169,9 +170,9 @@ variety of formats.
 If project- or program-level configuration files are present, process
 them, then process command line options.
 
-@o bitcoin_address.pl
+@o blockchain_address.pl
 @{
-    my $opt_Format = "";
+    my $opt_Format = "";        # Format for generated keys
 
     my $repeat = 1;             # Repeat command this number of times
     my @@seeds;                 # Stack of seeds
@@ -179,18 +180,21 @@ them, then process command line options.
     my %options = (
         "aes"       =>  \&arg_aes,
         "binfile=s" =>  \&arg_binfile,
+        "btc"       =>  \&arg_btc,
+        "clear"     =>  \&arg_clear,
         "drop"      =>  \&arg_drop,
         "dump"      =>  \&arg_dump,
         "dup"       =>  \&arg_dup,
+        "eth"       =>  \&arg_eth,
         "format=s"  =>  \$opt_Format,
         "hbapik=s"  =>  \$HotBits_API_key,
         "help"      =>  \&showHelp,
         "hexfile=s" =>  \&arg_hexfile,
         "hotbits"   =>  \&arg_hotbits,
         "inter"     =>  \&arg_inter,
-        "key"       =>  \&arg_key,
         "not"       =>  \&arg_not,
         "over"      =>  \&arg_over,
+        "p"         =>  \&arg_printtop,
         "phrase=s"  =>  \&arg_phrase,
         "pick=i"    =>  \&arg_pick,
         "pseudo"    =>  \&arg_pseudo,
@@ -203,6 +207,7 @@ them, then process command line options.
         "sha256"    =>  \&arg_sha256,
         "shuffle"   =>  \&arg_shuffle,
         "swap"      =>  \&arg_swap,
+"tcx=s" => \&tcx,
         "test"      =>  \&arg_test,
         "testall"   =>  \&arg_testall,
         "type=s"    =>  sub { print("$_[1]\n"); },
@@ -222,24 +227,27 @@ them, then process command line options.
 
 Include local and utility functions we employ.
 
-@o bitcoin_address.pl
+@o blockchain_address.pl
 @{
+    #   Shared utility functions
+    @<readHexfile: Read hexadecimal data from a file@>
+    @<Command and option processing@>
+
     #   Local functions
     @<Command line argument handlers@>
-    @<stackCheck:  Check for stack underflow@>
     @<hexToBytes: Convert hexadecimal string to binary@>
     @<bytesToHex: Convert binary string to hexadecimal@>
     @<genFromFile: Generate keys from seeds specified in a Hexfile@>
-    @<genAddress: Generate address from one hexadecimal seed@>
-    @<editAddress: Edit private key and public address@>
+    @<genBtcAddress: Generate Bitcoin address from one hexadecimal seed@>
+    @<editBtcAddress: Edit Bitcoin private key and public address@>
+    @<genEthAddress: Generate Ethereum address from one hexadecimal seed@>
+    @<editEthAddress: Edit Ethereum private key and public address@>
+    @<computeEthChecksum: Add checksum to Ethereum address@>
     @<BIP39encode: Encode seed as BIP39 mnemonic phrase@>
     @<Pseudorandom number generator@>
     @<shuffleBytes: Shuffle bytes@>
     @<showHelp: Show Bitcoin address help information@>
-
-    #   Shared utility functions
-    @<readHexfile: Read hexadecimal data from a file@>
-    @<Command and option processing@>
+    @<stackCheck:  Check for stack underflow@>
 @}
 
 \section{Local functions}
@@ -250,17 +258,20 @@ Include local and utility functions we employ.
 @{
     @<arg\_aes: Encrypt second item with top of stack key@>
     @<arg\_binfile: Push seeds from binary file on stack@>
+    @<arg\_btc: Generate Bitcoin key/address from top of stack@>
+    @<arg\_clear: Clear stack@>
     @<arg\_drop: Drop the top item from the stack@>
     @<arg\_dump: Dump the stack@>
     @<arg\_dup: Duplicate the top item from the stack@>
+    @<arg\_eth: Generate Ethereum key/address from top of stack@>
     @<arg\_hexfile: Push seeds from hexfile on stack@>
     @<arg\_hotbits: Request seed(s) from HotBits@>
-    @<arg\_key: Generate key/address from top of stack@>
     @<arg\_not: Invert bits in top of stack item@>
     @<arg\_over: Duplicate the second item from the stack@>
     @<arg\_pick: Duplicate the $n$th item from the stack@>
     @<arg\_pseudo: Generate pseudorandom seed and push on stack@>
     @<arg\_phrase: Specify seed as BIP39 phrase@>
+    @<arg\_printtop: Print top of stack@>
     @<arg\_random: Request seed(s) from /dev/random@>
     @<arg\_roll: Rotate item $n$ to top of stack@>
     @<arg\_rot: Rotate three stack items@>
@@ -316,6 +327,31 @@ Include local and utility functions we employ.
     }
 @| arg_binfile @}
 
+\subsubsection{{\tt arg\_btc} --- {\tt -btc}: Generate Bitcoin key/address}
+
+@d arg\_btc: Generate Bitcoin key/address from top of stack
+@{
+    sub arg_btc {
+        stackCheck($repeat);
+
+        my $keyn = 1;
+        @<Begin command repeat@>
+            my $seed = pop(@@seeds);
+            my ($priv, $pub) = genBtcAddress($seed, $opt_Format, 1);
+            print(editBtcAddress($priv, $pub, $opt_Format, $keyn++));
+        @<End command repeat@>
+    }
+@| arg_btc @}
+
+\subsubsection{{\tt arg\_clear} --- {\tt -clear}: Clear stack}
+
+@d arg\_clear: Clear stack
+@{
+    sub arg_clear {
+        @@seeds = ();
+    }
+@| arg_clear @}
+
 \subsubsection{{\tt arg\_drop} --- {\tt -drop}: Drop the top item from the stack}
 
 @d arg\_drop: Drop the top item from the stack
@@ -345,6 +381,23 @@ Include local and utility functions we employ.
     }
 @| arg_dup @}
 
+\subsubsection{{\tt arg\_eth} --- {\tt -eth}: Generate Ethereum key/address}
+
+@d arg\_eth: Generate Ethereum key/address from top of stack
+@{
+    sub arg_eth {
+        stackCheck($repeat);
+
+        my $keyn = 1;
+        @<Begin command repeat@>
+            my $seed = pop(@@seeds);
+            my ($priv, $pub) = genEthAddress($seed, $opt_Format, 1);
+            print(editEthAddress($priv, $pub, $opt_Format, $keyn++));
+        @<End command repeat@>
+
+    }
+@| arg_eth @}
+
 \subsubsection{{\tt arg\_hexfile} --- {\tt -hexfile}: Push seeds from hexfile on stack}
 
 @d arg\_hexfile: Push seeds from hexfile on stack
@@ -354,7 +407,7 @@ Include local and utility functions we employ.
 
         my $hf = readHexfile($value);
         while ($hf =~ s/^([\dA-F]{64})//i) {
-            push(@@seeds, $1);
+            push(@@seeds, uc($1));
         }
     }
 @| arg_hexfile @}
@@ -377,20 +430,6 @@ Include local and utility functions we employ.
         }
     }
 @| arg_hotbits @}
-
-\subsubsection{{\tt arg\_key} --- {\tt -key}: Generate key/address from top of stack}
-
-@d arg\_key: Generate key/address from top of stack
-@{
-    sub arg_key {
-        stackCheck($repeat);
-        @<Begin command repeat@>
-            my $seed = pop(@@seeds);
-            my ($priv, $pub) = genAddress($seed, $opt_Format, 1);
-            print(editAddress($priv, $pub, $opt_Format, 1));
-        @<End command repeat@>
-    }
-@| arg_key @}
 
 \subsubsection{{\tt arg\_not} --- {\tt -not}: Invert bits in top of stack item}
 
@@ -430,6 +469,17 @@ Include local and utility functions we employ.
         push(@@seeds, uc($seed));
     }
 @| arg_phrase @}
+
+@d arg\_printtop: Print top of stack
+@{
+    sub arg_printtop {
+        if (scalar(@@seeds) > 0) {
+            print("  $seeds[-1]\n");
+        } else {
+            print("Stack empty.\n");
+        }
+    }
+@| arg_printtop @}
 
 \subsubsection{{\tt arg\_pick} --- {\tt -pick} $n$: Duplicate the $n$th item from the stack}
 
@@ -529,10 +579,11 @@ Include local and utility functions we employ.
     sub arg_seed {
         my ($name, $value) = @@_;
 
+        $value =~ s/^0x//i;
         if ($value !~ m/^[\dA-F]{64}/i) {
             die("Invalid seed.  Must be 64 hexadecimal digits");
         }
-        push(@@seeds, $value);
+        push(@@seeds, uc($value));
     }
 @| arg_seed @}
 
@@ -745,41 +796,41 @@ with the specified \verb+$mode+.
         while ($hf =~ s/^(\w{64})//) {
             my $seed = $1;
             $n++;
-            my ($priv, $pub) = genAddress($seed, $mode, $n);
-            $out .= editAddress($priv, $pub, $mode, 1);
+            my ($priv, $pub) = genBtcAddress($seed, $mode, $n);
+            $out .= editBtcAddress($priv, $pub, $mode, 1);
         }
 
         return $out;
     }
 @| genFromFile @}
 
-\subsection{{\tt genAddress} --- Generate address from one hexadecimal seed}
+\subsection{{\tt genBtcAddress} --- Generate address from one hexadecimal seed}
 
 A bitcoin address and private key pair are generated from the
 argument, which specifies the 256 bit random seed as 64 hexadecimal
 digits.  The private key and public address objects are returned
 in a list.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d genBtcAddress: Generate Bitcoin address from one hexadecimal seed
 @{
-    sub genAddress {
+    sub genBtcAddress {
         my ($seed, $mode, $n) = @@_;
 
         if ($seed !~ m/^[\dA-F]{64}/i) {
             die("Invalid seed.  Must be 64 hexadecimal digits");
         }
-@| genAddress @}
+@| genBtcAddress @}
 
 Generate the private key from the hexadecimal seed.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d genBtcAddress: Generate Bitcoin address from one hexadecimal seed
 @{
         my $priv = Bitcoin::Crypto::Key::Private->from_hex($seed);
 @}
 
 Verify that we can decode the seed from the private key.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d genBtcAddress: Generate Bitcoin address from one hexadecimal seed
 @{
         my $dhex = uc($priv->to_hex());
         if ($dhex ne $seed) {
@@ -793,7 +844,7 @@ if you're storing the private key, you needn't store the public
 address with it, since you can always re-generate it in any form
 you wish from the private key.
 
-@d genAddress: Generate address from one hexadecimal seed
+@d genBtcAddress: Generate Bitcoin address from one hexadecimal seed
 @{
         my $pub = $priv->get_public_key();
 
@@ -801,18 +852,18 @@ you wish from the private key.
     }
 @}
 
-\subsection{{\tt editAddress} --- Edit private key and public address}
+\subsection{{\tt editBtcAddress} --- Edit private key and public address}
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
-    sub editAddress {
+    sub editBtcAddress {
         my ($priv, $pub, $mode, $n) = @@_;
-@| editAddress @}
+@| editBtcAddress @}
 
 Extract the seed from the private key in hexadecimal and encode it
 in base64.
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
         my $phex = uc($priv->to_hex());
         my $pb64 = encode_base64($priv->to_bytes());
@@ -823,7 +874,7 @@ Generate compressed and uncompressed private keys, both encoded
 in WIF (Wallet Import Format).  This is how private keys are usually
 stored in an off-line or paper wallet.
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
         $priv->set_compressed(TRUE);
         my $WIFc = $priv->to_wif();
@@ -838,7 +889,7 @@ address with it, since you can always re-generate it in any form
 you wish from the private key.  We generate all of the forms of
 public addresses, compressed and uncompressed.
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
         $pub->set_compressed(TRUE);
         my $pub_legacy = $pub->get_legacy_address();
@@ -855,7 +906,7 @@ public addresses, compressed and uncompressed.
 
 Compose the output representation of the private key and public
 address.  The format is specified by \verb+$mode+, which can
-be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one of:
+be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one or more of:
 
 \begin{quote}
 \begin{description}
@@ -865,11 +916,10 @@ be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one of:
     \item[{\tt l}]  Public (``{\tt 1}'') public address
     \item[{\tt c}]  Compatible (``{\tt 3}'') public address
     \item[{\tt s}]  Segwit ``{\tt bc1}'' public address
-
 \end{description}
 \end{quote}
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
         my $r = "";
 
@@ -899,7 +949,7 @@ If \verb+$mode+ is anything else, primate-readable output is generated.
 This includes all formats of the private key and public address, from
 which the user may choose whatever they prefer.
 
-@d editAddress: Edit private key and public address
+@d editBtcAddress: Edit Bitcoin private key and public address
 @{
             #   Human-readable output
 
@@ -934,6 +984,199 @@ which the user may choose whatever they prefer.
         }
     }
 @}
+
+\subsection{{\tt genEthAddress} --- Generate Ethereum address from one hexadecimal seed}
+
+An Ethereum address and private key pair are generated from the
+argument, which specifies the 256 bit random seed as 64 hexadecimal
+digits.  The private key and public address objects are returned
+in a list.  Note that we use the {\tt Bitcoin::Crypto::Key} package
+here to generate the public and private keys from the seed.  This
+is not an error---Bitcoin and Ethereum use identical elliptic curve
+generator points and algorithms, so we can simply use the Bitcoin
+code as-is and then proceed to the different subsequent encoding
+employed by Ethereum.
+
+@d genEthAddress: Generate Ethereum address from one hexadecimal seed
+@{
+    sub genEthAddress {
+        my ($seed, $mode, $n) = @@_;
+
+        if ($seed !~ m/^[\dA-F]{64}/i) {
+            die("Invalid seed.  Must be 64 hexadecimal digits");
+        }
+@| genEthAddress @}
+
+Generate the private key from the hexadecimal seed.
+
+@d genEthAddress: Generate Ethereum address from one hexadecimal seed
+@{
+        my $priv = Bitcoin::Crypto::Key::Private->from_hex($seed);
+@}
+
+Verify that we can decode the seed from the private key.
+
+@d genEthAddress: Generate Ethereum address from one hexadecimal seed
+@{
+        my $dhex = uc($priv->to_hex());
+        if ($dhex ne $seed) {
+            die("Verify failed: Decoded " . $priv->to_hex() . "\n" .
+                "               Encoded $seed");
+        }
+@}
+
+Generate the public Ethereum address from the private key.
+
+@d genEthAddress: Generate Ethereum address from one hexadecimal seed
+@{
+        my $pub = $priv->get_public_key();
+
+        return ($priv, $pub);
+    }
+@}
+
+\subsection{{\tt editEthAddress} --- Edit Ethereum private key and public address}
+
+@d editEthAddress: Edit Ethereum private key and public address
+@{
+    sub editEthAddress {
+        my ($priv, $pub, $mode, $n) = @@_;
+@| editEthAddress @}
+
+Extract the seed from the private key in hexadecimal and encode it
+in base64.
+
+@d editEthAddress: Edit Ethereum private key and public address
+@{
+        my $phex = "0x" . $priv->to_hex();
+@}
+
+
+@d editEthAddress: Edit Ethereum private key and public address
+@{
+        $pub->set_compressed(FALSE);
+        my $pub_hex_u = $pub->to_hex();
+        my $pub_addr = "0x" .
+            substr(keccak256_hex(hexToBytes(substr($pub_hex_u, 2))), -40);
+        my $pub_addrc = computeEthChecksum($pub_addr);
+@}
+
+Compose the output representation of the private key and public
+address.  The format is specified by \verb+$mode+, which can
+be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one or more of:
+
+\begin{quote}
+\begin{description}
+\dense
+    \item[{\tt n}]  No checksum on public address
+    \item[{\tt p}]  Include full public key
+\end{description}
+\end{quote}
+
+@d editEthAddress: Edit Ethereum private key and public address
+@{
+        my $r = "";
+
+        if ($mode =~ m/^CSV(\w*)$/) {
+            my $CSVmodes = $1;
+
+            my $dpub_addr = ($CSVmodes =~ m/n/) ? $pub_addr : $pub_addrc;
+            my $pkey = ($CSVmodes =~ m/p/) ? ",\"$pub_hex_u\"" : "";
+
+            $r = "$n,\"$dpub_addr\",\"$phex\"$pkey\n";
+
+        } else {
+@}
+
+If \verb+$mode+ is anything else, primate-readable output is generated.
+This includes all formats of the private key and public address, from
+which the user may choose whatever they prefer.
+
+@d editEthAddress: Edit Ethereum private key and public address
+@{
+            #   Human-readable output
+
+            #   Display private key seed in hexadecimal
+
+            $r .= "Private key:\n";
+            $r .= "  Hexadecimal: $phex\n";
+
+            #   Display public Ethereum address
+
+            $r .= "\nPublic Ethereum address:\n" .
+                  "  Address:     $pub_addr\n" .
+                  "  Checksum:    $pub_addrc\n" .
+                  "  Public key:  $pub_hex_u\n";
+
+            return $r;
+        }
+    }
+@}
+
+\subsection{{\tt computeEthChecksum}: Add checksum to Ethereum address}
+
+Ethereum addresses have an optional, most curious, checksum mechanism.
+Originally, Ethereum addresses were just hexadecimal addresses
+extracted from a hash of the public key as described above in
+{\tt genEthAddress()} in {\tt editEthAddress()}.  A single character
+error in entering or transcribing such an address, as long as it
+remained a valid 40 digit hexadecimal number, would result in sending
+funds to ``etherspace''---lost forever without any hope of recovery,
+since finding a private key which maps to the incorrect address is
+intractable.
+
+Bitcoin addresses contain a checksum which catches, with a very high
+probability, such errors.  To remedy the shortcoming in Ethereum
+addresses, in 2016 a proposed standard was published,
+``\href{https://eips.ethereum.org/EIPS/eip-55}{EIP-55:
+Mixed-case checksum address encoding}, which proposed the following
+upward-compatible scheme.
+
+The computed hexadecimal address, with lower case letters for digits
+``a'' through ``f'', is used to compute a Keccak256 digest (the
+same hash algorithm used in computing the public address) of the
+address (its hexadecimal text representation, its the binary value).
+Next, scan the 40 character public hexadecimal address, ignoring all
+digits from 0 to 9.  For each letter, check the hexadecimal digit
+at the corresponding position in the hash (obviously, only the first
+40 character of the hash will be used).  If the digit is between 8
+and F, the letter in the address is converted from lower to upper
+case.
+
+Clients which are unaware of checksums will ignore the case of the
+hexadecimal digits.  Checksum-aware clients will, when presented with
+an address containing mixed case characters, recompute the checksum
+and, if it doesn't match, report the error.  Note that an address
+which contains only digits from 0 to 9 or, when checksummed, happens
+to come out all capitals or all lower case, will evade the checksum
+test.  Still, it's better than nothing.
+
+@d computeEthChecksum: Add checksum to Ethereum address
+@{
+    sub computeEthChecksum {
+        my ($eaddr) = @@_;
+
+        my $eal = lc($eaddr);
+        #   Strip leading hex specification, if present
+        $eal =~ s/^0x//;
+        my $eahash = keccak256_hex($eal);
+        for (my $i = 0; $i < length($eal); $i++) {
+            my $ch = substr($eal, $i, 1);
+            if ($ch =~ m/[a-f]/) {
+                if (substr($eahash, $i, 1) =~ m/[89a-f]/) {
+                    substr($eal, $i, 1) = uc($ch);
+                }
+            }
+        }
+        return "0x$eal";
+    }
+
+sub tcx {
+    my ($name, $value) = @@_;
+    my $valuec = computeEthChecksum($value);
+    print("$value\n$valuec\n" . (($value eq $valuec) ? "Equal" : "Unequal") . "\n");
+}
+@| computeEthChecksum @}
 
 \subsection{{\tt BIP39encode} --- Encode seed as BIP39 mnemonic phrase}
 
@@ -985,7 +1228,8 @@ original).
         if ($required > scalar(@@seeds)) {
             print("Stack underflow: $required item(s) needed, only " .
                 scalar(@@seeds) . " present.\n");
-            exit(1);
+            exit(1) if !$interactive;
+            die("Stack underflow");
         }
     }
 @| stackCheck @}
@@ -1026,26 +1270,33 @@ original).
 @{
     sub showHelp {
         my $help = <<"    EOD";
-perl bitcoin_address.pl [ command... ]
+perl blockchain_address.pl [ command... ]
   Commands and arguments:
     -aes                Encrypt second item on stack with top of stack key
     -binfile filename   Load seed(s) from binary file
+    -btc                Generate Bitcoin public address/private key from stack seed
+    -clear              Clear stack
     -drop               Drop top item on stack
     -dup                Duplicate top item on stack
+    -eth                Generate Ethereum address/private key from stack seed
     -format f           Select CSV key output mode: CSVx, where x is
-                            l   Legacy public address ("1...")
-                            c   Compatible public address ("3...")
-                            s   Segwit public address ("bc1...")
-                            u   Uncompressed public address
-                            q   Uncompressed private key
+                            Bitcoin:
+                              l   Legacy public address ("1...")
+                              c   Compatible public address ("3...")
+                              s   Segwit public address ("bc1...")
+                              u   Uncompressed public address
+                              q   Uncompressed private key
+                            Ethereum:
+                              n   No checksum on public address
+                              p   Include full public key
     -hbapik hbapikey    Specify HotBits API key
     -help               Print this message
     -hexfile filename   Load hexadecimal seed(s) from filename
     -hotbits            Get seed(s) from HotBits, place on stack
     -inter              Process interactive commands
-    -key                Generate public address/private key from stack seed
     -not                Invert stack top
     -over               Duplicate second item on stack to top
+    -p                  Print top item on stack
     -phrase "words..."  Specify seed as BIP36 menemonic phrase
     -pick n             Duplicate the nth item on the stack to top
     -pseudo             Generate pseudorandom seed and push on stack
@@ -1124,7 +1375,6 @@ processing the command-line options.
     my $stats = FALSE;                              # Show statistics of blocks ?
     my $statlog = "";                               # Block statistics log file
     my $wallet = @<AW monitor wallet@>;             # Monitor unspent funds in wallet ?
-#   my $wallet_pass = @<AW wallet password@>;       # Wallet password
     @<RPC configuration variables@>
 
     my %options = (
@@ -1263,9 +1513,15 @@ not be re-scanned.
 
 Having determined the range to blocks to scan, proceed to scan them
 and accumulate references to addresses we're watching within them.
+Before entering the scanning loop, we perform an initial scan of the
+wallet for addresses with unspect balances.  This avoids missing
+any address which was spent between the time we started the program
+and the first block we receive after starting.
 
 @o address_watch.pl
 @{
+    updateWalletAddresses();
+
     do {
         my $myaddrs = [];
 
@@ -1620,17 +1876,31 @@ keeps the monitor up to date.  On every scan, addresses previously
 added from the wallet are removed, so on each scan the list is current
 as of the time it began.
 
-We start by removing any previously-added wallet addresses from the
-watch list.
+We start by removing any expired wallet addresses from the watch list.
+When a wallet address is added to the watch list or updated if already
+present, we append the time to the record for the address.  When an
+address disappears from the wallet, this may mean that its balance has
+been zeroed out due to being spent and replaced by a new address with
+the change from the transaction. We still want to monitor the original
+address, however, in order to log the transaction in which the funds
+from it were spent.  Thus, we only purge an address from the wallet
+watch list after the time specified by ``AW wallet purge interval'' has
+expired.  This should be set to a time greater than the longest time
+expected between a transaction's being sent to the mempool and the
+first confirmation arriving on the blockchain.
 
 @d updateWalletAddresses: Watch unspent wallet addresses
 @{
     sub updateWalletAddresses {
+        my $now = time();
+
         foreach my $adr (keys(%adrh)) {
-#            if ($adrh{$adr}->[1] =~ m/^W/) {
-#                delete($adrh{$adr});
-#                print("Purged wallet address $adr\n") if ($verbose >= 2);
-#            }
+             if (($adrh{$adr}->[1] =~ m/^W/) &&
+                 (($now - $adrh{$adr}->[2]) > @<AW wallet purge interval@>)) {
+                 printf("Purged wallet address $adr, age %d seconds.\n",
+                    $now - $adrh{$adr}->[2]); # if ($verbose >= 2);
+                 delete($adrh{$adr});
+             }
         }
 @| updateWalletAddresses @}
 
@@ -1673,7 +1943,8 @@ for some project in the future.
 @}
 
 Retrieve addresses with an unspent balance from the wallet and add them
-to the watch list.
+to the watch list.  Any addresses already on the list will have their
+time of last presence updated to reset the expiration purge time.
 
 @d updateWalletAddresses: Watch unspent wallet addresses
 @{
@@ -1688,8 +1959,8 @@ to the watch list.
                 if (!defined($label)) {
                     $label = "Wallet" . ($i + 1);
                 }
-                print("Watching wallet $label,$addr,W$balance\n") if ($verbose >= 2);
-                $adrh{$addr} = [ $label, "W$balance" ];
+                print("Watching wallet $label,$addr,W$balance,$now\n") if ($verbose >= 2);
+                $adrh{$addr} = [ $label, "W$balance", $now ];
             }
         }
 
@@ -2291,14 +2562,21 @@ two characters.
 
 @d Command and option processing
 @{
+    my $interactive = FALSE;
+
     sub arg_inter {
+        $interactive = TRUE;
         while (TRUE) {
             print("> ");
             my $l = <> || last;
             chomp($l);
-            my ($v, $n) = processCommand($l, TRUE);
+            my ($v, $n);
+            eval {
+                ($v, $n) = processCommand($l, TRUE);
+            };
             last if ($v eq "");
         }
+        $interactive = FALSE;
     }
 @| arg_inter @}
 
@@ -2843,6 +3121,18 @@ lint:
         @@# Uses GNU find extension to quit on first error
         $(GNUFIND) . -type f -name \*.pl -print \
                 \( -exec perl -c {} \; -o -quit \)
+@}
+
+\subsection{Build and syntax check Perl programs}
+
+The ``{\tt bl}'' target is a convenience which causes an error in
+the build to avoid running the subsequent lint.
+
+@o Makefile.mkf
+@{
+bl:
+        make --no-print-directory build
+        make --no-print-directory lint
 @}
 
 \subsection{Show statistics of the project}

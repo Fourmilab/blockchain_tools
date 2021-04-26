@@ -26,7 +26,7 @@ These definitions specify defaults for {\tt address\_watch}.
 @d AW watch file @{@}
 @d AW log file @{@}
 @d AW monitor wallet @{FALSE@}
-@d AW wallet password @{undef@};
+@d AW wallet purge interval @{3600@}
 
 Defaults for {\tt confirmation\_watch}.
 

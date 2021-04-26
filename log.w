@@ -5,28 +5,28 @@ Added a {\tt -zero} option to {\tt build\_watch\_list} to include
 zero-balance accounts in the watch list.  By default, they are
 excluded.
 
-Added a {\tt -wallet} option in bitwatch which scans the wallet for
+Added a {\tt -wallet} option in @<AW@> which scans the wallet for
 ``{\tt listunspent}'' and adds the addresses with an unspent balance to
 the watch list.  This is re-fetched on each periodic scan of new blocks
 so that the address list is always current whenever we look at new
 blocks.
 
 Due to Perl syntactical Hell when attempting to mix explicit arrays and
-references to arrays, bitwatch was only reporting the first hit on a
+references to arrays, @<AW@> was only reporting the first hit on a
 watched address in a block.  I rewrote the whole mess to use only
 references, added all the requisite arrows and explicit dereferences
 and now it appears to work OK.
 
-Fixed some messiness with {\tt -verbose} handling in {\tt
-address\_watch}.  It makes more sense now and the output is easier to
+Fixed some messiness with {\tt -verbose} handling in @<AW@>.  It makes
+more sense now and the output is easier to
 read.
 
-Added the ability in {\tt confirmation\_watch} to specify the RPC
+Added the ability in @<CW@> to specify the RPC
 password from the keyboard with no echo or piped from standard input.
 This is handled by a new function, {\tt getPassword(<prompt>)}, which
 we can use in other cases where passwords are required.
 
-If no {\tt -wfile} was specified to {\tt address\_watch} but explicit
+If no {\tt -wfile} was specified to @<AW@> but explicit
 addresses were specified with -watch, an error would be reported.
 Fixed so there's an error only if no addresses specified by either
 mechanism.
@@ -47,7 +47,7 @@ passing a list instead of a string, nothing has changed.
 
 \date{2021 April 7}
 
-Updated {\tt confirmation\_watch} to use the new list argument {\tt
+Updated @<CW@> to use the new list argument {\tt
 sendRPCcommand()} function.  There is just one call on this function in
 the entire program.
 
@@ -72,7 +72,7 @@ Brought the project under Git configuration control.  The
 {\tt .gitignore} file excludes everything generated from the {\tt .w}
 files by Nuweb, including itself.
 
-Added statistics collection and output to {\tt address\_watch}.  The
+Added statistics collection and output to @<AW@>.  The
 {\tt -stats} option collects statistics on each block examined and
 reports the block number, date and time, number of transactions,
 total transaction size, and for both the transaction size and value
@@ -85,14 +85,14 @@ Re-enabled inclusion of the build number, date, and time in generated
 files.  Since these files are excluded from the Git repository by
 {\tt .gitignore}, they will not cause unnecessary update transactions.
 
-Began implementation of the stack-oriented version of {\tt
-bitcoin\_address}.  This will increase the flexibility of generation of
+Began implementation of the stack-oriented version of
+@<BA@>.  This will increase the flexibility of generation of
 addresses by this program.  Commands allow fetching seeds from the
 command line, HotBits, {\tt /dev/random}, or {\tt /dev/urandom}.
 
 \date{2021 April 10}
 
-Implemented BIP39 encoding and decoding in {\tt bitcoin\_address}.
+Implemented BIP39 encoding and decoding in @<BA@>.
 The BIP39-encoded phrase is output along with other formats by the
 {\tt -key} command, and a seed specified by a BIP39 phrase supplied
 as a string argument may be pushed onto the stack with the {\tt -phrase}
@@ -119,7 +119,7 @@ Added a {\tt -type} {\em message} command to output to standard output.
 
 \date{2021 April 11}
 
-Added code to {\tt confirmation\_watch} to dump the transaction if
+Added code to @<CW@> to dump the transaction if
 the {\tt -verbose} level is two or above.
 
 If a previous generation of the PDF document failed due to a syntax
@@ -131,13 +131,13 @@ avoid this happening.
 
 \date{2021 April 12}
 
-Added a {\tt -wif} option to {\tt bitcoin\_address} to extract the seed
+Added a {\tt -wif} option to @<BA@> to extract the seed
 from a private key in Wallet Import Format (WIF) and push it on the
 stack.  The key may be in either compressed or uncompressed format.
 
 \date{2021 April 16}
 
-Now, it's back to {\tt address\_watch} to implement watching of
+Now, it's back to @<AW@> to implement watching of
 inputs to transactions which come from addresses we're watching.
 For the application of monitoring cold storage against unauthorised
 accesses, this is a critical functionality.  Doing this requires
@@ -180,7 +180,7 @@ means for more than one address to be present in the
 ``{\tt addresses}'' field of a ``{\tt vout}''.)
 
 With this analysis in place, I added analysis of inbound transactions
-to {\tt address\_watch}.  For the cold storage monitoring application,
+to @<AW@>.  For the cold storage monitoring application,
 this is arguably the most important, since is somebody has obtained
 the private key of a cold storage vault address, the first indication
 will be a transfer to another address with the cold storage as the
@@ -191,9 +191,9 @@ ever look up a transaction once per scan of a block.
 
 \date{2021 April 17}
 
-Added ``logic'' to {\tt confirmation\_watch} which allows, when
+Added ``logic'' to @<CW@> which allows, when
 specifying a single argument, it to be either a label looked up in the
-{\tt address\_watch} {\tt -lfile} log or a transaction ID, which may be
+@<AW@> {\tt -lfile} log or a transaction ID, which may be
 specified without the block hash in which it resides if Bitcoin Core
 has been built with {\tt txindex=1}.  This is done with a hideous
 kludge which considers anything of 48 or fewer characters of which
@@ -209,7 +209,7 @@ mark all the Perl programs executable when they are re-generated.
 If a source of funds in a transaction was a ``coinbase'' transaction:
 newly-created Bitcoin paid to miners in compensation for publishing
 a block, that transaction contains no addresses in its ``{\tt vout}''
-section, which caused {\tt scanBlock()} in {\tt address\_watch} to
+section, which caused {\tt scanBlock()} in @<AW@> to
 fail with a reference an undefined variable.  I added code to detect
 absence of an {\tt address} in source transactions and skip scanning
 them for matches to one of our watched addresses (since newly-created
@@ -221,7 +221,7 @@ Added {\tt -help} option to all of the programs.  Those which share the
 common RPC options use a common definition of the options imported
 into the help text they print.
 
-Added analysis of reward fees paid to miners in {\tt address\_watch}.
+Added analysis of reward fees paid to miners in @<AW@>.
 For each block, the value items in the ``{\tt vout}'' section of the
 first transaction (which is always the ``coinbase'' reward to the
 miner who published the block) are summed, giving the total reward.
@@ -263,10 +263,10 @@ them in order.  Program configuration, if present, overrides that
 for the overall project, and both may be overridden by command line
 options.
 
-Added a {\tt -swap} command to {\tt bitcoin\_address}, which I had
+Added a {\tt -swap} command to @<BA@>, which I had
 somehow overlooked on the last pass.
 
-Added a {\tt -binfile} command to {\tt bitcoin\_address}, which reads
+Added a {\tt -binfile} command to @<BA@>, which reads
 as any sequences of 32 bytes as exist in the file and pushes them, as
 hexadecimal seed values, onto the stack.  In the process, I found and
 fixed a bug in {\tt bytesToHex()} that caused it to be sensitive to end
@@ -277,14 +277,14 @@ built-in code.
 Made the {\tt -type} command universal in all programs.  This allows
 it to be used in configuration files for all programs.
 
-Added a {\tt -test} command to {\tt bitcoin\_address} to run a
+Added a {\tt -test} command to @<BA@> to run a
 bit-level randomness analysis of the seed on the top of the stack.
 The top of the stack is unchanged.  Removed the built-in randomess
 test from the {\tt key} command.
 
 \date{2021 April 21}
 
-Implemented a {\tt -pseudo} command in {\tt bitcoin\_address} which
+Implemented a {\tt -pseudo} command in @<BA@> which
 places one or more (it respects {\tt repeat}) pseudorandom seeds
 generated by a Mersenne Twister generator itself seeded from
 {\tt /dev/urandom} on the stack.
@@ -298,12 +298,12 @@ pushed back onto the stack.
 
 \date{2021 April 23}
 
-Added a {\tt -testall} command to {\tt bitcoin\_address} which tests
+Added a {\tt -testall} command to @<BA@> which tests
 the entire contents of the stack for randomness with {\tt ent}.
 
 \date{2021 April 24}
 
-Tested {\tt address\_watch} with an encrypted wallet.  It turns out
+Tested @<AW@> with an encrypted wallet.  It turns out
 that you only need to unlock the wallet with its encryption key for
 functions which require private keys, such as sending funds or
 (duh!) retrieving private keys.  Consequently, since the only query we
@@ -312,6 +312,66 @@ private keys, there is no need to worry about unlocking and re-locking
 the wallet for our requests.  I commented out the unlock/lock code,
 keeping it around just in case it should come in handy for some
 further project which requires unlocked access to the wallet.
+
+\date{2021 April 25}
+
+Added a {\tt -clear} command to @<BA@> to clear the
+stack.  Added a {\tt -p} command to print the top of the stack, or
+report ``Stack empty.''
+
+Added a ``{\tt bl}'' target to the {\tt Makefile} to do a {\tt build}
+and then {\tt lint}, aborting the make if an error occurs in the build.
+
+Added code to force hexadecimal letter digits to upper case when
+loading seeds with {\tt -seed} or {\tt hexfile} in @<BA@>.
+
+Our strategy in @<AW@> of purging addresses from the wallet containing
+unspent funds and retrieving a new list before each scan of a block had
+the consequence of failing to see the transaction which spent the funds
+in a wallet address.  This happens because when using funds from a
+wallet address, its balance is zeroed out and replaced with a new
+address containing the change (if any).  These changes happen in the
+wallet when the transaction is broadcast to the mempool, but don't
+appear in the blockchain until the first confirmation for the
+transaction arrives.  When that happens, however, the sending address
+will no longer appear in the list returned by {\tt listunspent} since
+it has been zeroed out when the transaction was broadcast.
+
+To avoid this happening and, more critically, keep a watch for rogue
+``looting transactions'' where a private key has been compromised and a
+miscreant enters a transaction to transfer the entire balance of a
+wallet address to a third party, every time we scan wallet addresses we
+now save the time of the scan and continue to watch a wallet address
+after its balance goes to zero for an interval specified by
+configuration parameter ``{\tt AW wallet purge interval}'' which is set
+by default to 3600 seconds (one hour).  As long as transactions do not
+sit in the mempool longer than this before being confirmed, we'll not
+miss the spend transaction when it arrives on the blockchain.
+
+Added code to the {\tt -seed} command in @<BA@> to allow an optional
+``{\tt 0x}'' hexadecimal specifier before the seed.
+
+Added initial support for generation of Ethereum addresses, including
+the whacky upper and lower case hexadecimal letter checksums used
+by these addresses.  This appears to be working correctly, but is
+pretty rough in user interface.  I'll clean this up once I've done
+some more functionality testing.
+
+\date{2021 April 26}
+
+Added CSV output support for Ethereum address generation, including
+options to use non-checksummed public addresses and include the
+complete public key in the CSV file.  Fixed some CSV generation bugs
+common to BTC and ETH.
+
+Improved recovery from errors in @<BA@> interactive mode.  Stack
+underflow no longer bounces you out to the command line.
+
+\subsection{Abbreviations used in this document}
+
+@d AW @{{\tt address\_watch}@}
+@d BA @{{\tt blockchain\_address}@}
+@d CW @{{\tt confirmation\_watch}@}
 
 \section{To do}
 
@@ -322,18 +382,5 @@ and report in statistics.
 
 Options which request passwords prompt the user interactively if given
 a blank argument.
-
-Guarantee that seeds entered as hex are upper case.
-
-Ethereum address generation.  Note that uncompressed public key from
-seed is the same as for Bitcoin.  We then must use keccak256 to
-generate the Ethereum public address.
-
-Need -clear to clear stack.
-
-Intelligent purging of wallet watched addresses: in order to see out
-transactions for addresses in wallet depleted to zero, don't purge
-a wallet address that doesn't show up in listunspent until two block
-after it disappeared from that list.
 
 
