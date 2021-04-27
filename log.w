@@ -367,6 +367,9 @@ common to BTC and ETH.
 Improved recovery from errors in @<BA@> interactive mode.  Stack
 underflow no longer bounces you out to the command line.
 
+Added statistics for time since last block, including an exponentially
+smoothed moving average of time between recent blocks.
+
 \subsection{Abbreviations used in this document}
 
 @d AW @{{\tt address\_watch}@}

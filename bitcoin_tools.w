@@ -52,7 +52,7 @@
 %   Add additional math notation, including \floor and \ceil
 \usepackage{mathtools}
 
-\title{\bf Fourmilab Bitcoin Tools}
+\title{\bf Fourmilab Blockchain Tools}
 
 \author{
     by \href{http://www.fourmilab.ch/}{John Walker}
@@ -116,16 +116,405 @@ Include the configuration from {\tt configuration.w}.
 
 @d Perl directory @{/usr/bin/perl@}
 
-\chapter{Bitcoin Address Generator}
+\chapter{User Guide}
 
-This program generates Bitcoin public address and private key pairs
-from a variety of sources of random and pseudorandom data, including
-Fourmilab's HotBits radioactive random number generator.  The program
-is implemented as a stack machine where command line ``options'' are
-actually commands and arguments that allow specification, generation,
-and manipulation of random and pseudorandom data, generation of Bitcoin
-private keys and public addresses from them, and their output in a
-variety of formats.
+This package includes several programs which are largely indepenent
+of one another.  They implement a variety of functions useful for
+exploring and interacting with the Bitcoin blockchain.  These programs
+are intended for advanced, technically-oriented users who run their
+own full Bitcoin Core node on a local computer.  Note that anybody can
+run a Bitcoin node as long as they have a computer with the modest
+CPU and memory capacity required, with the very large (and inexorably
+growing) file storage capacity to archive the entire Bitcoin blockchain.
+You can run a Bitcoin node without being a ``miner'', nor need you
+expose your computer to external accesses by other nodes unless you
+wish to.
+
+Each of the programs is described in the sections that follow.  This is
+user-level documentation: detailed information on design and
+implementation is provided in the chapters which contain the source
+code for the respective programs.
+
+\section{Blockchain Address Generator}
+
+The Blockchain Address Generator, with program name @<BA@>, is a
+stand-alone tool for generating addresses and private keys for
+both the Bitcoin and Ethereum blockchains.  This program does not
+require access to a Bitcoin node and may be run on an ``air gapped''
+machine without access to the Internet.  This permits generating
+keys and addresses for offline cold storage of funds (for example,
+in paper wallets kept in secure locations) without the risk of
+having the private keys compromised by spyware installed on the
+generating machine.
+
+The Address Generator may be run from the command line (including
+being launched by another program) or interactively, where the user
+enters commands from the keyboard.  The commands used in both modes
+of operation are identical.
+
+\subsection{Architecture}
+
+The address generator is not a single-purpose utility, but rather more
+of a toolkit which can be used in a variety of ways to meet your
+requirements.  The program is implemented as a ``stack machine'',
+somewhat like the FORTH or PostScript languages.  Its stack stores
+``seeds'', which are 256-bit integers represented as 64 hexadecimal
+digits from ``{\tt 0}'' to ``{\tt F}'' (when specifying seeds in
+hexadecimal, upper or lower case letters may be used interchangeably).
+Specifications on the command line are not options in the usual sense,
+but rather commands which perform operations on the stack.  When in
+interactive mode, the same commands may be entered from the keyboard,
+without the leading ``{\tt -}'', and perform identically.
+
+Here are some sample commands which illustrate operations you can
+perform.
+
+\begin{description}
+    \item[{\tt @<BA@> -urandom -btc}] ~\\
+        Obtain a seed from the system's {\tt /dev/urandom} entropy
+        source and generate a Bitcoin key/address pair from it,
+        printing the results on the console.
+
+    \item[{\tt @<BA@> -repeat 10 -pseudo -format CSV -eth}] ~\\
+        Generate 10 seeds using the program's built-in Mersenne
+        Twister pseudorandom generator (seeded with entropy from
+        {\tt /dev/urandom}, then create Ethereum key/address pairs
+        for each and write as a Comma-Separated Value (CSV) file
+        intended, for example, as offline ``paper wallet'' cold
+        storage.
+
+    \item[{\tt @<BA@> -repeat 16 -hotbits -hbapik MyApiKey -shuffle
+                      -xor -test -repeat 1 -btc}] ~\\
+        Request 16 seeds from Fourmilab's
+        \href{https://www.fourmilab.ch/hotbits/}{HotBits} radioactive
+        random number generator (requires Internet connection), shuffle
+        the bytes among the 16 seeds, exclusive-or the two top seeds
+        together, perform a randomness test on the result using
+        Fourmilab's
+        \href{https://www.fourmilab.ch/random/}{random sequence tester},
+        then use the seed to generate a Bitcoin key/address
+        pair.
+\end{description}
+
+\subsection{Commands}
+
+\begin{description}
+    \item[{\tt -aes}] ~\\
+        Encrypt the second item on the stack with the
+        \href{https://en.wikipedia.org/wiki/Advanced_Encryption_Standard}{Advanced
+        Encryption Standard}, 256 bit key size version, with the key
+        on the top of the stack.  The stack data are encrypted in two
+        128 bit AES blocks and the encrypted result is placed on the
+        top of the stack.
+
+    \item[{\tt -binfile} {\em filename}] ~\\
+        Read successive 64 byte blocks from the binary file {\em
+        filename} and place them on the stack, pushing down the stack
+        with each block.
+
+    \item[{\tt -btc}] ~\\
+        Use the seed on the top of the stack, which is removed after
+        the command completes, to generate a Bitcoin private key and
+        public address, which are displayed on the console in all of
+        the various formats used.  If the {\tt -format} command has
+        been to select CSV output, CSV records are generated using
+        the specified format options.  If a {\tt -repeat} value has
+        been set, that number of stack items will be used to generate
+        multiple key/address pairs.
+
+    \item[{\tt -clear}] ~\\
+        Remove all items from the stack.
+
+    \item[{\tt -drop}] ~\\
+        Remove the top item from the stack.
+
+    \item[{\tt -dup}] ~\\
+        Duplicate the top item on the stack and push on the stack.
+
+    \item[{\tt -eth}] ~\\
+        Generate an Ethereum private key and public address from the
+        seed at the top of the stack, which is removed.  The key and
+        address are displayed on the console in human-readable form. If
+        the {\tt -format} command has been to select CSV output, CSV
+        records are generated using the specified format options.  If a
+        {\tt -repeat} value has been set, that number of stack items
+        will be used to generate multiple key/address pairs.
+
+    \item[{\tt -format} {\em fmt}] ~\\
+        Set the format to be used for key/address pairs generated by
+        the {\tt -btc} and {\tt -eth} commands.  If the first three
+        letters of {\em fmt} are ``{\tt CSV}'', a Comma-Separated
+        Value file is generated.  Letters following ``{\tt CSV}''
+        select options, which vary depending upon the type of address
+        being generated.  For Bitcoin addresses, the following options
+        are available.
+        \begin{quote}
+        \begin{description}
+        \dense
+            \item[{\tt q}]  Use uncompressed private key
+            \item[{\tt u}]  Use uncompressed public address
+            \item[{\tt l}]  Public (``{\tt 1}'') public address
+            \item[{\tt c}]  Compatible (``{\tt 3}'') public address
+            \item[{\tt s}]  Segwit ``{\tt bc1}'' public address
+        \end{description}
+        \end{quote}
+        For Ethereum addresses, options are:
+        \begin{quote}
+        \begin{description}
+        \dense
+            \item[{\tt n}]  No checksum on public address
+            \item[{\tt p}]  Include full public key
+        \end{description}
+        \end{quote}
+
+    \item[{\tt -hbapik} {\em APIkey}] ~\\
+        When requesting true random data from Fourmilab's HotBits
+        radioactive random number generator, use the
+        \href{https://www.fourmilab.ch/hotbits/apikey.html}{\em APIkey}
+        to permit access to the generator.  If you don't have an API
+        key (they are free), you may request pseudorandom data based
+        upon a radioactively-generated seed by specifying an API key
+        of ``{\tt Pseudorandom}''.
+
+    \item[{\tt -help}] ~\\
+         Print a summary of these commands.
+
+    \item[{\tt -hexfile} {\em filename}] ~\\
+         Load one or more seeds from the named {\em filename}, which
+         contains data in hexadecimal format.  White space in the file
+         (including line breaks) is ignored, and each successive
+         sequence of 64 hexadecimal digits is pushed onto the stack as
+         a 256 bit seed.
+
+    \item[{\tt -hotbits}] ~\\
+        Retrieve one or more 256 bit seeds from Fourmilab's HotBits
+        radioactive random number generator, using the API key specified
+        by the {\tt -hbapik} command.  If the {\tt -repeat} command has
+        specified multiple keys, that number of keys will be retrieved
+        from HotBits and pushed on the stack.
+
+    \item[{\tt -inter}] ~\\
+        Enter interactive mode.  The user is prompted for commands,
+        which are entered exactly as on the command line, except without
+        the leading hyphen on the command name.  To exit interactive
+        mode and return to processing commands from the command line,
+        enter ``{\tt end}'', ``{\tt exit}'', ``{\tt quit}'', or the
+        end of file character.
+
+    \item[{\tt -mnemonic}] ~\\
+        Generate a
+        \href{https://en.bitcoin.it/wiki/BIP_0039}{Bitcoin Improvement
+        Proposal 39} (BIP39) mnemonic phrase from the seed on the top
+        of the stack.  The seed remains on the stack.
+
+    \item[{\tt -not}] ~\\
+        Invert the bits of the seed on the top of the stack.
+
+    \item[{\tt -over}] ~\\
+        Duplicate the second item on the stack and push it on the top
+        of the stack.
+
+    \item[{\tt -p}] ~\\
+        Print the top item on the stack on the console.
+
+    \item[{\tt -phrase} {\em words\ldots}] ~\\
+        Push a key defined by a
+        \href{https://en.bitcoin.it/wiki/BIP_0039}{Bitcoin Improvement
+        Proposal 39} (BIP39) mnemonic phrase on the stack.  On the
+        command line, the phrase should be enclosed in quotes.
+
+    \item[{\tt -pseudo}] ~\\
+        Push one or more seeds generated by the internal Mersenne
+        Twister pseudorandom generator onto the stack.  If the
+        {\tt -repeat} command has been set to greater than one, that
+        number of seeds will be generated and pushed.  The pseudorandom
+        generator is itself seeded by entropy supplied bu the system's
+        {\tt /dev/urandom} generator.
+
+    \item[{\tt -random}] ~\\
+        Push one or more seeds read from the system's {\tt /dev/random}
+        entropy source onto the stack.  If the {\tt -repeat} command
+        has been set to greater than one, that number of seeds will be
+        generated and pushed.  Reading data from {\tt /dev/random}
+        faster than the system can collect hardware entropy may result
+        in delays: the program will wait as long as necessary to obtain
+        the requested number of bytes.
+
+    \item[{\tt -repeat} {\em n}] ~\\
+        Commands which generate and consume seeds will create and use
+        $n$ seeds instead of the default of 1.  To restore the default,
+        specify {\tt repeat 1}.
+
+    \item[{\tt -roll} {\em n}] ~\\
+        Rotate the top $n$ stack items, moving item $n$ to the top of
+        the stack and pushing other items down.
+
+    \item[{\tt -rot}] ~\\
+        Rotate the top three stack items.  Item three becomes the top
+        of the stack and the other items are pushed down.
+
+    \item[{\tt -rrot}] ~\\
+        Reverse rotate the top three stack items.  The seed on the top
+        of the stack becomes the third item and the two items below it
+        move up, with the second becoming the top.
+
+    \item[{\tt -seed} {\em hex\_data}] ~\\
+       The 256 bit seed, specified as 64 hexadecimal digits, is pushed
+       onto the stack.  The seed may be preceded by ``{\tt 0x}'', but
+       this is not required.
+
+    \item[{\tt -sha256}] ~\\
+        The seed on the top of the stack is replaced by its hash
+        (digest) generated by the
+        \href{https://en.wikipedia.org/wiki/SHA-2}{Secure Hash
+        Algorithm 2} (SHA-2), 256 bit version (SHA-256).
+
+    \item[{\tt -shuffle}] ~\\
+        Shuffle all of the bytes of items on the stack using
+        pseudorandom values generated as for the {\tt -pseudo} command.
+        Shuffling bytes can mitigate the risk of interception of seeds
+        generate remotely and transmitted across the Internet. (Secure
+        {\tt https:} connections are used for all such requests, but
+        you never know\ldots .)
+
+    \item[{\tt -swap}] ~\\
+        Exchange the top two items on the stack.
+
+    \item[{\tt -test}] ~\\
+        Use the Fourmilab
+        \href{https://www.fourmilab.ch/random/}{\tt ent} random
+        sequence tester to evaluate the apparent randomness of the
+        top item on the stack.  You must have {\tt ent} installed
+        on your system to use this command.
+        Randomness is evaluated at the bit stream level.
+
+    \item[{\tt -testall}] ~\\
+        Use the Fourmilab
+        \href{https://www.fourmilab.ch/random/}{\tt ent} random
+        sequence tester to evaluate the apparent randomness of the
+        entire contents on the stack.  You must have {\tt ent}
+        installed on your system to use this command.
+        Randomness is evaluated at the bit stream level.
+
+    \item[{\tt -type} {\em Any text}] ~\\
+        Display the text on the console.  This is often used in command
+        files to inform the user what's going on.
+
+    \item[{\tt -urandom}] ~\\
+        Push one or more seeds read from the system's {\tt
+        /dev/urandom} pseudorandom onto the stack.  If the {\tt
+        -repeat} command has been set to greater than one, that number
+        of seeds will be generated and pushed.  The {\tt /dev/urandom},
+        seeded by the true entropy source {\tt /dev/random}, has no
+        limitation on generation rate, so you may request any amount of
+        data without possibility of delay.
+
+    \item[{\tt -wif} {\em private\_key}] ~\\
+        Push the seed represented by the Bitcoin Wallet Import Format
+        (WIF) key onto the stack.
+
+    \item[{\tt -xor}] ~\\
+        Perform a bitwise exclusive or of the top two items on the
+        stack and push the result on the stack.
+
+    \item[{\tt -zero}] ~\\
+        Push an all zero seed on the stack.
+\end{description}
+
+\section{Installation}
+
+Fourmilab Blockchain Tools are written in the Perl programming
+language, which is pre-installed on most modern version of
+Unix-like operating systems such as Linux, FreeBSD, and Macintosh
+OS X, and available for many other systems.  Consequently, you
+can run any of the pre-built versions of the tools, all of which
+have a file type of ``{\tt .pl}'' by simply invoking them with the
+{\tt perl} command from the command line.  The programs use a number
+of Perl modules, some of which are ``core''---included as part of
+current Perl distributions, and others which may have to be installed
+either from the operating system's software library or the
+\href{https://www.cpan.org/}{Comprehensive Perl Archive Network}
+and its search engine,
+\href{https://metacpan.org/}{MetaCPAN}.  If a module is available from
+your operating system's distribution library, that's generally the best
+way to install it, since it will be automatically updated by the
+system's software update mechanism.
+
+\subsection{Required Perl modules}
+
+Here is a list of all Perl modules used by the programs.  Not all
+programs use all modules: if you're only interested in some of the
+programs, you need only install those which they require.  Modules
+marked as ``{\em core}'' will be pre-installed on most modern versions
+of Perl.
+
+\begin{itemize}
+\dense
+    \item {\tt Bitcoin::BIP39}
+    \item {\tt Bitcoin::Crypto::Key::Private}
+    \item {\tt Bitcoin::Crypto::Key::Public}
+    \item {\tt Crypt::CBC}
+    \item {\tt Crypt::Digest::Keccak256}
+    \item {\tt Data::Dumper} {\em core}
+    \item {\tt Digest::SHA} {\em core}
+    \item {\tt Getopt::Long} {\em core}
+    \item {\tt JSON} {\em core}
+    \item {\tt LWP::Simple}
+    \item {\tt LWP}
+    \item {\tt MIME::Base64} {\em core}
+    \item {\tt Math::Random::MT}
+    \item {\tt POSIX} {\em core}
+    \item {\tt Statistics::Descriptive}
+    \item {\tt Term::ReadKey}
+    \item {\tt Text::CSV}
+\end{itemize}
+
+\subsection{Building from original source code}
+
+This software, including all programs, support files, utilities,
+and documentation was developed using the
+\href{http://literateprogramming.com/}{Literate Programming}
+methodology, where the goal is that programs should be as
+readable to humans as they are byy computers.  The package
+is written using the
+\href{http://nuweb.sourceforge.net/}{\bf nuweb} literate programming
+system, which is language-agnostic: it can be used to develop software
+in any programming language, including multiple languages in a single
+project, as is the case for this one.  The {\bf nuweb} tools are free
+software written in portable C, with source code downloadable from the
+link above.
+
+Programs in {\bf nuweb} are called ``Web files'', which have nothing
+whatsoever to do with the World-Wide Web (which it predates),
+having a file type of ``{\tt .w}''.  All of the other files in the
+distribution are generated automatically from the master Web.  If
+you wish to modify one or more of the programs, it's best to modify
+the master code in the Web file and re-generate the programs from it.
+All of the building and maintenance operations are performed by a
+{\tt Makefile} which is, itself, generated from the Web.  If you edit
+any of the files associated with this program, be sure to use a text
+editor which supports the Unicode-compatible
+\href{https://en.wikipedia.org/wiki/UTF-8}{UTF-8} character set:
+otherwise some special characters may be turned into gibberish.
+
+Documentation is generated automatically in the
+\href{https://www.latex-project.org/}{\LaTeX} document preparation
+system, with the final PDF documents produced with
+\href{https://en.wikipedia.org/wiki/XeTeX}{XeTeX}, a version of
+\href{https://en.wikipedia.org/wiki/TeX}{\TeX} extended to support
+the full Unicode character set.  These utilities can be installed
+from the distribution archives of most Unix-like systems.
+
+\chapter{Blockchain Address Generator}
+
+This program generates Bitcoin and Ethereum public address and private
+key pairs from a variety of sources of random and pseudorandom data,
+including Fourmilab's HotBits radioactive random number generator.  The
+program is implemented as a stack machine where command line
+``options'' are actually commands and arguments that allow
+specification, generation, and manipulation of random and pseudorandom
+data, generation of Bitcoin private keys and public addresses from
+them, and their output in a variety of formats.
 
 \section{Main program}
 
@@ -192,6 +581,7 @@ them, then process command line options.
         "hexfile=s" =>  \&arg_hexfile,
         "hotbits"   =>  \&arg_hotbits,
         "inter"     =>  \&arg_inter,
+        "mnemonic"  =>  \&arg_mnemonic,
         "not"       =>  \&arg_not,
         "over"      =>  \&arg_over,
         "p"         =>  \&arg_printtop,
@@ -207,7 +597,7 @@ them, then process command line options.
         "sha256"    =>  \&arg_sha256,
         "shuffle"   =>  \&arg_shuffle,
         "swap"      =>  \&arg_swap,
-"tcx=s" => \&tcx,
+#"tcx=s" => \&tcx,
         "test"      =>  \&arg_test,
         "testall"   =>  \&arg_testall,
         "type=s"    =>  sub { print("$_[1]\n"); },
@@ -266,6 +656,7 @@ Include local and utility functions we employ.
     @<arg\_eth: Generate Ethereum key/address from top of stack@>
     @<arg\_hexfile: Push seeds from hexfile on stack@>
     @<arg\_hotbits: Request seed(s) from HotBits@>
+    @<arg\_mnemonic: Generate mnemonic phrase from stack top@>
     @<arg\_not: Invert bits in top of stack item@>
     @<arg\_over: Duplicate the second item from the stack@>
     @<arg\_pick: Duplicate the $n$th item from the stack@>
@@ -430,6 +821,16 @@ Include local and utility functions we employ.
         }
     }
 @| arg_hotbits @}
+
+\subsubsection{{\tt arg\_mnemonic} --- {\tt -mnemonic}: Generate BIP39 mnemonic phrase from stack top}
+
+@d arg\_mnemonic: Generate mnemonic phrase from stack top
+@{
+    sub arg_mnemonic {
+        stackCheck(1);
+        print(BIP39encode("  ", pop(@@seeds), 64));
+    }
+@| arg_mnemonic @}
 
 \subsubsection{{\tt arg\_not} --- {\tt -not}: Invert bits in top of stack item}
 
@@ -1170,12 +1571,11 @@ test.  Still, it's better than nothing.
         }
         return "0x$eal";
     }
-
-sub tcx {
-    my ($name, $value) = @@_;
-    my $valuec = computeEthChecksum($value);
-    print("$value\n$valuec\n" . (($value eq $valuec) ? "Equal" : "Unequal") . "\n");
-}
+#sub tcx {
+#    my ($name, $value) = @@_;
+#    my $valuec = computeEthChecksum($value);
+#    print("$value\n$valuec\n" . (($value eq $valuec) ? "Equal" : "Unequal") . "\n");
+#}
 @| computeEthChecksum @}
 
 \subsection{{\tt BIP39encode} --- Encode seed as BIP39 mnemonic phrase}
@@ -1294,10 +1694,11 @@ perl blockchain_address.pl [ command... ]
     -hexfile filename   Load hexadecimal seed(s) from filename
     -hotbits            Get seed(s) from HotBits, place on stack
     -inter              Process interactive commands
+    -mnemonic           Generate BIP39 mnemonic phrase from stack top
     -not                Invert stack top
     -over               Duplicate second item on stack to top
     -p                  Print top item on stack
-    -phrase "words..."  Specify seed as BIP36 menemonic phrase
+    -phrase words...    Specify seed as BIP39 menemonic phrase
     -pick n             Duplicate the nth item on the stack to top
     -pseudo             Generate pseudorandom seed and push on stack
     -random             Obtain a seed from /dev/random, push on stack
@@ -1372,6 +1773,9 @@ processing the command-line options.
     my $log_file = "@<AW log file@>";               # Log file
     my $verbose = @<Verbosity level@>;              # Verbose output ?
     my $poll_time = @<Blockchain poll interval@>;   # Poll interval in seconds
+    my $last_block_time = -1;                       # Time of last block
+    my $b_interval_smoothed = -1;                   # Smoothed inter-block interval, seconds
+    my $b_interval_smoothing = 0.2;                 # Interval smoothing factor
     my $stats = FALSE;                              # Show statistics of blocks ?
     my $statlog = "";                               # Block statistics log file
     my $wallet = @<AW monitor wallet@>;             # Monitor unspent funds in wallet ?
@@ -1813,6 +2217,7 @@ it.
         if ($statc) {
             @<Show statistics for block@>
         }
+        $last_block_time = $b_time;
         return \@@hits;
     }
 @}
@@ -1849,6 +2254,19 @@ the log file specified by the {\tt -sfile} option.  Statistics include:
         printf("    Value: min %.8f  max %.8g  mean %.8g  SD %.8g  Total %.8g\n",
             $stat_value->min(), $stat_value->max(), $stat_value->mean(),
             $stat_value->standard_deviation(), $stat_value->sum());
+        if ($last_block_time > 0) {
+            my $b_interval = $b_time - $last_block_time;
+            if ($b_interval_smoothed >= 0) {
+                $b_interval_smoothed = $b_interval_smoothed +
+                    ($b_interval_smoothing *
+                        ($b_interval - $b_interval_smoothed));
+            } else {
+                $b_interval_smoothed = $b_interval;
+            }
+            printf("    Time since last block: %.2f minutes, smoothed %.2f.\n",
+                $b_interval / 60, $b_interval_smoothed / 60);
+        }
+
     }
     if ($statlog) {
         open(SL, ">>$statlog");
