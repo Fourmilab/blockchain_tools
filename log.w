@@ -370,11 +370,38 @@ underflow no longer bounces you out to the command line.
 Added statistics for time since last block, including an exponentially
 smoothed moving average of time between recent blocks.
 
+\date{2021 April 28}
+
+Added code which causes specifying the null string as an RPC password
+to prompt the user to enter the password from the console.  Changed the
+option to specify the RPC password to {\tt -rpcpass}.
+
+\date{2021 May 1}
+
+Updated the code in @<CW@> which looks up wallet labels and addresses
+in the @<AW@> log file to parse the new CSV format of that file.
+Changed the logic to search the log file for all references to the
+specified address and use the transaction ID and block hash of the most
+recently added transaction involving that address, not the oldest.
+Completed major sections of the User Guide for @<AW@> and @<CW@>.
+
+\date{2021 May 2}
+
+Removed the median transaction fee from the type 2 block fee statistics
+output and logged by @<FW@>.  This is not the median fee rate, as I
+misunderstood it to be, but the median {\em fee} for transactions in
+the block, which is useless for our statistical analysis purposes.
+
+Added User Guide section for @<FW@>, including documenting its log file
+format.
+
+
 \subsection{Abbreviations used in this document}
 
 @d AW @{{\tt address\_watch}@}
 @d BA @{{\tt blockchain\_address}@}
 @d CW @{{\tt confirmation\_watch}@}
+@d FW @{{\tt fee\_watch}@}
 
 \section{To do}
 

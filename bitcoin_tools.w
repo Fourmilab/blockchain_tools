@@ -38,7 +38,7 @@
 \cftsetindents{subsubsection}{6em}{5em}
 
 %   Enable PDF output and hyperlinks within PDF files
-\usepackage[unicode=true,pdftitle={Fourmilab Bitcoin Tools},pdfauthor={John Walker},colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[unicode=true,pdftitle={Fourmilab Blockchain Tools},pdfauthor={John Walker},colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
 
 %   Enable inclusion of graphics files
 \usepackage{graphicx}
@@ -118,7 +118,7 @@ Include the configuration from {\tt configuration.w}.
 
 \chapter{User Guide}
 
-This package includes several programs which are largely indepenent
+This package includes several programs which are largely independent
 of one another.  They implement a variety of functions useful for
 exploring and interacting with the Bitcoin blockchain.  These programs
 are intended for advanced, technically-oriented users who run their
@@ -421,6 +421,392 @@ perform.
         Push an all zero seed on the stack.
 \end{description}
 
+\section{Address Watch}
+
+The @<AW@> program monitors the Bitcoin blockchain, watching for
+transactions which involve one or more Bitcoin addresses, which may be
+specified on the command line, in a file listing addresses to watch,
+or from the addresses in a Bitcoin Core wallet.  Address Watch can
+be used by those who keep Bitcoin reserves in ``cold storage'', on
+paper or offline devices for security to alert them is one of these
+addresses is used in a transaction, which would indicate its security
+has been compromised.  The program can also display statistics of
+blocks added to the blockchain and write a log which can be use for
+analysis of the blockchain's behaviour.
+
+\subsection{Command line options}
+
+Address Watch is configured by the following command line options.
+In addition to the options listed here, an additional set of options,
+common to other programs in the collection, specify how the program
+communicates with the Bitcoin Core Application Programming Interface
+(API): see ``RPC API configuration'' (\ref{RPC:API}) for details.
+
+\begin{description}
+    \item[{\tt -bfile} {\em filename}] ~\\
+        Specifies a file which is used to save the most recent block
+        examined by the program.  When the program starts, it will
+        begin scanning at the next block.  As each block is processed,
+        the block file is updated so a subsequent run of the program
+        will start at the next block.
+
+    \item[{\tt -end} {\em n}] ~\\
+        Stop scanning and exit after processing block $n$.  If no
+        {\tt -end} is specified, @<AW@> will continue scanning for
+        newly-published blocks at the specified {\tt -poll} interval.
+
+    \item[{\tt -help}] ~\\
+        Print a summary of the command line options.
+
+    \item[{\tt -lfile} {\em filename}] ~\\
+        For each transaction for a watched address, append an entry to
+        a log file containing the following fields in Comma Separated
+        Value (CSV) format.
+        \begin{enumerate}
+        \dense
+            \item Address label from wallet
+            \item Bitcoin address
+            \item Value (negative if spend, positive if received)
+            \item Date and time (ISO 8601 format)
+            \item Block number
+            \item Transaction ID
+            \item Block hash
+        \end{enumerate}
+
+    \item[{\tt -poll} {\em time}] ~\\
+        After reaching the current end of the blockchain, check for
+        newly-published blocks after the specified {\em time} in
+        seconds.  If {\em time} is set to zero, @<AW@> will exit
+        after scanning the last block.
+
+    \item[{\tt -sfile} {\em filename}] ~\\
+        As each block is processed, append an entry describing it in
+        the statistics file {\em filename}.  Records are written in
+        Comma Separated Value (CSV) format with the following fields:
+        \begin{enumerate}
+        \dense
+            \item Block number
+            \item Date and time (Unix {\tt time()} format)
+            \item Number of transactions in block
+            \item Smallest transaction (bytes)
+            \item Largest transaction (bytes)
+            \item Mean transaction size (bytes)
+            \item Transaction size standard deviation
+            \item Total size of transactions (bytes)
+            \item Smallest transaction value (BTC)
+            \item Largest transaction value (BTC)
+            \item Mean transaction value (BTC)
+            \item Transaction value standard deviation
+            \item Total transaction value (BTC)
+            \item Total miner reward for block (including transaction fees)
+            \item Base miner reward for block (less transaction fees)
+        \end{enumerate}
+
+    \item[{\tt -start} {\em n}] ~\\
+        Start scanning the blockchain at block $n$.  If no {\tt -start}
+        is specified, scanning will begin with the next block after
+        that specified in the {\tt -bfile} file or with the next
+        block published.
+
+    \item[{\tt -stats}] ~\\
+        For each block processed, print statistics about its content on
+        the console.  The statistics are the same as written to a file
+        by the {\tt -sfile} option, but formatted in a primate-readable
+        format.
+
+    \item[{\tt -type} {\em Any text}] ~\\
+        Print the text on the console.
+
+    \item[{\tt -verbose}] ~\\
+        Print detailed information about the contents of blocks.  The
+        more times you specify {\tt -verbose}, the more output you'll
+        get.
+
+    \item[{\tt -wallet}] ~\\
+        Include addresses in the Bitcoin Core wallet with unspent
+        balances in those watched for transactions.  Since every spend
+        transaction in Bitcoin Core completely spends the source address
+        and places unspent funds in a new change address, the option
+        will automatically track these newly-generated addresses as they
+        appear and are used.  The list of wallet addresses is updated
+        before scanning every new block that arrives.
+
+    \item[\hbox{{\tt -watch} [ {\em label}{\tt ,} ] {\em address}}] ~\\
+        Add the specified Bitcoin {\em address} to the watch list.  You
+        can specify a label before the address, separated by a comma,
+        for example: {\tt "Money Bin,1ScroogeYebEqDTbdjk36WzLxjCZTkNe3w"}.
+
+    \item[{\tt -wfile} {\em filename}] ~\\
+        Add addresses read from the specified {\em filename} in
+        Comma Separated Value (CSV) format to the watch list.  Each line
+        in the file specified an address as:
+            {\em Label}{\tt ,}{\em Bitcoin address}{\tt ,}{\em Balance}.
+        The {em Label} is an optional human-readable name for the
+        address, and the {\em Balance} field is not used by this
+        program.
+\end{description}
+
+\section{Confirmation Watch}
+
+When a Bitcoin transaction is posted to the network, it first is
+placed in the  ``mempool'' by nodes which receive it.  Miner nodes
+choose transactions from the mempool, usually based upon the
+transaction fee per byte they offser, validate them against their
+local copy of the entire Bitcoin blockchain and, if and when they
+find a hash for a candidate block which meets the current
+difficulty requirement, publish the block to the blockchain and
+notify other nodes of its publication.  Other nodes indepedently
+validate the transactions it contains and add their confirmations
+to the transaction, which are recorded on the blockchain.  By
+convention, a transaction is deemed fully confirmed once six or
+more independent confirmations for it are recorded on the
+blockchain.  Most Bitcoin wallet programs will not spend funds
+received (even ``change'' from funds in your own wallet which
+have been partially spent) until at least six confirmations are
+received for its transfer to your wallet.
+
+The @<CW@> utility monitors a transaction on the blockchain and
+reports confirmations as they arrive.  It can be used to
+monitor pending transactions and report when a specified number
+of confirmations arrive.  Depending upon the configuration, you
+can run @<CW@> with the following command lines.
+
+\begin{description}
+    \item[@<CW@> {\em transaction\_id} {\em block\_hash}] ~\\
+        This form of command may always be used, regardless of
+        configuration.  It specifies the hexadecimal transaction ID
+        and hash of the block which contains it.  Both of these
+        can be found in the console output and log file generated
+        by @<AW@>.
+
+    \item[@<CW@> {\em transaction\_id}] ~\\
+        If your Bitcoin Core node has been configured with
+        with ``{\tt txindex=1}'', which maintains an index of
+        transactions, you can specify just the {\em transaction\_id},
+        with the block hash found from the transaction index.
+
+    \item[@<CW@> {\em address/label}] ~\\
+        If you have specified a log file maintained by @<AW@> on the
+        command line with the {\tt -lfile} option, you may specify
+        just the Bitcoin public address to which the transaction
+        pertains or the label you have assigned to in the the Bitcoin
+        Core wallet.  The most recent transaction involving that
+        address will be retrieved from the log file and monitored
+        for confirmations.
+\end{description}
+
+\subsection{Command line options}
+
+Confirmation Watch is configured by the following command line options.
+In addition to the options listed here, an additional set of options,
+common to other programs in the collection, specify how the program
+communicates with the Bitcoin Core Application Programming Interface
+(API): see ``RPC API configuration'' (\ref{RPC:API}) for details.
+
+\begin{description}
+    \item[{\tt -confirmed} {\em n}] ~\\
+        Specifies the number of confirmations which must be
+        received before a transaction is deemed confirmed.  If
+        a transaction is being monitored by the {\tt -watch}
+        option, the @<CW@> will exit after this number of
+        confirmations arrive.
+
+    \item[{\tt -help}] ~\\
+        Print a summary of how to call and command line options.
+
+    \item[{\tt -lfile} {\em filename}] ~\\
+        Use the log file written by the @<AW@> program to locate
+        transactions for a Bitcoin address specified either by its
+        public address or a label given to it in the Bitcoin Core
+        wallet.  If this option is not specified, transactions must
+        be identified by their transaction ID.
+
+    \item[{\tt -type} {\em Any text}] ~\\
+        Print the text on the console.
+
+    \item[{\tt -verbose} {\em n}] ~\\
+        Print detailed information about transactions and confirmations.
+        The more times you specify {\tt -verbose}, the more information
+        you'll see.
+
+    \item[{\tt -watch}] ~\\
+        Poll for new confirmations every {\tt -poll} intervals until
+        the {\tt -confirmed} number have arrived.
+\end{description}
+
+\section{Transaction Fee Watch}
+
+
+
+\subsection{Command line options}
+
+Fee Watch is configured by the following command line options.
+In addition to the options listed here, an additional set of options,
+common to other programs in the collection, specify how the program
+communicates with the Bitcoin Core Application Programming Interface
+(API): see ``RPC API configuration'' (\ref{RPC:API}) for details.
+
+\begin{description}
+    \item[{\tt -confirmed} {\em n}] ~\\
+        Specifies the number of confirmations which must be
+        received before a transaction is deemed confirmed.  This
+        is used when requesting an estimate of the current
+        transaction fee with the Bitcoin Core API call
+        {\tt estimatesmartfee} to indicate the priority of
+        the transaction.  The default, 6, corresponds to standard
+        priority for this call.
+
+    \item[{\tt -ffile} {\em filename}] ~\\
+        Write a log file of fee information collected by
+        @<FW@>.  The log is written in Comma Separated Value
+        (CSV) format, and contains two kinds of records,
+        distinguished by a digit in the first field.
+        See ``Log file format'' (\ref{FW:Log}) below for
+        details.
+
+    \item[{\tt -help}] ~\\
+        Print a summary of how to call and command line options.
+
+    \item[{\tt -poll} {\em time}] ~\\
+        Query and report transction fee estimates and statistics
+        every {\em time} seconds, by default 300 seconds (five
+        minutes).
+
+    \item[{\tt -quiet}] ~\\
+        Suppress console output for periodic transaction fee polls.
+        Use this option when writing a log file with the {\tt -ffile}
+        option if you don't want to also see information as it is
+        collected.
+
+    \item[{\tt -type} {\em Any text}] ~\\
+        Print the text on the console.
+
+    \item[{\tt -verbose} {\em n}] ~\\
+        Print detailed information about operations. The more times you
+        specify {\tt -verbose}, the more information you'll see.
+\end{description}
+
+\subsection{Log file format}
+\label{FW:Log}
+
+When the {\tt -ffile} option is specified, @<FW@> writes a log file
+recording the transaction fee information it collects.  This file
+is written in Comma Separated Value (CSV) format, and consists of
+two type of records, as follows.
+
+\subsubsection{Estimated fee record}
+
+These records report the estimated fee, according to the Bitcoin
+Core {\tt estimatesmartfee} API call, at the indicated time.
+The estimated transaction fee in the record is expressed in
+BTC per virtual kilobyte of transaction size, where virtual
+transaction size is as defined in
+\href{https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki}{Bitcoin
+Improvement Proposal 141} section ``Transaction size Calculations''.
+One record of this type is generated for every {\tt -poll} interval.
+
+\begin{enumerate}
+\dense
+    \item Record type, {\tt 1}
+    \item Date and time (Unix {\tt time()} format)
+    \item Date and time (ISO 8601 format)
+    \item Estimated transaction fee, BTC per virtual kilobyte
+\end{enumerate}
+
+\subsubsection{Block fee statistics record}
+
+If any blocks have been added to the blockchain since the last
+{\tt -poll} interval, a record will be written, reporting
+fee statistics for transactions in the block.  Note that the
+time in these records is the time the block was added to the
+blockchain, not the time of the @<FW@> poll.  Tha values
+reported in these records as those returned by the
+{\tt getblockstats} API call for the block, with fees reported
+in units of satoshis (BTC 0.00000001) per virtual byte of
+transaction, where virtual bytes are as defined for the
+Estimated fee record above.
+
+\begin{enumerate}
+\dense
+    \item Record type, {\tt 2}
+    \item Block date and time (Unix {\tt time()} format)
+    \item Block date and time (ISO 8601 format)
+    \item Block number
+    \item Minimum fee rate
+    \item Mean (average) fee rate
+    \item Maximum fee rate
+    \item 10th percentile fee rate
+    \item 25th percentile fee rate
+    \item 50th percentile fee rate
+    \item 75th percentile fee rate
+    \item 90th percentile fee rate
+\end{enumerate}
+
+\section{RPC API configuration}
+\label{RPC:API}
+
+The @<AW@>, @<CW@>, and @<FW@> programs all require access to the
+Application Programming Interface (API) provided by a Bitcoin Core
+node.  Access to this interface can be via three mechanisms:
+
+\begin{description}
+    \item[{\tt local}]  Access to a Bitcoin Core node running on the
+        same machine via the {\tt bitcoin-cli} command line program.
+    \item[{\tt rpc}]    Access to a Bitcoin Core node via its Remote
+        Procedure Call (RPC) interface.  The node may either be on the
+        same machine or on a different machine which has been configured
+        to accept requests from the host which is submitting them.
+    \item[{\tt ssh}]    Access a remote Bitcoin Core node by submitting
+        commands to its {\tt bitcoin-cli} utility via the Secure Shell
+        (SSH) facility.  The client and node machine must be configured
+        to permit password-less access via public key authentication.
+\end{description}
+
+The following options, which are common to all of these programs,
+allow you to confgure access to the API.  These options may be set
+on the command line or via a configuration file common to all of
+the programs.
+
+\begin{description}
+    \item[{\tt -clipath} {\em path}] ~\\
+        Specify the path used to invoke the {\tt bitcoin-cli} program
+        on the node machine.  This option is used for the {\tt local}
+        and {\tt ssh} access methods.  Note that on an SSH login, the
+        user's terminal login scripts are not executed, so you may have
+        to specify an explicit path even if {\tt bitcoin-cli} is in
+        a directory included in the PATH declared by those scripts.
+
+    \item[{\tt -host} {\em hostname}] ~\\
+        Specifies the host (machine network name) on which Bitcoin Core
+        is running.  If this is the same computer, use {\tt localhost},
+        otherwise specify the local machine name, fully qualified
+        domain name, or IP address of the machine.
+
+    \item[{\tt -method} {\em which}] ~\\
+        Sets the method used to access the API\@@.  Use {\tt local}
+        if accessing a Bitcoin Core node on the same machine, {\tt ssh}
+        to access a Bitcoin Core node on another machine.  The
+        {\tt rpc} option selects direct access via the RPC interface on
+        the same or a different host.  RPC access is the most efficient
+        and should be used is available.
+
+    \item[{\tt -rpccpass} {\em password}] ~\\
+        Set the password for access via the {\tt rpc} method.  This
+        password is configured in the {\tt bitcoin.conf} file via
+        the {\tt rpcpassword} statement.  If the {\em password}
+        specified is the null string ({\tt ""}), the user will be
+        prompted to enter the password from the console, which is
+        much more secure than specifying it on the command line.
+
+    \item[{\tt -port} {\em number}] ~\\
+        Sets the port used to communicate with the Bitcoin Core node
+        when the {\tt rpc} method is selected.  The default is 8332.
+
+    \item[{\tt -user} {\em userid}] ~\\
+        Sets the User ID (login name) for access to a Bitcoin Core
+        node on another machine via the {\tt ssh} method.
+\end{description}
+
 \section{Installation}
 
 Fourmilab Blockchain Tools are written in the Perl programming
@@ -522,9 +908,6 @@ them, and their output in a variety of formats.
 
 @o blockchain_address.pl
 @{@<Explanatory header for Perl files@>
-
-    #   Generate Bitcoin private keys and public address pairs
-    #   from HotBits-generated data.
 
     @<Perl language modes@>
 
@@ -1795,7 +2178,6 @@ processing the command-line options.
         "verbose+"      => \$verbose,
         "wallet"        => \$wallet,
         "watch=s"       => \@@watch_addrs,
-#       "wpass=s"       => \$wallet_pass,
         "wfile=s"       => \$watch_file
     );
 
@@ -1859,7 +2241,8 @@ specified, ask the user for it from standard input.
 
 @o address_watch.pl
 @{
-    if (($RPCmethod eq "rpc") && (!defined($RPCpass))) {
+    if (($RPCmethod eq "rpc") &&
+        ((!defined($RPCpass)) || ($RPCpass eq ""))) {
         $RPCpass = getPassword("Bitcoin RPC password: ");
     }
 @}
@@ -1970,7 +2353,9 @@ found in them to addresses we're watching.
                 print($logItem);
                 if ($log_file ne "") {
                     open(LF, ">>$log_file")|| die("Cannot open log file $log_file");
-                    print(LF $logItem);
+                    printf(LF "\"%s\",%s,%.8f,%s,%d,%s,%s\n",
+                        $adrh{$a_addr}->[0], $a_addr, $t_value, $utime,
+                        $b_height, $t_txid, $b_hash);
                     close(LF);
                 }
            }
@@ -2526,14 +2911,13 @@ a label, otherwise it's interpreted as a transaction ID.
             #   continue to poll until it shows up.
             do {
                 open(LI, "<$log_file") || die("Cannot open log file $log_file");
+                my ($txid, $blockhash);
                 while (my $l = <LI>) {
-                    if (($l =~ m/^(?:\w+)?\s+$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/) ||
-                        ($l =~ m/^$addr\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)\s+(\S+)/)
+                    if (($l =~ m/^"[^"]*",$addr,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/) ||
+                        ($l =~ m/^"$addr",\S+,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/)
                        ) {
-                        my ($txid, $blockhash) = ($1, $2);
-                        @@ARGV = ( $txid, $blockhash );
+                        ($txid, $blockhash) = ($1, $2);
                         $found = TRUE;
-                        last;
                     }
                 }
                 close(LI);
@@ -2541,6 +2925,9 @@ a label, otherwise it's interpreted as a transaction ID.
                     print("No transaction for this address found in address_watch log.\n" .
                           "Waiting $poll_time seconds before next check.\n") if $verbose;
                     sleep($poll_time);
+                }
+                if ($found) {
+                    @@ARGV = ( $txid, $blockhash );
                 }
             } while ($watch && (!$found));
             if (!$found) {
@@ -2665,7 +3052,7 @@ Import utility functions we share with other programs.
 @{
     sub showHelp {
         my $help = <<"    EOD";
-perl address_watch.pl [ command... ]
+perl confirmation_watch.pl [ option... ] transaction\_id/address/label [ block\_hash ]
   Commands and arguments:
     -confirmed n        Confirmations to deem transaction confirmed
     -help               Print this message
@@ -2824,15 +3211,14 @@ these are logged as type 2 item.
             my $bs = decode_json($bsj);
             print(Data::Dumper->Dump([$bs], [ qw(getblockstats) ])) if $verbose >= 2;
             my $btime = $bs->{time};
-            my ($feerate_min, $feerate_mean, $feerate_median,
-                $feerate_max) = ($bs->{minfeerate}, $bs->{avgfeerate},
-                    $bs->{medianfee}, $bs->{maxfeerate});
+            my ($feerate_min, $feerate_mean, $feerate_max) =
+                ($bs->{minfeerate}, $bs->{avgfeerate}, $bs->{maxfeerate});
             my @@feerate_percentiles = @@{$bs->{feerate_percentiles}};
 
             if (!$quiet) {
-                printf("  Block %d  %s\n    Fee rate min %d, mean %d, median %d, max %d\n",
+                printf("  Block %d  %s\n    Fee rate min %d, mean %d, max %d\n",
                     $j, etime($btime),
-                    $feerate_min, $feerate_mean, $feerate_median, $feerate_max);
+                    $feerate_min, $feerate_mean, $feerate_max);
                 printf("    Fee percentiles: " .
                     "10%% $feerate_percentiles[0]  25%% $feerate_percentiles[1]  " .
                     "50%% $feerate_percentiles[2]  75%% $feerate_percentiles[3]  " .
@@ -2840,7 +3226,7 @@ these are logged as type 2 item.
             }
             if ($fee_file ne "") {
                 print(FO "2,$btime," . etime($btime) . ",$j," .
-                    "$feerate_min,$feerate_mean,$feerate_median,$feerate_max," .
+                    "$feerate_min,$feerate_mean,$feerate_max," .
                     "$feerate_percentiles[0],$feerate_percentiles[1]," .
                     "$feerate_percentiles[2],$feerate_percentiles[3]," .
                     "$feerate_percentiles[4]\n");
@@ -2880,7 +3266,7 @@ Import utility functions we share with other programs.
 @{
     sub showHelp {
         my $help = <<"    EOD";
-perl address_watch.pl [ command... ]
+perl fee_watch.pl [ command... ]
   Commands and arguments:
     -confirmed n        Confirmations to deem transaction confirmed
     -ffile filename     Log file for fee statistics
@@ -3246,7 +3632,7 @@ Define the command-line options to set the RPC configuration variables.
     "clipath=s"     => \$RPCcli,
     "host=s"        => \$RPChost,
     "method=s"      => \$RPCmethod,
-    "password=s"    => \$RPCpass,
+    "rpcpass=s"     => \$RPCpass,
     "port=i"        => \$RPCport,
     "user=s"        => \$RPCuser,
 @}
@@ -3259,7 +3645,7 @@ Bitcoin API access configuration options:
   -clipath path       Path name to execute bitcoin-cli command line utility
   -host hostname      Host (name or IP address) where Bitcoin Core runs
   -method which       Query method: local, rpc, ssh
-  -password "text"    Bitcoin RPC API password
+  -rpcpass "text"     Bitcoin RPC API password
   -port n             Port for RPC API requests (default @<RPC port@>)
   -user userid        User name for requests via ssh@}
 
