@@ -12,11 +12,11 @@ to a host running {\tt bitcoind}.  All of these may be overridden
 by command line options.
 
 @d RPC query method @{ssh@}
-@d RPC host @{juno@}
+@d RPC host @{localhost@}
 @d RPC port @{8332@}
-@d Bitcoin CLI path @{/home/kelvin/bin/bitcoin-cli@}
-@d RPC user @{kelvin@}
-@d RPC password @{75qYPVLjHAGDpwmpY6Rexd1xarCzieTYAV@}
+@d Bitcoin CLI path @{bitcoin-cli@}
+@d RPC user @{myuser@}
+@d RPC password @{@}
 
 These definitions specify defaults for {\tt address\_watch}.
 

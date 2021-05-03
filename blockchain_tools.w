@@ -58,7 +58,7 @@
     by \href{http://www.fourmilab.ch/}{John Walker}
 }
 \date{
-    April 2021 \\
+    May 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png}
 }
@@ -87,8 +87,8 @@ require access to a Bitcoin node and others may be able to be used
 on nodes which have ``pruned'' the blockchain to include only more
 recent blocks.
 
-@d Project Title @{Bitcoin Tools@}
-@d Project File Name @{bitcoin_tools@}
+@d Project Title @{Blockchain Tools@}
+@d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
 %   time inclusion in programs during periods of active development.
@@ -459,19 +459,10 @@ communicates with the Bitcoin Core Application Programming Interface
         Print a summary of the command line options.
 
     \item[{\tt -lfile} {\em filename}] ~\\
-        For each transaction for a watched address, append an entry to
-        a log file containing the following fields in Comma Separated
-        Value (CSV) format.
-        \begin{enumerate}
-        \dense
-            \item Address label from wallet
-            \item Bitcoin address
-            \item Value (negative if spend, positive if received)
-            \item Date and time (ISO 8601 format)
-            \item Block number
-            \item Transaction ID
-            \item Block hash
-        \end{enumerate}
+        For each transaction involving a watched address, append an
+        entry to a log file containing fields in Comma Separated Value
+        (CSV) format as described in ``Watched address log file''
+        (\ref{AW:LogWA}) below.
 
     \item[{\tt -poll} {\em time}] ~\\
         After reaching the current end of the blockchain, check for
@@ -482,25 +473,8 @@ communicates with the Bitcoin Core Application Programming Interface
     \item[{\tt -sfile} {\em filename}] ~\\
         As each block is processed, append an entry describing it in
         the statistics file {\em filename}.  Records are written in
-        Comma Separated Value (CSV) format with the following fields:
-        \begin{enumerate}
-        \dense
-            \item Block number
-            \item Date and time (Unix {\tt time()} format)
-            \item Number of transactions in block
-            \item Smallest transaction (bytes)
-            \item Largest transaction (bytes)
-            \item Mean transaction size (bytes)
-            \item Transaction size standard deviation
-            \item Total size of transactions (bytes)
-            \item Smallest transaction value (BTC)
-            \item Largest transaction value (BTC)
-            \item Mean transaction value (BTC)
-            \item Transaction value standard deviation
-            \item Total transaction value (BTC)
-            \item Total miner reward for block (including transaction fees)
-            \item Base miner reward for block (less transaction fees)
-        \end{enumerate}
+        Comma Separated Value (CSV) format was described in
+        ``Block statistics log file'' (\ref{AW:LogBS}) below.
 
     \item[{\tt -start} {\em n}] ~\\
         Start scanning the blockchain at block $n$.  If no {\tt -start}
@@ -545,6 +519,55 @@ communicates with the Bitcoin Core Application Programming Interface
         address, and the {\em Balance} field is not used by this
         program.
 \end{description}
+
+\subsection{Log file formats}
+\label{AW:Log}
+
+The @<AW@> program can write two log files, both in Comma Separated
+Value format, with fields as follows.  New items are appended to an
+existing log file.
+
+\subsection{Watched address log file}
+\label{AW:LogWA}
+
+The {\tt -lfile} option enables logging of transactions involving
+watched addresses.  Each log item is as follows.
+
+\begin{enumerate}
+\dense
+    \item Address label from wallet
+    \item Bitcoin address
+    \item Value (negative if spend, positive if received)
+    \item Date and time (ISO 8601 format)
+    \item Block number
+    \item Transaction ID
+    \item Block hash
+\end{enumerate}
+
+\subsection{Block statistics log file}
+\label{AW:LogBS}
+
+The {\tt -sfile} option logs statistics for blocks as they are added
+to the blockchain, with records containing the following fields.
+
+\begin{enumerate}
+\dense
+    \item Block number
+    \item Date and time (Unix {\tt time()} format)
+    \item Number of transactions in block
+    \item Smallest transaction (bytes)
+    \item Largest transaction (bytes)
+    \item Mean transaction size (bytes)
+    \item Transaction size standard deviation
+    \item Total size of transactions (bytes)
+    \item Smallest transaction value (BTC)
+    \item Largest transaction value (BTC)
+    \item Mean transaction value (BTC)
+    \item Transaction value standard deviation
+    \item Total transaction value (BTC)
+    \item Total miner reward for block (including transaction fees)
+    \item Base miner reward for block (less transaction fees)
+\end{enumerate}
 
 \section{Confirmation Watch}
 
@@ -636,7 +659,23 @@ communicates with the Bitcoin Core Application Programming Interface
 
 \section{Transaction Fee Watch}
 
+Bitcoin transactions submitted for inclusion in the blockchan are
+accompanied by a transaction fee which is paid to the miner who
+includes the transaction in a block published to the blockchain.
+Transactions can be selected by miners at their discretion, but in
+most cases will be chosen to maximise the reward for including them
+in a block, which usually means those which offer the highest
+transaction fee per byte (or, more precisely, ``virtual byte'') of
+the transaction.  Whenever a block is added to the blockchain, Bitcoin
+Core computes statistics of the fees for transactions within it.
+In addition, Bitcoin Core computes an ``estimated smart fee'' as a
+suggestion to those submitting transactions at the current time.
 
+The @<FW@> program monitors the blockchain and reports the fee
+statistics for each block published and fee recommendations from
+Bitcoin Core, optionally writing both of these to a log file for
+analysis by other programs.  The program is configured by the
+following command line options.
 
 \subsection{Command line options}
 
@@ -906,7 +945,7 @@ them, and their output in a variety of formats.
 
 \subsection{Program plumbing}
 
-@o blockchain_address.pl
+@o perl/blockchain_address.pl
 @{@<Explanatory header for Perl files@>
 
     @<Perl language modes@>
@@ -942,7 +981,7 @@ them, and their output in a variety of formats.
 If project- or program-level configuration files are present, process
 them, then process command line options.
 
-@o blockchain_address.pl
+@o perl/blockchain_address.pl
 @{
     my $opt_Format = "";        # Format for generated keys
 
@@ -1000,7 +1039,7 @@ them, then process command line options.
 
 Include local and utility functions we employ.
 
-@o blockchain_address.pl
+@o perl/blockchain_address.pl
 @{
     #   Shared utility functions
     @<readHexfile: Read hexadecimal data from a file@>
@@ -2134,7 +2173,7 @@ entry is generated showing:
 We start with the usual start of program definition and defining and
 processing the command-line options.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{@<Explanatory header for Perl files@>
 
     @<Perl language modes@>
@@ -2144,6 +2183,7 @@ processing the command-line options.
     use Text::CSV qw(csv);
     use Getopt::Long qw(GetOptionsFromArray);
     use POSIX qw(strftime);
+    use Term::ReadKey;
     use Statistics::Descriptive;
 
     use Data::Dumper;
@@ -2201,7 +2241,7 @@ When watching wallet addresses, we re-fetch the list for every poll
 of the blockchain to accommodate any changes due to transactions since
 the previous poll.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
     my %adrh;
 
@@ -2239,7 +2279,7 @@ the previous poll.
 If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
     if (($RPCmethod eq "rpc") &&
         ((!defined($RPCpass)) || ($RPCpass eq ""))) {
@@ -2261,7 +2301,7 @@ If no end block is specified, the most recent block is used.  This
 means that if we've already scanned the most recent block, it will
 not be re-scanned.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
     #   If a block file is present, read start block from it
     if ($block_file ne "") {
@@ -2305,7 +2345,7 @@ wallet for addresses with unspect balances.  This avoids missing
 any address which was spent between the time we started the program
 and the first block we receive after starting.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
     updateWalletAddresses();
 
@@ -2335,7 +2375,7 @@ and the first block we receive after starting.
 We've finished scanning all specified blocks.  Output references we've
 found in them to addresses we're watching.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
         my $nref = (scalar(@@$myaddrs) == 0) ? 0 : scalar(@@{$myaddrs->[0]});
         if (scalar($nref) > 0) {
@@ -2367,7 +2407,7 @@ found in them to addresses we're watching.
 If a block file is specified, save last block scanned so we can resume
 with the next block on a subsequent run.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
         if (($block_file ne "") && ($scanned > 0)) {
             open(BF, ">$block_file") || die("Cannot open block file for update");
@@ -2383,7 +2423,7 @@ If we're polling, sleep for the specified polling interval and
 resume the scan with the next block after the one we've just
 examined.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
         if ($poll_time > 0) {
             $block_start = $block_end + 1;
@@ -2400,7 +2440,7 @@ examined.
 Import local (program-specific) functions defined below and utlity
 functions common to multiple programs.
 
-@o address_watch.pl
+@o perl/address_watch.pl
 @{
     #   Local functions
     @<scanBlock: Scan a block by index on the blockchain@>
@@ -2838,7 +2878,7 @@ label.
 
 \subsection{Program plumbing}
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{@<Explanatory header for Perl files@>
 
     @<Perl language modes@>
@@ -2861,7 +2901,7 @@ $RPChost = "localhost";
 
 \subsection{Command line option processing}
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     my $log_file = "@<AW log file@>";               # Log file from Bitwatch
     my $watch = @<CW watch confirmations@>;         # Watch for confirmations ?
@@ -2897,7 +2937,7 @@ a transaction ID: if the length is less than 48 characters or it
 contains a character which isn't a valid hexadecimal digit, we deem it
 a label, otherwise it's interpreted as a transaction ID.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     if (scalar(@@ARGV) == 1) {
         my $addr = $ARGV[0];
@@ -2956,7 +2996,7 @@ a label, otherwise it's interpreted as a transaction ID.
 If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     if (($RPCmethod eq "rpc") && ($RPCpass eq "")) {
         $RPCpass = getPassword("Bitcoin RPC password: ");
@@ -2969,7 +3009,7 @@ Now retrieve the confirmations for the transaction. If {\tt -watch} is
 specified, continue to watch until we've received the {\tt -confirm}
 number of confirmations, at which point we exit.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     my $l_confirmations = -1;
 
@@ -3019,7 +3059,7 @@ If we've received the specified number of confirmations, exit.  If
 {\tt -watch} is specified, wait until the next poll time and check
 for new confirmations.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
          if ($watch && ($l_confirmations < $confirmed)) {
             sleep($poll_time);
@@ -3031,14 +3071,14 @@ for new confirmations.
 
 Define our local functions.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     @<showHelp: Show confirmation watch help information@>
 @}
 
 Import utility functions we share with other programs.
 
-@o confirmation_watch.pl
+@o perl/confirmation_watch.pl
 @{
     @<etime: Edit time to ISO 8601@>
     @<Command and option processing@>
@@ -3083,7 +3123,7 @@ to programs which read and process the log.
 
 \subsection{Program plumbing}
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{@<Explanatory header for Perl files@>
 
     @<Perl language modes@>
@@ -3106,7 +3146,7 @@ to programs which read and process the log.
 
 \subsection{Command line option processing}
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
     my $conf_target = @<CW deem confirmed@>;        # Confirmation target in blocks
     my $fee_file = "";                              # Fee watch log file
@@ -3137,7 +3177,7 @@ to programs which read and process the log.
 If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
     if (($RPCmethod eq "rpc") && ($RPCpass eq "")) {
         $RPCpass = getPassword("Bitcoin RPC password: ");
@@ -3155,7 +3195,7 @@ query, which provides the estimate which the Bitcoin Core wallet
 recommends for transactions it submits.  If logging is enabled, this is
 logged as a type 1 record.
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
     my $block_start = -1;               # Last block processed
     my $lastfee = -1;                   # Last estimated fee
@@ -3199,7 +3239,7 @@ transactions in the block, as well as a histogram of fees at the
 10, 25, 50, 75, and 90 percentile levels.  If logging is enabled,
 these are logged as type 2 item.
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
         my $block_end = sendRPCcommand([ "getblockcount" ]);
         if ($block_start < 0) {
@@ -3243,7 +3283,7 @@ these are logged as type 2 item.
 
 Define our local functions.
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
     @<showHelp: Show fee watch help information@>
 @}
@@ -3252,7 +3292,7 @@ Define our local functions.
 
 Import utility functions we share with other programs.
 
-@o fee_watch.pl
+@o perl/fee_watch.pl
 @{
     @<etime: Edit time to ISO 8601@>
     @<Command and option processing@>
@@ -3424,7 +3464,9 @@ files.
             processCommandFile("@<Project File Name@>.conf");
         }
         my $progName = "@f";
-        $progName =~ s/\.\w+$//;
+        $progName =~ m|^(?:[^/]*/)?(\w+)\.\w+$| ||
+            die("Cannot extract program name from $progName");
+        $progName = $1;
         if (-f "$progName.conf") {
             processCommandFile("$progName.conf");
         }
@@ -3881,7 +3923,7 @@ so a newly-generated {\tt Makefile} will work.
 build:
         perl tools/build/update_build.pl
         $(NUWEB) -t $(PROJECT).w
-        chmod 755 *.pl
+        chmod 755 perl/*.pl
         @@if [ \( ! -f Makefile \) -o \( Makefile.mkf -nt Makefile \) ] ; then \
                 echo Makefile.mkf is newer than Makefile ; \
                 sed "s/ \*$$//" Makefile.mkf | unexpand >Makefile ; \
@@ -3923,7 +3965,7 @@ detects.
 @{
 lint:
         @@# Uses GNU find extension to quit on first error
-        $(GNUFIND) . -type f -name \*.pl -print \
+        $(GNUFIND) perl tools -type f -name \*.pl -print \
                 \( -exec perl -c {} \; -o -quit \)
 @}
 
@@ -3951,7 +3993,7 @@ stats:
                 `grep "Build date and time " build.w | \
                 sed 's/[^:0-9 \-]//g' | sed 's/^ *//'`
         @@echo Web: `wc -l *.w`
-        @@echo Lines: `find . -type f -name \*.pl -exec cat {} \; | wc -l`
+        @@echo Lines: `find . -type f -name perl/\*.pl -exec cat {} \; | wc -l`
         @@if [ -f $(PROJECT).log ] ; then \
                 echo -n "Pages: " ; \
                 tail -5 $(PROJECT).log | grep pages | sed 's/[^0-9]//g' ; \
@@ -3966,7 +4008,8 @@ generated from the web.
 @o Makefile.mkf
 @{
 clean:
-        rm -f nw[0-9]*[0-9] rm *.aux *.log *.out *.pdf *.tex *.toc *.pl
+        rm -f nw[0-9]*[0-9] rm *.aux *.log *.out *.pdf *.tex *.toc \
+            perl/*.pl
 
 squeaky:
         #make clean
@@ -4041,6 +4084,7 @@ Makefile.mkf
 *.pdf
 *.tex
 *.toc
+run
 tools
 *.pl
 @}

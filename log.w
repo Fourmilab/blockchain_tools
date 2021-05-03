@@ -395,8 +395,29 @@ the block, which is useless for our statistical analysis purposes.
 Added User Guide section for @<FW@>, including documenting its log file
 format.
 
+\date{2021 May 3}
 
-\subsection{Abbreviations used in this document}
+Moved all of the Perl files generated from the web to a new {\tt perl}
+subdirectory and adjusted output file commands and the {\tt Makefile}
+accordingly.
+
+Created a new {\tt run} subdirectory, which will not be included in the
+distribution, containing symbolic links to the programs in the {\tt
+perl} directory and all of the configuration, log, and status files
+needed to run them locally.  This will make it convenient to test and
+run in production locally without contaminating the development and
+distribution files with any local configuration information.  The {\tt
+run} directory will be excluded from the Git repository.
+
+Renamed the project and all derivative files {\tt blockchain\_tools}.
+This required a little wizardry in the intermediate steps to get the
+{\tt Makefile} to build the right thing, but once changed all is well.
+
+Renaming the perl destination directory broke the code which checks for
+and loads a program-specific configuration file.  Fixed to ignore a
+directory prefix before the program name.
+
+\section{Abbreviations used in this document}
 
 @d AW @{{\tt address\_watch}@}
 @d BA @{{\tt blockchain\_address}@}
