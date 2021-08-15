@@ -4,6 +4,6 @@ The following, updated automatically by the {\tt Makefile} when the
 program is built, defines the build number (incremented for each
 ``{\tt make build}'') and the UTC date and time of the build.
 
-@d Build number @{450@}
+@d Build number @{470@}
 
-@d Build date and time @{2021-05-03 14:26@}
+@d Build date and time @{2021-08-15 14:00@}

@@ -26,6 +26,8 @@
 \setcounter{tocdepth}{6}
 \setcounter{secnumdepth}{6}
 \newcommand{\dense}{\setlength{\itemsep}{-1ex}}
+\newcommand{\expunge}[2]{}
+\newcommand{\impunge}[2]{}
 
 \let\cleardoublepage\clearpage
 
@@ -52,13 +54,16 @@
 %   Add additional math notation, including \floor and \ceil
 \usepackage{mathtools}
 
+\expunge{begin}{userguide}
 \title{\bf Fourmilab Blockchain Tools}
+\expunge{end}{userguide}
+\impunge{userguide}{\title{\bf Fourmilab Blockchain Tools\\ User Guide}}
 
 \author{
     by \href{http://www.fourmilab.ch/}{John Walker}
 }
 \date{
-    May 2021 \\
+    August 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png}
 }
@@ -68,9 +73,10 @@
 \pagenumbering{roman}
 \maketitle
 \tableofcontents
-
-\chapter{Introduction}
 \pagenumbering{arabic}
+
+\expunge{begin}{userguide}
+\chapter{Introduction}
 
 This collection of programs and utilities provides a set of tools for
 advanced users, explorers, and researchers of the Bitcoin blockchain.
@@ -115,6 +121,7 @@ Include the configuration from {\tt configuration.w}.
 \section{Host System Properties}
 
 @d Perl directory @{/usr/bin/perl@}
+\expunge{end}{userguide}
 
 \chapter{User Guide}
 
@@ -124,11 +131,11 @@ exploring and interacting with the Bitcoin blockchain.  These programs
 are intended for advanced, technically-oriented users who run their
 own full Bitcoin Core node on a local computer.  Note that anybody can
 run a Bitcoin node as long as they have a computer with the modest
-CPU and memory capacity required, with the very large (and inexorably
+CPU and memory capacity required, plus the very large (and inexorably
 growing) file storage capacity to archive the entire Bitcoin blockchain.
 You can run a Bitcoin node without being a ``miner'', nor need you
-expose your computer to external accesses by other nodes unless you
-wish to.
+expose your computer to external accesses from other nodes unless you
+so wish.
 
 Each of the programs is described in the sections that follow.  This is
 user-level documentation: detailed information on design and
@@ -144,7 +151,7 @@ require access to a Bitcoin node and may be run on an ``air gapped''
 machine without access to the Internet.  This permits generating
 keys and addresses for offline cold storage of funds (for example,
 in paper wallets kept in secure locations) without the risk of
-having the private keys compromised by spyware installed on the
+having private keys compromised by spyware installed on the
 generating machine.
 
 The Address Generator may be run from the command line (including
@@ -178,7 +185,7 @@ perform.
     \item[{\tt @<BA@> -repeat 10 -pseudo -format CSV -eth}] ~\\
         Generate 10 seeds using the program's built-in Mersenne
         Twister pseudorandom generator (seeded with entropy from
-        {\tt /dev/urandom}, then create Ethereum key/address pairs
+        {\tt /dev/urandom}), then create Ethereum key/address pairs
         for each and write as a Comma-Separated Value (CSV) file
         intended, for example, as offline ``paper wallet'' cold
         storage.
@@ -310,6 +317,14 @@ perform.
     \item[{\tt -not}] ~\\
         Invert the bits of the seed on the top of the stack.
 
+    \item[{\tt -outfile} {\em filename}] ~\\
+        Output from subsequent {\tt -btc} and {\tt -eth} key generation
+        commands will be written to {\em filename} instead of standard
+        output.  Specifying a {\em filename} of ``{\tt -}'' restores
+        output to standard output.  Each key generation command
+        overwrites any previous output in {\em filename}; it is not
+        concatenated.
+
     \item[{\tt -over}] ~\\
         Duplicate the second item on the stack and push it on the top
         of the stack.
@@ -328,7 +343,7 @@ perform.
         Twister pseudorandom generator onto the stack.  If the
         {\tt -repeat} command has been set to greater than one, that
         number of seeds will be generated and pushed.  The pseudorandom
-        generator is itself seeded by entropy supplied bu the system's
+        generator is itself seeded by entropy supplied by the system's
         {\tt /dev/urandom} generator.
 
     \item[{\tt -random}] ~\\
@@ -402,12 +417,12 @@ perform.
 
     \item[{\tt -urandom}] ~\\
         Push one or more seeds read from the system's {\tt
-        /dev/urandom} pseudorandom onto the stack.  If the {\tt
-        -repeat} command has been set to greater than one, that number
-        of seeds will be generated and pushed.  The {\tt /dev/urandom},
-        seeded by the true entropy source {\tt /dev/random}, has no
-        limitation on generation rate, so you may request any amount of
-        data without possibility of delay.
+        /dev/urandom} pseudorandom generator onto the stack.  If the
+        {\tt -repeat} command has been set to greater than one, that
+        number of seeds will be generated and pushed.  The {\tt
+        /dev/urandom} generator , seeded by the true entropy source
+        {\tt /dev/random}, has no limitation on generation rate, so you
+        may request any amount of data without possibility of delay.
 
     \item[{\tt -wif} {\em private\_key}] ~\\
         Push the seed represented by the Bitcoin Wallet Import Format
@@ -428,10 +443,10 @@ transactions which involve one or more Bitcoin addresses, which may be
 specified on the command line, in a file listing addresses to watch,
 or from the addresses in a Bitcoin Core wallet.  Address Watch can
 be used by those who keep Bitcoin reserves in ``cold storage'', on
-paper or offline devices for security to alert them is one of these
+paper or offline devices for security, to alert them is one of these
 addresses is used in a transaction, which would indicate its security
 has been compromised.  The program can also display statistics of
-blocks added to the blockchain and write a log which can be use for
+blocks added to the blockchain and write a log that can be used for
 analysis of the blockchain's behaviour.
 
 \subsection{Command line options}
@@ -473,7 +488,7 @@ communicates with the Bitcoin Core Application Programming Interface
     \item[{\tt -sfile} {\em filename}] ~\\
         As each block is processed, append an entry describing it in
         the statistics file {\em filename}.  Records are written in
-        Comma Separated Value (CSV) format was described in
+        Comma Separated Value (CSV) format as described in
         ``Block statistics log file'' (\ref{AW:LogBS}) below.
 
     \item[{\tt -start} {\em n}] ~\\
@@ -515,7 +530,7 @@ communicates with the Bitcoin Core Application Programming Interface
         Comma Separated Value (CSV) format to the watch list.  Each line
         in the file specified an address as:
             {\em Label}{\tt ,}{\em Bitcoin address}{\tt ,}{\em Balance}.
-        The {em Label} is an optional human-readable name for the
+        The {\em Label} is an optional human-readable name for the
         address, and the {\em Balance} field is not used by this
         program.
 \end{description}
@@ -537,7 +552,7 @@ watched addresses.  Each log item is as follows.
 \dense
     \item Address label from wallet
     \item Bitcoin address
-    \item Value (negative if spend, positive if received)
+    \item Value (negative if spent, positive if received)
     \item Date and time (ISO 8601 format)
     \item Block number
     \item Transaction ID
@@ -574,7 +589,7 @@ to the blockchain, with records containing the following fields.
 When a Bitcoin transaction is posted to the network, it first is
 placed in the  ``mempool'' by nodes which receive it.  Miner nodes
 choose transactions from the mempool, usually based upon the
-transaction fee per byte they offser, validate them against their
+transaction fee per byte they offer, validate them against their
 local copy of the entire Bitcoin blockchain and, if and when they
 find a hash for a candidate block which meets the current
 difficulty requirement, publish the block to the blockchain and
@@ -631,7 +646,7 @@ communicates with the Bitcoin Core Application Programming Interface
         Specifies the number of confirmations which must be
         received before a transaction is deemed confirmed.  If
         a transaction is being monitored by the {\tt -watch}
-        option, the @<CW@> will exit after this number of
+        option, @<CW@> will exit after this number of
         confirmations arrive.
 
     \item[{\tt -help}] ~\\
@@ -758,8 +773,8 @@ If any blocks have been added to the blockchain since the last
 {\tt -poll} interval, a record will be written, reporting
 fee statistics for transactions in the block.  Note that the
 time in these records is the time the block was added to the
-blockchain, not the time of the @<FW@> poll.  Tha values
-reported in these records as those returned by the
+blockchain, not the time of the @<FW@> poll.  The values
+reported in these records are those returned by the
 {\tt getblockstats} API call for the block, with fees reported
 in units of satoshis (BTC 0.00000001) per virtual byte of
 transaction, where virtual bytes are as defined for the
@@ -822,12 +837,12 @@ the programs.
         domain name, or IP address of the machine.
 
     \item[{\tt -method} {\em which}] ~\\
-        Sets the method used to access the API\@@.  Use {\tt local}
-        if accessing a Bitcoin Core node on the same machine, {\tt ssh}
-        to access a Bitcoin Core node on another machine.  The
-        {\tt rpc} option selects direct access via the RPC interface on
-        the same or a different host.  RPC access is the most efficient
-        and should be used is available.
+        Sets the method used to access the API\@@.  Use {\tt local} if
+        accessing a Bitcoin Core node on the same machine, or {\tt ssh}
+        to access a Bitcoin Core node on another machine.  The {\tt
+        rpc} option selects direct access via the RPC interface on the
+        same or a different host.  RPC access is the most efficient and
+        should be used if available.
 
     \item[{\tt -rpccpass} {\em password}] ~\\
         Set the password for access via the {\tt rpc} method.  This
@@ -835,7 +850,7 @@ the programs.
         the {\tt rpcpassword} statement.  If the {\em password}
         specified is the null string ({\tt ""}), the user will be
         prompted to enter the password from the console, which is
-        much more secure than specifying it on the command line.
+        far more secure than specifying it on the command line.
 
     \item[{\tt -port} {\em number}] ~\\
         Sets the port used to communicate with the Bitcoin Core node
@@ -849,7 +864,7 @@ the programs.
 \section{Installation}
 
 Fourmilab Blockchain Tools are written in the Perl programming
-language, which is pre-installed on most modern version of
+language, which is pre-installed on most modern versions of
 Unix-like operating systems such as Linux, FreeBSD, and Macintosh
 OS X, and available for many other systems.  Consequently, you
 can run any of the pre-built versions of the tools, all of which
@@ -900,7 +915,7 @@ This software, including all programs, support files, utilities,
 and documentation was developed using the
 \href{http://literateprogramming.com/}{Literate Programming}
 methodology, where the goal is that programs should be as
-readable to humans as they are byy computers.  The package
+readable to humans as they are by computers.  The package
 is written using the
 \href{http://nuweb.sourceforge.net/}{\bf nuweb} literate programming
 system, which is language-agnostic: it can be used to develop software
@@ -924,11 +939,13 @@ otherwise some special characters may be turned into gibberish.
 
 Documentation is generated automatically in the
 \href{https://www.latex-project.org/}{\LaTeX} document preparation
-system, with the final PDF documents produced with
+language, with the final PDF documents produced with
 \href{https://en.wikipedia.org/wiki/XeTeX}{XeTeX}, a version of
 \href{https://en.wikipedia.org/wiki/TeX}{\TeX} extended to support
 the full Unicode character set.  These utilities can be installed
 from the distribution archives of most Unix-like systems.
+
+\expunge{begin}{userguide}
 
 \chapter{Blockchain Address Generator}
 
@@ -986,6 +1003,7 @@ them, then process command line options.
     my $opt_Format = "";        # Format for generated keys
 
     my $repeat = 1;             # Repeat command this number of times
+    my $outputFile = "-";       # Output file for keys
     my @@seeds;                 # Stack of seeds
 
     my %options = (
@@ -1005,6 +1023,7 @@ them, then process command line options.
         "inter"     =>  \&arg_inter,
         "mnemonic"  =>  \&arg_mnemonic,
         "not"       =>  \&arg_not,
+        "outfile=s" =>  \&arg_outfile,
         "over"      =>  \&arg_over,
         "p"         =>  \&arg_printtop,
         "phrase=s"  =>  \&arg_phrase,
@@ -1080,6 +1099,7 @@ Include local and utility functions we employ.
     @<arg\_hotbits: Request seed(s) from HotBits@>
     @<arg\_mnemonic: Generate mnemonic phrase from stack top@>
     @<arg\_not: Invert bits in top of stack item@>
+    @<arg\_outfile: Redirect generated address output to file@>
     @<arg\_over: Duplicate the second item from the stack@>
     @<arg\_pick: Duplicate the $n$th item from the stack@>
     @<arg\_pseudo: Generate pseudorandom seed and push on stack@>
@@ -1148,11 +1168,13 @@ Include local and utility functions we employ.
         stackCheck($repeat);
 
         my $keyn = 1;
+        @<Open output file@>
         @<Begin command repeat@>
             my $seed = pop(@@seeds);
             my ($priv, $pub) = genBtcAddress($seed, $opt_Format, 1);
             print(editBtcAddress($priv, $pub, $opt_Format, $keyn++));
         @<End command repeat@>
+        @<Close output file@>
     }
 @| arg_btc @}
 
@@ -1202,12 +1224,13 @@ Include local and utility functions we employ.
         stackCheck($repeat);
 
         my $keyn = 1;
+        @<Open output file@>
         @<Begin command repeat@>
             my $seed = pop(@@seeds);
             my ($priv, $pub) = genEthAddress($seed, $opt_Format, 1);
             print(editEthAddress($priv, $pub, $opt_Format, $keyn++));
         @<End command repeat@>
-
+        @<Close output file@>
     }
 @| arg_eth @}
 
@@ -1268,6 +1291,17 @@ Include local and utility functions we employ.
         push(@@seeds, $bi);
     }
 @| arg_not @}
+
+\subsubsection{{\tt arg\_outfile} --- {\tt -outfile} {\em filename} Redirect generated address output to file}
+
+@d arg\_outfile: Redirect generated address output to file
+@{
+    sub arg_outfile {
+        my ($name, $value) = @@_;
+
+        $outputFile = $value;
+    }
+@| @}
 
 \subsubsection{{\tt arg\_over} --- {\tt -over}: Duplicate the second item from the stack}
 
@@ -1428,7 +1462,7 @@ Shuffle the bytes of all items on the stack.  Why would you want
 to do this?  Suppose, for example, you've obtained entropy from a
 source on the Internet and, despite retrieving it using https:, you're
 worried about the data being intercepted along the way or archived
-by the site which generated it.  You can ally that risk, in part, by
+by the site which generated it.  You can allay that risk, in part, by
 generating a much larger quantity of data than you need, shuffling
 the bytes using a different seed generated locally, then selecting
 a key from the shuffled bytes.  If the sample from which you select
@@ -1603,6 +1637,24 @@ explicitly specifying such a value with {\tt -seed}.
     }
 @}
 
+\subsubsection{Open output file}
+
+@d Open output file
+@{
+    if ($outputFile ne "-") {
+        open(OFILE, ">$outputFile") || die("Cannot create file $outputFile");
+        select OFILE;
+    }
+@}
+
+@d Close output file
+@{
+    if ($outputFile ne "-") {
+        select STDOUT;
+        close(OFILE);
+    }
+@}
+
 \subsection{{\tt genFromFile} --- Generate keys from seeds specified in a Hexfile}
 
 Generate one or multiple key/address pairs from seeds specified in
@@ -1729,14 +1781,14 @@ public addresses, compressed and uncompressed.
 
 Compose the output representation of the private key and public
 address.  The format is specified by \verb+$mode+, which can
-be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one or more of:
+be ``{\tt CSV}{\em t}'', where ``{\em t}'' is one or more of:
 
 \begin{quote}
 \begin{description}
 \dense
     \item[{\tt q}]  Use uncompressed private key
     \item[{\tt u}]  Use uncompressed public address
-    \item[{\tt l}]  Public (``{\tt 1}'') public address
+    \item[{\tt l}]  Legacy (``{\tt 1}'') public address
     \item[{\tt c}]  Compatible (``{\tt 3}'') public address
     \item[{\tt s}]  Segwit ``{\tt bc1}'' public address
 \end{description}
@@ -1941,7 +1993,7 @@ which the user may choose whatever they prefer.
 Ethereum addresses have an optional, most curious, checksum mechanism.
 Originally, Ethereum addresses were just hexadecimal addresses
 extracted from a hash of the public key as described above in
-{\tt genEthAddress()} in {\tt editEthAddress()}.  A single character
+{\tt genEthAddress()} and {\tt editEthAddress()}.  A single character
 error in entering or transcribing such an address, as long as it
 remained a valid 40 digit hexadecimal number, would result in sending
 funds to ``etherspace''---lost forever without any hope of recovery,
@@ -1952,27 +2004,27 @@ Bitcoin addresses contain a checksum which catches, with a very high
 probability, such errors.  To remedy the shortcoming in Ethereum
 addresses, in 2016 a proposed standard was published,
 ``\href{https://eips.ethereum.org/EIPS/eip-55}{EIP-55:
-Mixed-case checksum address encoding}, which proposed the following
+Mixed-case checksum address encoding}'', which prescribed the following
 upward-compatible scheme.
 
 The computed hexadecimal address, with lower case letters for digits
 ``a'' through ``f'', is used to compute a Keccak256 digest (the
 same hash algorithm used in computing the public address) of the
-address (its hexadecimal text representation, its the binary value).
+address (its hexadecimal text representation, not the binary value).
 Next, scan the 40 character public hexadecimal address, ignoring all
 digits from 0 to 9.  For each letter, check the hexadecimal digit
 at the corresponding position in the hash (obviously, only the first
-40 character of the hash will be used).  If the digit is between 8
+40 characters of the hash will be used).  If the digit is between 8
 and F, the letter in the address is converted from lower to upper
 case.
 
-Clients which are unaware of checksums will ignore the case of the
-hexadecimal digits.  Checksum-aware clients will, when presented with
-an address containing mixed case characters, recompute the checksum
-and, if it doesn't match, report the error.  Note that an address
-which contains only digits from 0 to 9 or, when checksummed, happens
-to come out all capitals or all lower case, will evade the checksum
-test.  Still, it's better than nothing.
+Clients unaware of checksums will ignore the case of the hexadecimal
+digits.  Checksum-aware clients will, when presented with an address
+containing mixed case characters, recompute the checksum and, if it
+doesn't match, report the error.  Note that an address which contains
+only digits from 0 to 9 or, when checksummed, happens to come out all
+capitals or all lower case, will evade the checksum test.  Still, it's
+better than nothing.
 
 @d computeEthChecksum: Add checksum to Ethereum address
 @{
@@ -2002,7 +2054,7 @@ test.  Still, it's better than nothing.
 
 \subsection{{\tt BIP39encode} --- Encode seed as BIP39 mnemonic phrase}
 
-The function encodes a 256 bit seed as a sequence of words according
+This function encodes a 256 bit seed as a sequence of words according
 to \href{https://en.bitcoin.it/wiki/BIP_0039}{Bitcoin Improvement
 Proposal 39} (BIP39), using the
 \href{https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt}{English word list}
@@ -2011,7 +2063,7 @@ The words are arranged in multiple lines of maximum length
 {\tt \$maxlen} using the specified {\tt \$prefix} on the first line.
 The Perl {\tt
 \href{https://metacpan.org/pod/Bitcoin::BIP39}{Bitcoin::BIP39}}
-package we use supports word lists for serveral other languages, but
+package we use supports word lists for several other languages, but
 BIP39 states ``it is {\bf strongly discouraged} to use non-English
 wordlists for generating the mnemonic sentences'' (emphasis in the
 original).
@@ -2118,6 +2170,7 @@ perl blockchain_address.pl [ command... ]
     -inter              Process interactive commands
     -mnemonic           Generate BIP39 mnemonic phrase from stack top
     -not                Invert stack top
+    -outfile filename   Redirect key generation output to file or - for console
     -over               Duplicate second item on stack to top
     -p                  Print top item on stack
     -phrase words...    Specify seed as BIP39 menemonic phrase
@@ -2341,7 +2394,7 @@ not be re-scanned.
 Having determined the range to blocks to scan, proceed to scan them
 and accumulate references to addresses we're watching within them.
 Before entering the scanning loop, we perform an initial scan of the
-wallet for addresses with unspect balances.  This avoids missing
+wallet for addresses with unspent balances.  This avoids missing
 any address which was spent between the time we started the program
 and the first block we receive after starting.
 
@@ -2497,7 +2550,7 @@ from the blockchain.
         my $r = decode_json($blk);
 @}
 
-Scan the block for reference to addresses we're watching.  We start
+Scan the block for references to addresses we're watching.  We start
 by extracting the block-level information.
 
 @d scanBlock: Scan a block by index on the blockchain
@@ -2540,12 +2593,12 @@ rather give the transaction in which the funds may be found and the
 ``{\tt vout}'' item within it that contains the address(es).  To
 check for references to our addresses, we must look up each of
 these transactions, which requires that Bitcoin Core be configured
-with ``{\tt txindex=1}'', which causes it to build and maintain a
+with ``{\tt txindex=1}'', causing it to build and maintain a
 transaction index.  If this index is absent, we cannot monitor input
 addresses.
 
 Because looking up transactions and decoding them from JSON is costly,
-we cache transactions we query in \verb+%vincache+ and serve the
+we cache transactions we query in \verb+%vincache+ and serve
 previously-retrieved and decoded objects from the cache.  This
 dramatically speeds up processing queries for many blocks.
 
@@ -2602,9 +2655,9 @@ further.
 
 The ``{\tt vout}'' items in the transaction specify the addresses (or
 scripts) to which the funds are to be sent.  These are more
-straightforward to process than ``{\tt vin}'' items, as the contain the
-actual address and do not require us to look up a transaction to find
-it.
+straightforward to process than ``{\tt vin}'' items, as they contain
+the actual address and do not require us to look up a transaction to
+find it.
 
 @d scanBlock: Scan a block by index on the blockchain
 @{
@@ -3339,7 +3392,7 @@ EOD
 \section{Command and option processing}
 
 These functions provide an integrated way to handle option
-specification and command whether provided as command-line
+specifications and commands whether provided as command-line
 options, from a configuration file, or entered interactively
 by the user.  All of these functions are driven by a hash
 defining commands and actions in the same form as used by
@@ -3933,8 +3986,8 @@ build:
 \subsection{Generate and view PDF document}
 
 The {\tt view} target re-generates the master document containing
-all documentation and code, while {\tt peek} simply view the
-most-recently-generated document (without check if it is current).
+all documentation and code, while {\tt peek} simply views the
+most-recently-generated document (without checking if it is current).
 We delete the \LaTeX\ intermediate files so an error in an
 earlier run which might, for example, have corrupted the table of
 contents, does not wreck this one.
@@ -3952,6 +4005,29 @@ view:
 
 peek:
         $(PDFVIEW) $(PROJECT).pdf
+@}
+
+\subsection{Generate and view User Guide PDF document}
+
+Build the composite document for the program, then process it with
+{\tt sed} filters which extract the User Guide as a separate
+\LaTeX\ document, compile it into a PDF, and view it.
+
+@o Makefile.mkf
+@{
+guide:
+        rm -f $(PROJECT)_user_guide.log $(PROJECT)_user_guide.toc \
+              $(PROJECT)_user_guide.out $(PROJECT)_user_guide.aux
+        $(NUWEB) -o -r $(PROJECT).w
+        sed -e '/^\\expunge{begin}{userguide}$$/,/^\\expunge{end}{userguide}$$/d' \
+            $(PROJECT).tex | \
+            sed -e 's/\\impunge{userguide}//' >$(PROJECT)_user_guide.tex
+        $(LATEX) $(PROJECT)_user_guide.tex
+        $(LATEX) $(PROJECT)_user_guide.tex
+        $(PDFVIEW) $(PROJECT)_user_guide.pdf
+
+geek:
+        $(PDFVIEW) $(PROJECT)_user_guide.pdf
 @}
 
 \subsection{Syntax check all Perl programs}
@@ -4126,5 +4202,6 @@ Sections which define identifiers are underlined.
 
 @i log.w
 \end{appendices}
+\expunge{end}{userguide}
 
 \end{document}

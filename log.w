@@ -11,7 +11,7 @@ the watch list.  This is re-fetched on each periodic scan of new blocks
 so that the address list is always current whenever we look at new
 blocks.
 
-Due to Perl syntactical Hell when attempting to mix explicit arrays and
+Due to Perl syntactic Hell when attempting to mix explicit arrays and
 references to arrays, @<AW@> was only reporting the first hit on a
 watched address in a block.  I rewrote the whole mess to use only
 references, added all the requisite arrows and explicit dereferences
@@ -27,13 +27,13 @@ This is handled by a new function, {\tt getPassword(<prompt>)}, which
 we can use in other cases where passwords are required.
 
 If no {\tt -wfile} was specified to @<AW@> but explicit
-addresses were specified with -watch, an error would be reported.
+addresses were specified with {\tt -watch}, an error would be reported.
 Fixed so there's an error only if no addresses specified by either
 mechanism.
 
 \date{2021 April 6}
 
-Added support for unlocking and unlocking wallets in {\tt
+Added support for unlocking and locking wallets in {\tt
 address\_watch} when the user has locked the wallet and {\tt -wallet}
 is specified.  The password for the wallet is read from standard input
 with echo disabled or may be specified with a command line option which
@@ -57,7 +57,7 @@ across the various programs and easier maintenance, as well as much
 improved documentation.
 
 Split the global configuration parameters, which set the default for
-all settings into a separate {\tt configuration.w} Nuweb file.  These
+all settings, into a separate {\tt configuration.w} Nuweb file.  These
 are the settings used when their corresponding command-line option is
 not specified.
 
@@ -144,7 +144,7 @@ accesses, this is a critical functionality.  Doing this requires
 being able to look up transactions by their transaction ID, and
 to do this on a Bitcoin Core node means enabling the
 {\tt txindex=1} mode on the server, which causes it to build an
-index from transaction index to the block which contains the
+index from transaction index to the block that contains the
 transaction and, in turn, enable the {\tt getrawtransaction}
 API call to return a transaction purely from its ID, without needing
 to know in which block it appears.
@@ -171,7 +171,7 @@ contains a ``{\tt txid}'' field with the transaction which last
 modified the input and a ``{\tt vout}'' field which identifies which of
 the output addresses in that transaction is being spent as an input to
 this one.  To learn more about the inputs, we must look up their
-transactions IDs.
+transaction IDs.
 
 Looking up each input transaction, then, we examine the item in its
 ``{\tt vout}'' array specified as the source, and can finally extract
@@ -191,15 +191,15 @@ ever look up a transaction once per scan of a block.
 
 \date{2021 April 17}
 
-Added ``logic'' to @<CW@> which allows, when
-specifying a single argument, it to be either a label looked up in the
-@<AW@> {\tt -lfile} log or a transaction ID, which may be
-specified without the block hash in which it resides if Bitcoin Core
-has been built with {\tt txindex=1}.  This is done with a hideous
-kludge which considers anything of 48 or fewer characters of which
-contains a character which is not a hexadecimal digit.  If two
-arguments are specified, they continue to be interpreted as a
-transaction index and block hash.
+Added ``logic'' to @<CW@> which allows, when specifying a single
+argument, it to be either a label looked up in the @<AW@> {\tt -lfile}
+log or a transaction ID, which may be specified without the block hash
+in which it resides if Bitcoin Core has been built with {\tt
+txindex=1}.  This is done with a hideous kludge which considers
+anything of 48 or fewer characters or which contains a character which
+is not a hexadecimal digitto be a label.  If two arguments are
+specified, they continue to be interpreted as a transaction index and
+block hash.
 
 Added a command to the {\tt build} target of the {\tt Makefile} to
 mark all the Perl programs executable when they are re-generated.
@@ -213,15 +213,15 @@ section, which caused {\tt scanBlock()} in @<AW@> to
 fail with a reference an undefined variable.  I added code to detect
 absence of an {\tt address} in source transactions and skip scanning
 them for matches to one of our watched addresses (since newly-created
-funds can't possibly come from a watched address).
+funds can't possibly have come from a watched address).
 
 \date{2021 April 19}
 
-Added {\tt -help} option to all of the programs.  Those which share the
-common RPC options use a common definition of the options imported
+Added a {\tt -help} option to all of the programs.  Those which share
+the common RPC options use a common definition of the options imported
 into the help text they print.
 
-Added analysis of reward fees paid to miners in @<AW@>.
+Added analysis of reward fees paid to miners to @<AW@>.
 For each block, the value items in the ``{\tt vout}'' section of the
 first transaction (which is always the ``coinbase'' reward to the
 miner who published the block) are summed, giving the total reward.
@@ -246,7 +246,7 @@ parses and executes a command defined in the {\tt \%options}
 hash, ignoring blank lines and ``{\tt \#}'' comments.  If an
 undefined command is submitted, a warning is given if running in
 interactive mode, but ignored otherwise.  This allows using a
-generic configuration file which specifies options which only some
+generic configuration file which specifies options that only some
 of the programs implement.
 
 A ready-to-use {\tt arg\_inter()} argument processor is provided,
@@ -267,11 +267,11 @@ Added a {\tt -swap} command to @<BA@>, which I had
 somehow overlooked on the last pass.
 
 Added a {\tt -binfile} command to @<BA@>, which reads
-as any sequences of 32 bytes as exist in the file and pushes them, as
+as many sequences of 32 bytes as exist in the file and pushes them, as
 hexadecimal seed values, onto the stack.  In the process, I found and
 fixed a bug in {\tt bytesToHex()} that caused it to be sensitive to end
 of line characters in the byte stream and updated the {\tt -random} and
-{\tt -urandom} commands to use the function rather than their own
+{\tt -urandom} commands to use that function rather than their own
 built-in code.
 
 Made the {\tt -type} command universal in all programs.  This allows
@@ -413,9 +413,39 @@ Renamed the project and all derivative files {\tt blockchain\_tools}.
 This required a little wizardry in the intermediate steps to get the
 {\tt Makefile} to build the right thing, but once changed all is well.
 
-Renaming the perl destination directory broke the code which checks for
+Renaming the Perl destination directory broke the code which checks for
 and loads a program-specific configuration file.  Fixed to ignore a
 directory prefix before the program name.
+
+\date{2021 August 15}
+
+Added the ability to extract the User Guide from the integrated
+document for the program.  This is controlled by declarations within
+the \LaTeX\ code in the web file.  Code which should not be included
+in the User Guide is bracketed by statements:
+
+\begin{quotation}
+\noindent
+\verb+\expunge{begin}{userguide}+\\
+\verb+\expunge{end}{userguide}+
+\end{quotation}
+
+and code which is to be included only in the User Guide is declared
+with:
+
+\begin{quotation}
+\noindent
+\verb+\impunge{userguide}{+{\em \TeX\ code}\verb+}+
+\end{quotation}
+
+A new {\tt guide} target in the {\tt Makefile} generates the complete
+document, then runs {\tt sed} filters over it to remove everything
+marked to be expunge and expand the material which appears only in
+the User Guide, compiles the document, and displays the resulting
+PDF\@.  The {\tt geek} target just views this PDF.
+
+These targets are intended for the development cycle.  For release,
+a general target to build distribution files will be added and used.
 
 \section{Abbreviations used in this document}
 
@@ -428,7 +458,7 @@ directory prefix before the program name.
 
 Add ability to write the stack to a file in either hex or binary form.
 
-Accumulate value in to address as well as value out in address\_watch
+Accumulate value in to address as well as value out in @<AW@>
 and report in statistics.
 
 Options which request passwords prompt the user interactively if given
