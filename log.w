@@ -417,6 +417,11 @@ Renaming the Perl destination directory broke the code which checks for
 and loads a program-specific configuration file.  Fixed to ignore a
 directory prefix before the program name.
 
+\date{2021 August 14}
+
+Added an {\tt -outfile} command to @{BA@} to redirect the output of
+key generation commands to a specified file.
+
 \date{2021 August 15}
 
 Added the ability to extract the User Guide from the integrated
@@ -442,10 +447,29 @@ A new {\tt guide} target in the {\tt Makefile} generates the complete
 document, then runs {\tt sed} filters over it to remove everything
 marked to be expunge and expand the material which appears only in
 the User Guide, compiles the document, and displays the resulting
-PDF\@.  The {\tt geek} target just views this PDF.
+PDF\@@.  The {\tt geek} target just views this PDF.
 
 These targets are intended for the development cycle.  For release,
 a general target to build distribution files will be added and used.
+
+\date{2021 August 16}
+
+Renamed the paper wallet generation program @{PW@} and the cold storage
+wallet validator to @{VW@} to be consistent with the other programs in
+the package.
+
+Added the ability to specify the font family, size, and weight to be
+used to display addresses and keys in @{PW@}.
+
+Added a {\tt -separator} option to @{PW@} to insert user-defined
+separators between groups of four characters in paper wallet addresses
+and keys.  The @{VW@} program now ignores separators in addresses
+it validates.
+
+\date{2021 August 23}
+
+Added {\tt *.py} files to the list of those not included in the
+repository via {\tt .gitignore}.
 
 \section{Abbreviations used in this document}
 
@@ -453,6 +477,8 @@ a general target to build distribution files will be added and used.
 @d BA @{{\tt blockchain\_address}@}
 @d CW @{{\tt confirmation\_watch}@}
 @d FW @{{\tt fee\_watch}@}
+@d PW @{{\tt paper\_wallet}@}
+@d VW @{{\tt validate\_wallet}@}
 
 \section{To do}
 
