@@ -419,7 +419,7 @@ directory prefix before the program name.
 
 \date{2021 August 14}
 
-Added an {\tt -outfile} command to @{BA@} to redirect the output of
+Added an {\tt -outfile} command to @<BA@> to redirect the output of
 key generation commands to a specified file.
 
 \date{2021 August 15}
@@ -454,16 +454,16 @@ a general target to build distribution files will be added and used.
 
 \date{2021 August 16}
 
-Renamed the paper wallet generation program @{PW@} and the cold storage
-wallet validator to @{VW@} to be consistent with the other programs in
+Renamed the paper wallet generation program @<PW@> and the cold storage
+wallet validator to @<VW@> to be consistent with the other programs in
 the package.
 
 Added the ability to specify the font family, size, and weight to be
-used to display addresses and keys in @{PW@}.
+used to display addresses and keys in @<PW@>.
 
-Added a {\tt -separator} option to @{PW@} to insert user-defined
+Added a {\tt -separator} option to @<PW@> to insert user-defined
 separators between groups of four characters in paper wallet addresses
-and keys.  The @{VW@} program now ignores separators in addresses
+and keys.  The @<VW@> program now ignores separators in addresses
 it validates.
 
 \date{2021 August 23}
@@ -471,16 +471,72 @@ it validates.
 Added {\tt *.py} files to the list of those not included in the
 repository via {\tt .gitignore}.
 
-\section{Abbreviations used in this document}
+Integrated the @<CC@> program into the main web.
 
-@d AW @{{\tt address\_watch}@}
-@d BA @{{\tt blockchain\_address}@}
-@d CW @{{\tt confirmation\_watch}@}
-@d FW @{{\tt fee\_watch}@}
-@d PW @{{\tt paper\_wallet}@}
-@d VW @{{\tt validate\_wallet}@}
+Updated the ``{\tt make stats}'' target to count lines of Python
+programs as well as Perl.
 
-\section{To do}
+\date{2021 August 31}
+
+The {\tt -wfile} parser in @<AW@> was befuddled by blank lines and
+comments which we permit in other programs.  I added code to ignore
+them and also to ignore any Ethereum addresses which might be present
+in a composite cold storage listing.  In addition, I corrected the
+parser to take the balance from the fourth field, after the blank
+private key field we added for compatibililty with other programs.
+
+\date{2021 September 1}
+
+In @<CC@>, the expression ``{\tt -SATOSHI}'', where ``{\tt SATOSHI}''
+is a Perl {\tt use constant} declaration, caused a warning on Juno,
+which has an older version of Perl (5.16 as opposed to 5.30 on Hayek
+and Ragnar).  I rewrote the expression as ``{\tt -(SATOSHI)}'' and
+the warning went away.
+
+\date{2021 September 2}
+
+In @<CC@>, changed the handling of API failures so that the
+message appears in the warning/error field of the report instead
+of the current balance.  This triggers display of the address item
+when {\tt -verbose} is not set.
+
+\date{2021 September 3}
+
+In @<BA@>, added an option to the {\tt -format} command, ``{\tt k}'',
+which causes the {\tt -btc} and {\tt -eth} commands to preserve the
+keys on the stack from which they generate addresses.  This allows
+generating key/address pairs multiple times in various formats using
+the same source keys.  This can be cancelled by entering a new
+{\tt -format} without the option.
+
+Added a ``{\tt b}'' (Bowdlerise) option to the {\tt -format} command
+in @<BA@> which causes the private key to be excluded from {\tt CSV}
+format output, allowing it to be used with utilities such as @<CC@>
+and @<AW@> without compromising security.
+
+\date{2021 September 4}
+
+Replaced our own function to shuffle the order of items in an array
+with the {\tt List::Util shuffle()} function in @<CC@> and @<MK@>.  The
+shuffling of bytes on the stack performed by the @<BA@>'s {\tt
+-shuffle} command continues to be done by a custom function which uses
+the higher-quality Mersenne Twister algorithm in the interest of
+security.
+
+Integrated @<MK@> into the main web.
+
+\date{2021 September 5}
+
+Replaced hard-coded in-line accesses to {\tt /dev/random} and
+{\tt /dev/urandom} with calls to the Perl module
+{\tt Crypt::Random::Seed}, which provides access to these facilities
+on systems that support them and alternatives on others which do not.
+If no strong generator is available, the {\tt -random} command in
+@<BA@> will report an error and do nothing.
+
+Added {\tt -help} option support to @<MK@> and @<PW@>.
+
+\chapter{To do}
 
 Add ability to write the stack to a file in either hex or binary form.
 

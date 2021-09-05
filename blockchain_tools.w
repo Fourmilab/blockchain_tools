@@ -54,6 +54,12 @@
 %   Add additional math notation, including \floor and \ceil
 \usepackage{mathtools}
 
+%\usepackage{fontspec}
+%\usepackage{polyglossia}
+%\setdefaultlanguage{english}
+%\setotherlanguage{russian}
+%\newfontfamilycyrillicfont{Noto Serif}
+
 \expunge{begin}{userguide}
 \title{\bf Fourmilab Blockchain Tools}
 \expunge{end}{userguide}
@@ -63,9 +69,14 @@
     by \href{http://www.fourmilab.ch/}{John Walker}
 }
 \date{
-    August 2021 \\
+    Version 1.0 \\
+    September 2021 \\
     \vspace{12ex}
-    \includegraphics[width=3cm]{figures/fourlogo_640.png}
+    \includegraphics[width=3cm]{figures/fourlogo_640.png} \\
+    \vspace{\fill}
+    {\small
+    Build @<Build number@> --- @<Build date and time@> UTC
+    }
 }
 
 \begin{document}
@@ -80,18 +91,18 @@
 
 This collection of programs and utilities provides a set of tools for
 advanced users, explorers, and researchers of the Bitcoin blockchain.
-Most of the tools require access to a system (either local or remote)
-which runs a ``full node'' using the
+Some of the tools are self-contained, while others require access to a
+system (either local or remote) which runs a ``full node'' using the
 \href{https://bitcoin.org/en/bitcoin-core/}{Bitcoin Core} software
 and maintains a complete copy of the up-to-date Bitcoin blockchain.
 In order to use the Address Watcher, the node must maintain a
 transaction index, which is enabled by setting ``{\tt txindex=1}''
 in its {\tt bitcoin.conf} file.
 
-Some utilities (for example, the Bitcoin address generator) do not
-require access to a Bitcoin node and others may be able to be used
-on nodes which have ``pruned'' the blockchain to include only more
-recent blocks.
+Some utilities (for example, the Bitcoin and Ethereum address generator
+and paper wallet tools) do not require access to a Bitcoin node and
+others may be able to be used on nodes which have ``pruned'' the
+blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
 @d Project File Name @{blockchain_tools@}
@@ -119,6 +130,14 @@ Include the configuration from {\tt configuration.w}.
 @i configuration.w
 
 \section{Host System Properties}
+
+These path names to the Perl and Python interpreters are embedded in
+programs in the respective language so they may be invoked directly
+from the command line.  If these are incorrect, you can still run
+the programs by explicitly calling the correct interpreter.  Due to
+incompatibilities, many systems have both Python version 2 and 3
+installed.  If this is the case, be sure you specify the path to
+Python version 3 or greater below.
 
 @d Perl directory @{/usr/bin/perl@}
 @d Python directory @{/usr/bin/python3@}
@@ -179,14 +198,14 @@ perform.
 
 \begin{description}
     \item[{\tt @<BA@> -urandom -btc}] ~\\
-        Obtain a seed from the system's {\tt /dev/urandom} entropy
+        Obtain a seed from the system's fast (non-blocking) entropy
         source and generate a Bitcoin key/address pair from it,
         printing the results on the console.
 
     \item[{\tt @<BA@> -repeat 10 -pseudo -format CSV -eth}] ~\\
-        Generate 10 seeds using the program's built-in Mersenne
-        Twister pseudorandom generator (seeded with entropy from
-        {\tt /dev/urandom}), then create Ethereum key/address pairs
+        Generate 10 seeds using the program's built-in Mersenne Twister
+        pseudorandom generator (seeded with entropy from the system's
+        fast entropy source), then create Ethereum key/address pairs
         for each and write as a Comma-Separated Value (CSV) file
         intended, for example, as offline ``paper wallet'' cold
         storage.
@@ -274,6 +293,16 @@ perform.
             \item[{\tt p}]  Include full public key
         \end{description}
         \end{quote}
+        For either kind of address, the letter ``{\tt k}'' indicates
+        that a subsequent key generation command will not remove
+        the keys it processes from the stack.  This permits generating
+        the same keys in different formats.  The letter ``{\tt b}''
+        on either address type causes the private key to be omitted
+        from CSV format output, replaced by a null string.  This allows
+        generation of address lists containing only public addresses
+        that may be used with utilities such as @<CC@> and @<AW@>
+        without risking compromise of the private keys.
+
 
     \item[{\tt -hbapik} {\em APIkey}] ~\\
         When requesting true random data from Fourmilab's HotBits
@@ -345,13 +374,15 @@ perform.
         {\tt -repeat} command has been set to greater than one, that
         number of seeds will be generated and pushed.  The pseudorandom
         generator is itself seeded by entropy supplied by the system's
-        {\tt /dev/urandom} generator.
+        fast entropy source ({\tt /dev/urandom} on most Unix-like
+        systems).
 
     \item[{\tt -random}] ~\\
-        Push one or more seeds read from the system's {\tt /dev/random}
-        entropy source onto the stack.  If the {\tt -repeat} command
+        Push one or more seeds read from the system's strong
+        entropy source ({\tt /dev/random} on most Unix-like
+        systems) onto the stack.  If the {\tt -repeat} command
         has been set to greater than one, that number of seeds will be
-        generated and pushed.  Reading data from {\tt /dev/random}
+        generated and pushed.  Reading data from a strong source
         faster than the system can collect hardware entropy may result
         in delays: the program will wait as long as necessary to obtain
         the requested number of bytes.
@@ -417,12 +448,11 @@ perform.
         files to inform the user what's going on.
 
     \item[{\tt -urandom}] ~\\
-        Push one or more seeds read from the system's {\tt
-        /dev/urandom} pseudorandom generator onto the stack.  If the
-        {\tt -repeat} command has been set to greater than one, that
-        number of seeds will be generated and pushed.  The {\tt
-        /dev/urandom} generator , seeded by the true entropy source
-        {\tt /dev/random}, has no limitation on generation rate, so you
+        Push one or more seeds read from the system's fast entropy
+        source ({\tt /dev/urandom} on most Unix-like systems) onto the
+        stack.  If the {\tt -repeat} command has been set to greater
+        than one, that number of seeds will be generated and pushed.
+        The fast generator has no limitation on generation rate, so you
         may request any amount of data without possibility of delay.
 
     \item[{\tt -wif} {\em private\_key}] ~\\
@@ -436,6 +466,137 @@ perform.
     \item[{\tt -zero}] ~\\
         Push an all zero seed on the stack.
 \end{description}
+
+\section{Multiple Key Manager}
+
+The Multiple Key Manager (@<MK@>) splits the private keys used to
+access funds stored in Bitcoin or Ethereum address into multiple
+independent parts, allowing them to be distributed among multiple
+custodians or storage locations.  The original keys may subsequently be
+reconstructed from a minimum specified number of parts.  Each secret
+key is split into $n$ parts ($n\geq 2$), of which any $k, k\leq n$ are
+sufficient to reconstruct the entire original key, but from which the
+key cannot be computed from fewer than $k$ parts.  In the discussion
+below, we refer to $n$ as the number of {\tt parts} and $k$ as the
+number {\tt needed}.  The splitting and reconstruction of keys is
+performed using the
+\href{https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing}{Shamir
+Secret Sharing} technique.
+
+The ability to split secret keys into parts allows implementing
+a wide variety of custodial arrangements.  For example, a company
+treasury's cold storage vault might have secret keys split
+five ways, with copies entrusted to the chief executive officer,
+chief financial officer, an inside director, an outside director,
+and one kept in a safe at the office of the company's legal firm.
+If the parts were generated so that any three would re-generate
+the secret keys, then at at least three people would have to approve
+access to the funds stored in the vault, which reduces the
+likelihood of misappropriation of funds.  The existence of more
+parts than required guard against loss or theft of one of the parts:
+should that happen, three of the remaining copies can be used to
+withdraw the funds and transfer them to new accounts which are
+protected by new shared keys.
+
+To create multiple keys, start with a comma-separated value (CSV)
+file in the format created by @<BA@> with ``{\tt format CSV}''
+selected.  Let's call this file {\tt keyfile.csv}.  Now, to split
+the keys in this file into five parts, any three of which are
+sufficient to reconstruct the original keys, use the command:
+
+{\tt @<MK@> -parts 5 -needed 3 keyfile.csv}
+
+This will generate five split key files named {\tt keyfile-1.csv},
+{\tt keyfile-2.csv}, \ldots\ {\tt keyfile-5.csv}.  These are the
+files which are distributed to the five custodians.  After verifying
+independently that the parts can be successfully reconstructed (you
+can't be too careful!), the original {\tt keyfile.csv} is destroyed,
+leaving no copy of the complete keys.  (All of this should, of course,
+be done on an ``air gapped'' machine not connected to any network or
+external device which might compromise the complete keys while they
+exist.)
+
+When access to the keys is required, any three of the five parts
+should be provided by their holders and combined with a command
+like:
+
+{\tt @<MK@> -join keyfile-4.csv keyfile-1.csv keyfile-2.csv}
+
+Again, you can use any three parts and specify them in any order.
+This will create a file named {\tt keyfile-merged.csv} which contains
+the original keys in the same format as was created by @<BA@>.  You
+can then use this file with any of the other utilities in this
+collection or use one or more of the secret keys to ``sweep'' the
+funds into a new account.  To maximise security, once a set of
+keys has been recombined, funds should be removed from all and those
+not used transferred to new cold storage addresses, broken into parts
+as you wish.  In many cases, it makes sense to split individual keys
+rather than a collection of many so you need only join the ones
+you're immediately intending to use.
+
+Once the parts have been generated on the air-gapped machine, they
+are usually written to offline paper storage (using the @<PW@>
+program, for example, which works with split key files as well as
+normal complete key files) or archival media such as write-once
+optical discs, perhaps in several identical redundant copies per
+part.  Their custodians should store the copies of their parts in
+multiple secure, private locations to protect against mishaps that
+might destroy all copies of their part.
+
+The ability to create multiple parts allows flexibility in their
+distribution.  You might, for example, entrust two parts to the
+company CEO, who would only need one part from another officer or
+director to access the vault, while requiring three people other
+than the CEO to access it.
+
+Although primarily intended to split blockchain secret keys into
+parts, @<MK@> may be used to protect and control access to any
+kind of secret which can be expressed as 1024 or fewer text characters:
+for example, passwords on root signing certificates, decryption keys
+for private client information, or the formula for fizzy soft drinks.
+
+\subsection{Command line options}
+
+\begin{description}
+
+    \item[{\tt -help}] ~\\
+        Print how to call information.
+
+    \item[{\tt -join}] ~\\
+        Reconstruct the original private keys from the parts included
+        in the files specified on the command line.  You must specify
+        at least the {\tt -needed} number of parts when they were
+        created (if you specify more, the extras are ignored).  The
+        output is written to a file with the specified {\tt -name}
+        or, if none is given, that of the first part with its number
+        replaced with ``{\tt -merged}''.  The file will be will be in
+        the comma-separated value (CSV) format in which @<BA@> writes
+        addresses and keys it generates and is used by other programs
+        in this collection.
+
+    \item[{\tt -name} {\em name}] ~\\
+        When splitting keys, the individual part files will be named
+        ``{\em name}{\tt -}{\em n}{\tt .csv}'', where {\em n} is
+        the part number.  If no {\tt -name} is specified, the name
+        of the first key file given will be used.
+
+    \item[{\tt -needed} {\em k}] ~\\
+        When reconstructing the original keys, at least {\em k} parts
+        (default 3) must be specified.  This option is ignored when
+        joining the parts.
+
+    \item[{\tt -parts} {\em n}] ~\\
+        Keys will be split into {\em n} parts (default 3).  This option
+        is ignored when joining parts.
+
+    \item[{\tt -prime} {\em p}] ~\\
+        Use the prime number {\em p} when splitting parts.  This should
+        only be specified if you're a super expert who has read the
+        code, understands the algorithm, and knows what you're doing,
+        otherwise you're likelu to mess things up.  The default is
+        257.
+\end{description}
+
 
 \section{Paper Wallet Utilities}
 
@@ -457,7 +618,7 @@ in this chapter aid in creating and verifying such documents.
 
 \subsection{Paper Wallet Generator}
 
-This program reads a list of Bitcoin or Ethereum public address and
+The @<PW@> program reads a list of Bitcoin or Ethereum public address and
 private key pairs, generated by @<BA@> in comma-separated value
 (CSV) format, and creates an HTML file which can be loaded into a
 browser and then printed locally to create paper cold storage wallets.
@@ -498,6 +659,63 @@ with a {\tt file:coldstore.html} URL, use print preview to verify
 that it is properly formatted, and then print as many copies as you
 require for safe storage to a local printer.
 
+\subsubsection{Command line options}
+
+\begin{description}
+    \item[{\tt -date} {\em text}] ~\\
+        The specified {\em text} will be used as the date in the
+        printed wallet.  Any text may be used: enclose it in quotes if
+        it contains spaces or special characters interpreted by the
+        shell.  If no {\tt -date} is specified, the current date will
+        be used, in ISO-8601 {\tt YYYY-MM-DD} format.
+
+    \item[{\tt -font} {\em fname}] ~\\
+        Use HTML/CSS font name {\em fname} to display addresses
+        and keys.  The default is {\tt monospace}.
+
+    \item[{\tt -help}] ~\\
+        Print a summary of the command line options.
+
+    \item[{\tt -offset} {\em n}] ~\\
+        The integer {\em n} will be added to the address numbers
+        (first CSV field) in the input file.  If you've generated
+        a number of cold storage wallets with the same numbers and
+        wish to distinguish them in the printed versions, this
+        allows doing so.
+
+    \item[{\tt -perpage} {\em n}] ~\\
+        Addresses will be printed with {\em n} per page.  The default
+        is 10 addresses per page.  The number which will fit on a
+        page depends upon your paper size, font selection, and
+        margins used when printing---experiment with print preview
+        to choose suitable settings.
+
+    \item[{\tt -prefix} {\em text}] ~\\
+        Use the {\em text} as a prefix for the address numbers from
+        the CSV file (optionally adjusted by the {\tt -offset}
+        option).  This allows further distinguishing addresses in
+        the printed document.
+
+    \item[{\tt -separator} {\em text}] ~\\
+        Display addresses and private keys as groups of four letters
+        and number separated by the sequence {\em text}, which may be
+        an HTML text entity such as ``\verb+&ndash;+''.
+
+    \item[{\tt -size} {\em sspec}] ~\\
+        Use HTML/CSS font size {\em sspec} to display addresses
+        and keys.  The default is {\tt medium}.
+
+    \item[{\tt -title} {\em text}] ~\\
+        Use the specified {\tt text} as the title for the cold
+        storage wallet.  If no title is specified, ``Bitcoin Wallet''
+        or ``Ethereum Wallet'' will be used, depending upon the
+        type of address in the CSV file.
+
+    \item[{\tt -weight} {\em wgt}] ~\\
+        Use HTML/CSS font weight {\em wgt} to display addresses
+        and keys.  The default is {\tt normal}.
+\end{description}
+
 \subsection{Cold Storage Wallet Validator}
 
 When placing funds in offline cold storage wallets, an abundance of
@@ -522,13 +740,13 @@ operation of the utilities used to generate them, or malice, are
 so dire that a completely independent way to verify their correctness
 is valuable.
 
-The @{VW@} program performs this validation on cold storage wallets,
-either in the CSV format generated by @{BA@} or the printable
-HTML produced by @{PW@}.  Further verification that the printed output
+The @<VW@> program performs this validation on cold storage wallets,
+either in the CSV format generated by @<BA@> or the printable
+HTML produced by @<PW@>.  Further verification that the printed output
 from the HTML corresponds to the file which was printed will require
-manual inspection or scanning and subsequent verification.  The @{VW@}
+manual inspection or scanning and subsequent verification.  The @<VW@>
 program is a ``clean room'' re-implementation of the blockchain address
-generation process used by @{BA@} to create cold storage wallets.  It
+generation process used by @<BA@> to create cold storage wallets.  It
 is written in a completely different programming language (Python
 version 3 as opposed to Perl), and uses the Python cryptographic
 libraries instead of those for Perl.  While it is possible that errors
@@ -536,41 +754,151 @@ in lower-level system libraries shared by both programming languages
 might corrupt the results, this is much less probable than an error
 in the primary code or the language-specific libraries they use.
 
-\subsubsection{Command line options}
+\section{Cold Storage Monitor}
+
+For safety, cryptocurrency balances which are not needed for active
+transactions are often kept in ``cold storage'', either off-line in
+redundant digital media not accessible over a network or printed on
+paper (for example, produced with the @<PW@> program) kept in multiple
+separate locations.  Once stored in these cold storage addresses, there
+should be no transactions whatsoever that reference them until they are
+``swept'' back into an active account for use.
+
+But under the principle of
+%“Доверяй, но проверяй”
+{\em doveryay, no proveryay}
+(trust, but verify),
+a prudent custodian should monitor cold storage addresses to confirm
+that they remain intact and have not been plundered by any means.
+(It's usually an inside job, but you never know.)  One option is to
+run a “hot monitor” that constantly watches transactions on the
+blockchain such as the @<AW@> utility included here, but that requires
+you to operate a full Bitcoin node and does not, at present, support
+monitoring of Ethereum addresses.
+
+The @<CC@> utility provides a less intensive form of monitoring which
+works for both Bitcoin and Ethereum cold storage addresses, does not
+require access to a local node, and instead uses free query services
+that return the current balance for addresses.  You can run this
+job periodically (once a week is generally sufficient) with a list of
+your cold storage addresses, and it will produce a report of any
+discrepancies between their expected balance and that returned
+by the query.
+
+Multiple query servers are supported for both Bitcoin and Ethereum
+addresses, which may be selected by command line options, and
+automatic recovery from transient errors while querying servers
+is provided.
+
+\subsection{Watching cold storage addresses}
+
+The list of cold storage addresses to be watched is specified in a CSV
+file in the same format as produced by @<BA@> and read by @<PW@>, but
+with an extra field specifying the expected balance in the cold storage
+address.  For example, an Ethereum address in which a balance of 10.25
+Ether has been deposited might be specified as:
+
+{\tt 1,"0x1F77Ea4C2d49fB89a72A5F690fc80deFbb712021","",10.25}
+
+The private key field is not used by the @<CC@> program and should, in
+the interest of security, be replaced by a blank field as has been done
+here.  There is no reason to expose the private keys of cold storage
+addresses on a machine intended only to monitor them!  You can use the
+``{\tt b}'' and ``{\tt k}'' options on a {\tt -format~CSV} command to
+generate a copy of the addresses without the private keys.  To query
+all addresses specified in a file named {\tt coldstore.csv} and report
+the current and expected balances, noting any discrepancies, use:
+
+{\tt @<CC@> -verbose coldstore.csv}
+
+If you don't specify {\tt -verbose}, only addresses whose balance
+differs from that specified in the CSV file will be reported.
+
+\subsection{Command line options}
+
+The @<CC@> program is configured by the following command line options.
 
 \begin{description}
-    \item[{\tt -date} {\em text}] ~\\
-        The specified {\em text} will be used as the date in the
-        printed wallet.  Any text may be used: enclose it in quotes if
-        it contains spaces or special characters interpreted by the
-        shell.  If no {\tt -date} is specified, the current date will
-        be used, in ISO-8601 {\tt YYYY-MM-DD} format.
+    \item[{\tt -btcsource} {\em sitename}] ~\\
+        Specify the site which is queried to obtain the balance
+        of Bitcoin addresses.  The sites supported are:
+        \begin{itemize}
+        \dense
+        \tt
+            \item blockchain.info
+            \item blockcypher.com
+            \item btc.com
+        \end{itemize}
+        You must specify the site name exactly as given above.
 
-    \item[{\tt -offset} {\em n}] ~\\
-        The integer {\em n} will be added to the address numbers
-        (first CSV field) in the input file.  If you've generated
-        a number of cold storage wallets with the same numbers and
-        wish to distinguish them in the printed versions, this
-        allows doing so.
+    \item[{\tt -dust} {\em n}] ~\\
+        Some miscreants use the blockchain as a means of ``spamming''
+        users, generally to promote some shady, scammy scheme.  They
+        do this by sending tiny amounts of currency to a large number
+        of accounts, whose holders they hope will be curious and
+        investigate the transaction which sent them, in which the
+        spam message is embedded, usually as bogus addresses.  You
+        might think getting paid to receive spam is kind of cool, but
+        the amounts sent are smaller than the transaction cost it would
+        take to spend or aggregate them with other balances.  This is
+        an irritation to cold storage managers, who may find their
+        inactive accounts are occasionally receiving these tiny payments,
+        which in blockchain argot are called ``dust''.  This option
+        sets the threshold {\em n} (default 0.001) below which reported
+        balances in excess of that expected will be ignored and not
+        considered discrepancies.  If {\tt -verbose} is specified, they
+        will be flagged in the report as ``Dust''.
 
-    \item[{\tt -perpage} {\em n}] ~\\
-        Addresses will be printed with {\em n} per page.  The default
-        is 10 addresses per page.  The number which will fit on a
-        page depends upon your paper size, font selection, and
-        margins used when printing---experiment with print preview
-        to choose suitable settings.
+    \item[{\tt -ethsource} {\em sitename}] ~\\
+        Specify the site which is queried to obtain the balance
+        of Ethereum addresses.  The sites supported are:
+        \begin{itemize}
+        \dense
+        \tt
+            \item blockchain.com
+            \item etherscan.io
+            \item ethplorer.io
+        \end{itemize}
+        You must specify the site name exactly as given above.
 
-    \item[{\tt -prefix} {\em text}] ~\\
-        Use the {\em text} as a prefix for the address numbers from
-        the CSV file (optionally adjusted by the {\tt -offset}
-        option).  This allows further distinguishing addresses in
-        the printed document.
+    \item[{\tt -help}] ~\\
+        Print a summary of the command line options.
 
-    \item[{\tt -title} {\em text}] ~\\
-        Use the specified {\tt text} as the title for the cold
-        storage wallet.  If no title is specified, ``Bitcoin Wallet''
-        or ``Ethereum Wallet'' will be used, depending upon the
-        type of address in the CSV file.
+    \item[{\tt -loop}] ~\\
+        Loop forever querying addresses.  After each pass through
+        all the addresses, a pause of {\tt -waitloop} seconds will
+        occur.
+
+    \item[{\tt -retry} {\em n}] ~\\
+        If a query fails, retry it {\em n} times before abandoning the
+        request and reporting the failure (default 3).
+
+    \item[{\tt -shuffle}] ~\\
+        Shuffle the order in which addresses are queried before each
+        pass checking them.  This may (or may not) make it less obvious
+        they represent a single cold storage vault.
+
+    \item[{\tt -verbose}] ~\\
+        Report all addresses, even if an address's current balance is
+        the same as expected.  Transient query failures and retries
+        are also reported.
+
+    \item[{\tt -waitconst} {\em n}] ~\\
+        Wait {\em n} seconds (default 17) between queries for address
+        balances.  This avoids overloading the sites providing this
+        free service and getting banned for abusing them.
+
+    \item[{\tt -waitloop} {\em n}] ~\\
+        When using the {\tt -loop} option, pause for {\em n} seconds
+        (default 3600) after completing queries for all the addresses
+        in the list before commencing the next pass.
+
+    \item[{\tt -waitrand} {\em n}] ~\\
+        Add a random number between 0 and {\em n} seconds (default 20)
+        to the constant wait set by {\tt waitconst} between individual
+        queries.  This further reduces the load on the query sites
+        and makes it less obvious they're coming from an automated
+        process.
 \end{description}
 
 \section{Address Watch}
@@ -1032,10 +1360,14 @@ of Perl.
     \item {\tt Bitcoin::Crypto::Key::Public}
     \item {\tt Crypt::CBC}
     \item {\tt Crypt::Digest::Keccak256}
+    \item {\tt Crypt::Random::Seed}
+    \item {\tt Crypt::SSSS}
     \item {\tt Data::Dumper} {\em core}
     \item {\tt Digest::SHA} {\em core}
     \item {\tt Getopt::Long} {\em core}
     \item {\tt JSON} {\em core}
+    \item {\tt List::Util} {\em core}
+    \item {\tt LWP::Protocol::https}
     \item {\tt LWP::Simple}
     \item {\tt LWP}
     \item {\tt MIME::Base64} {\em core}
@@ -1044,6 +1376,29 @@ of Perl.
     \item {\tt Statistics::Descriptive}
     \item {\tt Term::ReadKey}
     \item {\tt Text::CSV}
+\end{itemize}
+
+\subsection{Required Python modules}
+
+To avoid commonality in language and libraries in the interest of
+avoiding single points of failure when validating the correctness
+of generated wallets, the @<VW@> program is written in the Python
+language (version 3 or greater), and required the following modules
+be installed on systems that run it.  Modules marked ``{\em standard}''
+are part of Python's standard libraries should be installed on most
+systems which support the language.  If you don't run @<VW@>, you
+needn't bother installing these modules.
+
+\begin{itemize}
+\dense
+    \item {\tt base58}
+    \item {\tt binascii} {\em standard}
+    \item {\tt coincurve}
+    \item {\tt cryptos}
+    \item {\tt fileinput} {\em standard}
+    \item {\tt re} {\em standard}
+    \item {\tt sha3}
+    \item {\tt sys} {\em standard}
 \end{itemize}
 
 \subsection{Building from original source code}
@@ -1124,6 +1479,7 @@ them, and their output in a variety of formats.
     use Digest::SHA qw(sha256_hex);
     use Crypt::CBC;
     use Crypt::Digest::Keccak256 qw(keccak256_hex);
+    use Crypt::Random::Seed;
     use MIME::Base64;
     use LWP::Simple;
     use Getopt::Long qw(GetOptionsFromArray);
@@ -1199,6 +1555,7 @@ Include local and utility functions we employ.
 @{
     #   Shared utility functions
     @<readHexfile: Read hexadecimal data from a file@>
+    @<Pseudorandom number generator@>
     @<Command and option processing@>
 
     #   Local functions
@@ -1212,7 +1569,6 @@ Include local and utility functions we employ.
     @<editEthAddress: Edit Ethereum private key and public address@>
     @<computeEthChecksum: Add checksum to Ethereum address@>
     @<BIP39encode: Encode seed as BIP39 mnemonic phrase@>
-    @<Pseudorandom number generator@>
     @<shuffleBytes: Shuffle bytes@>
     @<showHelp: Show Bitcoin address help information@>
     @<stackCheck:  Check for stack underflow@>
@@ -1242,7 +1598,7 @@ Include local and utility functions we employ.
     @<arg\_pseudo: Generate pseudorandom seed and push on stack@>
     @<arg\_phrase: Specify seed as BIP39 phrase@>
     @<arg\_printtop: Print top of stack@>
-    @<arg\_random: Request seed(s) from /dev/random@>
+    @<arg\_random: Request seed(s) from strong generator@>
     @<arg\_roll: Rotate item $n$ to top of stack@>
     @<arg\_rot: Rotate three stack items@>
     @<arg\_rrot: Reverse rotate three stack items@>
@@ -1252,7 +1608,7 @@ Include local and utility functions we employ.
     @<arg\_swap: Swap the two top items on the stack@>
     @<arg\_test: Test the stack top item for randomness@>
     @<arg\_testall: Test entire stack contents for randomness@>
-    @<arg\_urandom: Request seed(s) from /dev/urandom@>
+    @<arg\_urandom: Request seed(s) from fast generator@>
     @<arg\_wif: Load seed from Wallet Input Format (WIF) private key@>
     @<arg\_xor: Exclusive-or top two stack items@>
     @<arg\_zero: Push all zeroes on the stack@>
@@ -1302,16 +1658,27 @@ Include local and utility functions we employ.
 @d arg\_btc: Generate Bitcoin key/address from top of stack
 @{
     sub arg_btc {
+        my ($name, $value) = @@_;
         stackCheck($repeat);
 
         my $keyn = 1;
+        my $keep = ($opt_Format =~ m/k/);
+        my @@kept;
         @<Open output file@>
         @<Begin command repeat@>
             my $seed = pop(@@seeds);
+            if ($keep) {
+                push(@@kept, $seed);
+            }
             my ($priv, $pub) = genBtcAddress($seed, $opt_Format, 1);
             print(editBtcAddress($priv, $pub, $opt_Format, $keyn++));
         @<End command repeat@>
         @<Close output file@>
+        if ($keep) {
+            @<Begin command repeat@>
+                push(@@seeds, pop(@@kept));
+            @<End command repeat@>
+        }
     }
 @| arg_btc @}
 
@@ -1358,16 +1725,27 @@ Include local and utility functions we employ.
 @d arg\_eth: Generate Ethereum key/address from top of stack
 @{
     sub arg_eth {
+        my ($name, $value) = @@_;
         stackCheck($repeat);
 
         my $keyn = 1;
+        my $keep = ($opt_Format =~ m/k/);
+        my @@kept;
         @<Open output file@>
         @<Begin command repeat@>
             my $seed = pop(@@seeds);
+            if ($keep) {
+                push(@@kept, $seed);
+            }
             my ($priv, $pub) = genEthAddress($seed, $opt_Format, 1);
             print(editEthAddress($priv, $pub, $opt_Format, $keyn++));
         @<End command repeat@>
         @<Close output file@>
+        if ($keep) {
+            @<Begin command repeat@>
+                push(@@seeds, pop(@@kept));
+            @<End command repeat@>
+        }
     }
 @| arg_eth @}
 
@@ -1438,7 +1816,7 @@ Include local and utility functions we employ.
 
         $outputFile = $value;
     }
-@| @}
+@| arg_outfile @}
 
 \subsubsection{{\tt arg\_over} --- {\tt -over}: Duplicate the second item from the stack}
 
@@ -1503,30 +1881,36 @@ Include local and utility functions we employ.
     }
 @| arg_pseudo @}
 
-\subsubsection{{\tt arg\_random} --- {\tt -random}: Request seed(s) from {\tt /dev/random}}
+\subsubsection{{\tt arg\_random} --- {\tt -random}: Request seed(s) from strong generator}
 
-@d arg\_random: Request seed(s) from /dev/random
+@d arg\_random: Request seed(s) from strong generator
 @{
     sub arg_random {
         my $n = 32 * $repeat;
-        open(RI, "</dev/random") || die("Cannot open /dev/random");
-        my $l = 0;
-        my $rbytes;
-        while ($l < $n) {
-            my $dat;
-            my $r = read(RI, $dat, $n - $l);
-#print("Requested " . ($n - $l) . " bytes, read $r\n");
-            $rbytes .= $dat;
-            $l += $r;
-            if ($l < $n) {
-                #   /dev/random exhausted: give it a rest
-                sleep(0.1);
+#        open(RI, "</dev/random") || die("Cannot open /dev/random");
+#        my $l = 0;
+#        my $rbytes;
+#        while ($l < $n) {
+#            my $dat;
+#            my $r = read(RI, $dat, $n - $l);
+##print("Requested " . ($n - $l) . " bytes, read $r\n");
+#            $rbytes .= $dat;
+#            $l += $r;
+#            if ($l < $n) {
+#                #   /dev/random exhausted: give it a rest
+#                sleep(0.1);
+#            }
+#        }
+#        close(RI);
+        my $rgen = new Crypt::Random::Seed;
+        if (defined($rgen)) {
+            my $rbytes = $rgen->random_bytes($n);
+            while ($rbytes =~ s/^(.{32})//s) {
+                my $hn = $1;
+                push(@@seeds, bytesToHex($hn));
             }
-        }
-        close(RI);
-        while ($rbytes =~ s/^(.{32})//s) {
-            my $hn = $1;
-            push(@@seeds, bytesToHex($hn));
+        } else {
+            print("No strong random generator available.");
         }
     }
 @| arg_random @}
@@ -1678,30 +2062,40 @@ random sources used to generate multiple keys.
     }
 @| arg_testall @}
 
-\subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from {\tt /dev/urandom}}
+\subsubsection{{\tt arg\_urandom} --- {\tt -urandom}: Request seed(s) from fast generator}
 
-@d arg\_urandom: Request seed(s) from /dev/urandom
+@d arg\_urandom: Request seed(s) from fast generator
 @{
     sub arg_urandom {
         my $n = 32 * $repeat;
-        open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
-        my $l = 0;
-        my $rbytes;
-        while ($l < $n) {
-            my $dat;
-            my $r = read(RI, $dat, $n - $l);
-#print("Requested " . ($n - $l) . " bytes, read $r\n");
-            $rbytes .= $dat;
-            $l += $r;
-            if ($l < $n) {
-                #   /dev/urandom exhausted: give it a rest
-                sleep(0.1);
+#        open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
+#        my $l = 0;
+#        my $rbytes;
+#        while ($l < $n) {
+#            my $dat;
+#            my $r = read(RI, $dat, $n - $l);
+##print("Requested " . ($n - $l) . " bytes, read $r\n");
+#            $rbytes .= $dat;
+#            $l += $r;
+#            if ($l < $n) {
+#                #   /dev/urandom exhausted: give it a rest
+#                sleep(0.1);
+#            }
+#        }
+#        close(RI);
+#        while ($rbytes =~ s/^(.{32})//s) {
+#            my $hn = $1;
+#            push(@@seeds, bytesToHex($hn));
+#        }
+        my $rgen = Crypt::Random::Seed->new(NonBlocking => 1);
+        if (defined($rgen)) {
+            my $rbytes = $rgen->random_bytes($n);
+            while ($rbytes =~ s/^(.{32})//s) {
+                my $hn = $1;
+                push(@@seeds, bytesToHex($hn));
             }
-        }
-        close(RI);
-        while ($rbytes =~ s/^(.{32})//s) {
-            my $hn = $1;
-            push(@@seeds, bytesToHex($hn));
+        } else {
+            print("No fast random generator available.");
         }
     }
 @| arg_urandom @}
@@ -1923,6 +2317,7 @@ be ``{\tt CSV}{\em t}'', where ``{\em t}'' is one or more of:
 \begin{quote}
 \begin{description}
 \dense
+    \item[{\tt b}]  Exclude private key from CSV file
     \item[{\tt q}]  Use uncompressed private key
     \item[{\tt u}]  Use uncompressed public address
     \item[{\tt l}]  Legacy (``{\tt 1}'') public address
@@ -1941,6 +2336,9 @@ be ``{\tt CSV}{\em t}'', where ``{\em t}'' is one or more of:
             #   Comma-separated value file
 
             my $privK = $WIFc;
+            if ($CSVmodes =~ m/b/i) {       # b     Exclude private key
+                $privK = "";
+            }
             if ($CSVmodes =~ m/q/i) {       # q     Uncompressed private key
                 $privK = $WIFu;
             }
@@ -2080,6 +2478,7 @@ be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one or more of:
 \begin{quote}
 \begin{description}
 \dense
+    \item[{\tt b}]  Exclude private key from CSV file
     \item[{\tt n}]  No checksum on public address
     \item[{\tt p}]  Include full public key
 \end{description}
@@ -2092,8 +2491,11 @@ be ``{\tt CSV}{em t}'', where ``{\tt t}'' is one or more of:
         if ($mode =~ m/^CSV(\w*)$/) {
             my $CSVmodes = $1;
 
-            my $dpub_addr = ($CSVmodes =~ m/n/) ? $pub_addr : $pub_addrc;
-            my $pkey = ($CSVmodes =~ m/p/) ? ",\"$pub_hex_u\"" : "";
+            my $dpub_addr = ($CSVmodes =~ m/n/i) ? $pub_addr : $pub_addrc;
+            my $pkey = ($CSVmodes =~ m/p/i) ? ",\"$pub_hex_u\"" : "";
+            if ($CSVmodes =~ m/b/i) {       # b     Exclude private key
+                $phex = "";
+            }
 
             $r = "$n,\"$dpub_addr\",\"$phex\"$pkey\n";
 
@@ -2182,11 +2584,6 @@ better than nothing.
         }
         return "0x$eal";
     }
-#sub tcx {
-#    my ($name, $value) = @@_;
-#    my $valuec = computeEthChecksum($value);
-#    print("$value\n$valuec\n" . (($value eq $valuec) ? "Equal" : "Unequal") . "\n");
-#}
 @| computeEthChecksum @}
 
 \subsection{{\tt BIP39encode} --- Encode seed as BIP39 mnemonic phrase}
@@ -2292,12 +2689,16 @@ perl blockchain_address.pl [ command... ]
     -eth                Generate Ethereum address/private key from stack seed
     -format f           Select CSV key output mode: CSVx, where x is
                             Bitcoin:
-                              l   Legacy public address ("1...")
+                              b   Suppress private key
                               c   Compatible public address ("3...")
+                              k   Keep addresses on stack
+                              l   Legacy public address ("1...")
+                              q   Uncompressed private key
                               s   Segwit public address ("bc1...")
                               u   Uncompressed public address
-                              q   Uncompressed private key
                             Ethereum:
+                              b   Suppress private key
+                              k   Keep addresses on stack
                               n   No checksum on public address
                               p   Include full public key
     -hbapik hbapikey    Specify HotBits API key
@@ -2313,7 +2714,7 @@ perl blockchain_address.pl [ command... ]
     -phrase words...    Specify seed as BIP39 menemonic phrase
     -pick n             Duplicate the nth item on the stack to top
     -pseudo             Generate pseudorandom seed and push on stack
-    -random             Obtain a seed from /dev/random, push on stack
+    -random             Obtain a seed from system strong generator, push on stack
     -repeat n           Repeat following commands n times
     -roll n             Rotate item n to top of stack
     -rot                Rotate the top three stack items
@@ -2325,7 +2726,7 @@ perl blockchain_address.pl [ command... ]
     -test               Test randomness of top of stack
     -testall            Test entire stack contents for randomness
     -type Any text      Display text argument on standard output
-    -urandom            Obtain a seed from /dev/urandom, push on stack
+    -urandom            Obtain a seed from system fast generator, push on stack
     -wif                Push seed extracted from Wallet Input Format private key
     -xor                Bitwise exclusive-or top two stack items
     -zero               Push zeroes on stack
@@ -2336,9 +2737,615 @@ EOD
     }
 @}
 
+\chapter{Multiple Key Manager}
+
+The @<MK@> program implements
+\href{https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing}{Shamir
+Secret Sharing} for blockchain private keys, allowing them to be
+distributed among multiple custodians or storage locations, then
+reconstructed from a minimum specified number of parts.  Each secret
+key is split into $n$ parts ($n\geq 2$), of which any $k, k\leq n$
+are sufficient to reconstruct the entire original key, but from which
+the key cannot be computed from fewer than $k$ parts.  In the
+implementation below, we refer to $n$ as the number of {\tt parts}
+and $k$ as the number {\tt needed}.  The heavy lifting is done by
+the Perl library module
+\href{https://metacpan.org/pod/Crypt::SSSS}{\tt Crypt::SSSS}.
+
+The blockchain addresses and private keys are specified in a
+Comma-Separated Value (CSV) file in the format produced by @<BA@>
+and used by other utilities in the collection.  Both Bitcoin and
+Ethereum addresses may be used.
+
+\section{Program plumbing}
+
+@o perl/multi_key.pl
+@{@<Explanatory header for Perl files@>
+
+    @<Perl language modes@>
+
+    use Crypt::SSSS;
+    use Digest::SHA qw(sha256 sha256_hex);
+    use List::Util qw(shuffle);
+    use Text::CSV qw(csv);
+    use POSIX qw(log10);
+    use Getopt::Long;
+use Data::Dumper;
+@}
+
+\section{Settings and option processing}
+
+@o perl/multi_key.pl
+@{
+    my $basename = "";                  # Base name for generated files
+    my $join = FALSE;                   # Join parts into complete keys
+    my $prime = 257;                    # Prime used to set security
+    my $parts = 3;                      # Number of shared keys to generate
+    my $needed = 3;                     # Shared keys to reassemble address
+
+    GetOptions(
+        "help"      =>  \&showHelp,
+        "join"      =>  \$join,
+        "name=s"    =>  \$basename,
+        "needed=i"  =>  \$needed,
+        "parts=i"   =>  \$parts,
+        "prime=i"   =>  \$prime
+    ) || die("Command line option error");
+
+    my $csv = Text::CSV->new({ binary => 1 }) ||
+        die("Cannot use CSV: " . Text::CSV->error_diag());
+
+    if ($basename eq "") {
+        if ((scalar(@@ARGV) > 0) && ($ARGV[0] ne "")) {
+            $basename = $ARGV[0];
+            $basename =~ s/\.\w*$//;
+        }
+        if ($basename eq "") {
+            $basename = $join? "joined_keys-1" : "shared_keys";
+        }
+    }
+@}
+
+\section{First pass}
+
+On the first pass, read the records from the input file(s) and save
+them in the @@records array.  We use the {\tt Text::CSV} parser for the
+standard first three fields (label, address, and private key), then
+save any extra material which follows them to be re-appended when the
+output file is written.  This allows preserving extra information, such
+as balances, when keys are split and reassembled.
+
+@o perl/multi_key.pl
+@{
+    my @@records;
+    my $naddrs = 0;
+    while (my $l = <>) {
+        chomp($l);
+        $l =~ s/^\s+//;
+        $l =~ s/\s+$//;
+        if (($l ne "") && ($l !~ m/^#/)) {
+            my $extra;
+            if (($l !~ m/\s*\-1,/) && ($l =~ s/^([^,]+,[^,]+,[^,]+)(,.*)$/$1/)) {
+                $extra = $2;
+            }
+            if ($csv->parse($l)) {
+                $naddrs++;
+                my @@fields = $csv->fields;
+                if ($extra) {
+                    $fields[3] = $extra;
+                }
+                push(@@records, \@@fields);
+           }
+        }
+    }
+@}
+
+After loading the records, if this is a join operation, invoke the
+{\tt joinParts()} function to perform it.
+
+@o perl/multi_key.pl
+@{
+    if ($join) {
+        exit(joinParts());
+    }
+@}
+
+\section{Split private keys into parts}
+
+Each private key in the input file will be encoded into the
+specified number of {\tt parts}, and written to separate CSV
+output files which bear the base name of the first input file
+with a hyphen and part number appended.
+
+\subsection{Create part output files}
+
+Start by creating the files of each of the split key parts.  These
+are CSV files like those used for addresses and keys, except the
+key field is replaced by the encoded part for that key.  The files
+have headers with fields:
+
+{\tt -1,}{\em parts}{\tt ,}{\em needed}{\tt ,}{\em prime}{\tt ,}{\em partno}
+
+where {\em parts} is the number of parts, of which {\em needed} are
+required to reconstruct the key, {\em prime} is the prime number used
+in the encoding, and {\em partno} is the number of this part, from
+1 to {\em parts}.
+
+@o perl/multi_key.pl
+@{
+    my $fnd = int(log10($parts)) + 1;
+    my @@files;
+    for (my $f = 1; $f <= $parts; $f++) {
+        my $fnx = sprintf("%s-%0${fnd}d.csv", $basename, $f);
+        open($files[$f], ">$fnx") || die("Cannot create $fnx");
+        $files[$f]->printf("-1,$parts,$needed,$prime,$f\n");
+    }
+@}
+
+\subsection{Process key records}
+
+Process records, replacing the original private key with the
+shared key part in each file.
+
+@o perl/multi_key.pl
+@{
+    my $fail = 0;
+
+    for (my $r = 0; $r < scalar(@@records); $r++) {
+@}
+
+\subsubsection{Encode and checksum the private key}
+
+To permit validation of the private key after it is reconstructed from
+parts, encode it by prefixing it with its length, then compute and
+append the double SHA256 checksum to the end.  It is this encoded key
+which is actually split into parts.
+
+@o perl/multi_key.pl
+@{
+        my $privkey = chr(32 + length($records[$r]->[2])) . $records[$r]->[2];
+        $privkey .= compCheck($privkey);
+
+        my $shares = ssss_distribute(
+            message =>  $privkey,
+            k       =>  $needed,
+            n       =>  $parts,
+            p       =>  $prime
+        );
+@}
+
+\subsubsection{Write the split parts to part files}
+
+Assemble the part item, prefixing it with the
+type sentinel, part number, and delimiter, and
+computing and appending the checksum of these.
+We save a copy of the parts in @@hexpart, which we'll
+use to confirm the ability to reconstruct the key
+from the parts in the safety check below.  A record
+is added to the part file, consisting of the fields from
+the original key record but with the private key replaced
+by the encoded part.  The part items are saved in the
+{\tt @@hexpart} array for our subsequent reconstruction
+quality check.
+
+@o perl/multi_key.pl
+@{
+        my @@hexpart;
+        for (my $f = 1; $f <= $parts; $f++) {
+            my $hexcheck = sprintf("S%0${fnd}d-%s", $f,
+                unpack("H*", $shares->{$f}->binary));
+            $hexcheck .= compCheck($hexcheck);
+            push(@@hexpart, $hexcheck);
+            my $extra = $records[$r]->[3] ? $records[$r]->[3] : "";
+            $files[$f]->printf("%s,\"%s\",\"%s\"%s\n", $records[$r]->[0],
+                $records[$r]->[1], $hexcheck, $extra);
+        }
+@}
+
+\subsubsection{Reconstruction quality check}
+
+Now that we've generated the parts for this address and written them to
+the parts files, using copies of the parts squirreled away in the
+@@hexpart array, re-assemble them in random order as many different
+ways as there are parts. This verifies that when the time comes we'll
+actually be able to reconstruct the original keys from the parts files.
+
+@o perl/multi_key.pl
+@{
+        for (my $l = 0; $l < $parts; $l++) {
+
+            #   Shuffle order of parts before reconstruction
+            @@hexpart = shuffle(@@hexpart);
+
+            #   Perform reconstruction of key from groups of shuffled parts
+
+            for (my $p = 0; $p <= ($parts - $needed); $p++) {
+                my $rkey = { };
+                for (my $q = $p; $q < ($p + $needed); $q++) {
+                    my ($pstat, $pno, $hxp) =  parsePart($hexpart[$q]);
+                    if ($pstat < 0) {
+                        die("Cannot parse hex part $q " .
+                            "$hexpart[$q]: ($pstat, $pno, $hxp)\n");
+                    }
+                    #   Unpack the hex part payload to bytes and save in parts hash
+                    $rkey->{$pno} = pack('C*',  map({ hex($_) } ($hxp =~ /(..)/g)));
+                }
+                my $rpk = ssss_reconstruct(p => $prime, shares => $rkey);
+                my ($kstat, $privad) = parseKey($rpk);
+                if (!$kstat) {
+                    die("Bad checksum in reconstructed record: $rpk\n  $privad");
+                }
+                if ($records[$r]->[2] ne $privad) {
+                    $fail++;
+                    printf(STDERR "** Reconstruction failure on key %d, " .
+                        "parts %d through %d:\n   Exp: (%s)\n   Rcv: (%s)\n",
+                        $r, ($p + 1), ($p + $needed), $records[$r]->[2], $privad);
+                }
+            }
+        }
+    }
+@}
+
+\subsection{Close part files}
+
+When all keys have been split and written to the part files, we're
+done.  Close the part files and exit.  If an error occurred in the
+split or test reconstruction process, delete the part files to avoid
+a tragedy which might occur were they kept and later used to try to
+reconstruct keys.  The exit status indicates whether the parts were
+successfully generated (0) or an error occurred (1).
+
+@o perl/multi_key.pl
+@{
+    for (my $f = 1; $f <= $parts; $f++) {
+        close($files[$f]);
+    }
+
+    #   If errors were detected, delete part files to avoid tragedy
+    if ($fail > 0) {
+        print(STDERR "Failures to reconstruct keys from parts: $fail.\n" .
+                     "  Deleting part files.\n");
+        for (my $f = 1; $f <= $parts; $f++) {
+            unlink(sprintf("%s-%0${fnd}d.csv", $basename, $f));
+        }
+    }
+
+    exit($fail > 0);
+@}
+
+\section{Join parts into complete keys}
+
+When @<MK@> is invoked with the {\tt -join}, the input is expected
+to be the concatenation of the {\em needed} number of split key files
+produced by an earlier run.  These may be specified as multiple file
+names on the command line, and may be in any order.  If more split
+parts are supplied than needed, a warning is issued and the extras
+ignored.
+
+@o perl/multi_key.pl
+@{
+    sub joinParts {
+        my $warn = 0;
+        my $error = 0;
+
+        my ($restParts, $restNeeded, $restPrime, $restPart);
+        my %partsSeen;
+        my @@addresses;
+        my %parts;
+@| joinParts @}
+
+\subsection{Read split parts, validate, and save}
+
+Process all of the records read from the input file, representing
+the parts to be reconstructed.  Each is checked, and saved as an
+object in a hash with a key of the public address to which it
+corresponds.
+
+@o perl/multi_key.pl
+@{
+        for (my $r = 0; $r < scalar(@@records); $r++) {
+@}
+
+\subsubsection{Process part definition record}
+
+If this is a part definition record, identified by a value of
+$-1$ in the {\em label} field, validate it and save for
+subsequent processing.
+
+@o perl/multi_key.pl
+@{
+            #   Test for part definition record and process
+            if ($records[$r]->[0] eq "-1") {
+                #   Check for inconsistency among parts and save
+                #   the part generation parameters.
+                if ($restParts && ($restParts != $records[$r]->[1])) {
+                    printf("Warning: Record definition for part %d " .
+                           "part count %d inconsistent " .
+                           "with previous parts (%d).\n",
+                           $records[$r]->[4], $records[$r]->[1], $restParts);
+                    $warn++;
+                } else {
+                    $restParts = $records[$r]->[1];
+                }
+
+                if ($restNeeded && ($restNeeded != $records[$r]->[2])) {
+                    printf("Warning: Record definition for part %d " .
+                           "parts needed %d inconsistent " .
+                           "with previous parts (%d).\n",
+                           $records[$r]->[4], $records[$r]->[2], $restNeeded);
+                    $warn++;
+                } else {
+                    $restNeeded = $records[$r]->[2];
+                }
+
+                if ($restPrime && ($restPrime != $records[$r]->[3])) {
+                    printf("Warning: Record definition for part %d " .
+                           "parts needed %d inconsistent " .
+                           "with previous parts (%d).\n",
+                           $records[$r]->[4], $records[$r]->[3], $restPrime);
+                     $warn++;
+               } else {
+                    $restPrime = $records[$r]->[3];
+                }
+
+                #   Warn if this is a duplicate specification of this part
+                $restPart = $records[$r]->[4];
+                if ($partsSeen{$restPart}) {
+                    printf("Warning: Duplicate specification for part %d.\n", $restPart);
+                    $warn++;
+                } else {
+                    $partsSeen{$restPart} = TRUE;
+                }
+            } else {
+@}
+
+\subsubsection{Process private key part record}
+
+Otherwise, this is a record specifying a part of the private key
+for an address.  Parse it, validate the checksum in the part
+item, verify the part number corresponds to that expected from
+the previous header record, and save in a hash keyed by the
+public address pointing to an array indexed by part number.
+
+@o perl/multi_key.pl
+@{
+                my ($label, $pubaddr, $partkey, $extra) = ($records[$r]->[0],
+                    $records[$r]->[1], $records[$r]->[2], $records[$r]->[3]);
+                my ($pstat, $pno, $pvalue) = parsePart($partkey);
+
+                if (!defined($extra)) {
+                    $extra = "";
+                }
+
+                if ($pstat < 0) {
+                    if ($pstat == -1) {
+                        printf("Error: cannot parse part %d key: %s\n", $restPart,
+                            $partkey);
+                    } else {
+                        printf("Error: bad checksum in part %d key: %s\n", $restPart,
+                            $partkey);
+                    }
+                    $error++;
+                } else {
+                    if ($pno != $restPart) {
+                        printf("Warning: part number (%d) for address %s " .
+                            "differs from part number (%d) in header record.\n",
+                            $pno, $pubaddr, $restPart);
+                            $warn++;
+                    }
+                    my $ap = {
+                        label   =>  $label,
+                        partkey =>  $pvalue,
+                        extra   =>  $extra
+                    };
+                    if (!$parts{$pubaddr}) {
+                        $parts{$pubaddr} = [ ];
+                        push(@@addresses, $pubaddr);
+                    }
+                    $parts{$pubaddr}->[$restPart] = $ap;
+                }
+            }
+        }
+@}
+
+\subsection{Part validity and completeness checks}
+
+Now that all of the parts specifications have been loaded, check
+that the {\em needed} number of parts have been supplied (error if
+too few, warning if too many, with the extras ignored), and that
+all parts have been specified for all public addresses.
+
+@o perl/multi_key.pl
+@{
+        #   Verify correct number of parts specified
+        my $nps = scalar(keys(%partsSeen));
+        if ($nps < $restNeeded) {
+            printf("Error: fewer parts specified (%s) than needed (%s).\n",
+                $nps, $restNeeded);
+            $error++;
+        } elsif ($nps > $restNeeded) {
+            printf("Warning: more parts specified (%s) than needed (%s).\n",
+                $nps, $restNeeded);
+            $warn++;
+        }
+
+        #   Verify that all parts are specified for all addresses
+        foreach my $a (@@addresses) {
+            foreach my $pt (keys(%partsSeen)) {
+                if (!($parts{$a}->[$pt])) {
+                    print("Error: part $pt missing for address $a.\n");
+                    $error++;
+                }
+            }
+        }
+@}
+
+\subsection{Create output key file}
+
+The output file containing the addresses and reassembled private keys
+is given a name constructed from the base name of the first part
+(after deleting its part number suffix) and appending
+``{\tt -merged.csv}''.  The file is created and a comment written
+to it identifying the parts from which it was assembled.
+
+@o perl/multi_key.pl
+@{
+        $basename =~ s/\-\d+$//;
+        $basename .= "-merged.csv";
+        open(FO, ">$basename") ||
+            die("Cannot create $basename");
+        my $title = "# Private keys assembled from parts ";
+        foreach my $pn (sort { $a <=> $b } (keys(%partsSeen))) {
+            $title .= "$pn, ";
+        }
+        $title =~ s/, $/\n/;
+        print(FO $title);
+@}
+
+\subsection{Reconstruct, validate, and output private keys}
+
+We're finally ready to assemble the pieces into the
+private keys.  We iterate using the {\tt @@addresses} array
+to preserve the order of the keys in the first shared
+key input file.  As each private key is reconstructed, its
+internal checksum, appended when the original key was split, is
+verified and any errors reported.  A record is appended to the
+output file with the reassembled private key.
+
+@o perl/multi_key.pl
+@{
+        foreach my $a (@@addresses) {
+            my $rkey = { };
+            my $lbl;
+            my $rpts = 0;
+            foreach my $pt (keys(%partsSeen)) {
+                #   Unpack the hex part payload to bytes and save in parts hash
+                if (defined($parts{$a}->[$pt])) {
+                    my $hxp = $parts{$a}->[$pt]->{partkey};
+                    $lbl = $parts{$a}->[$pt]->{label};
+                    $rkey->{$pt} = pack('C*',  map({ hex($_) } ($hxp =~ /(..)/g)));
+                    $rpts++;
+                    #   If more parts were specified than needed, stop
+                    #   after we've processed the number required.
+                    if ($rpts >= $restNeeded) {
+                        last;
+                    }
+                }
+            }
+            my $rpk = ssss_reconstruct(p => $prime, shares => $rkey);
+            my ($kstat, $privad) = parseKey($rpk);
+            if (!$kstat) {
+                print("Bad checksum inreconstructed key for $a: $rpk\n  $privad");
+                $error++;
+            }
+            #   We arbitrarily use the extra information from the last
+            #   part (all parts should have identical extra information).
+            my $ext = $parts{$a}->[-1]->{extra};
+            printf(FO "%s,\"%s\",\"%s\"%s\n", $lbl, $a, $privad, $ext);
+        }
+        close(FO);
+
+        return ($error > 0) ? 2 : (($warn > 0) ? 1 : 0);
+    }
+@}
+
+\section{Local functions}
+
+\subsection{{\tt parsePart} --- Parse and validate part record}
+
+Parse a part record into components and validate.  Returns ({\em
+status}, {\em partNumber}, {\em partValue}).
+
+@o perl/multi_key.pl
+@{
+    sub parsePart {
+        my ($part) = @@_;
+
+        $part =~ m/^S(\d+)\-(\w+?)(\w{8})$/ || return (-1, "", "");
+        my ($partNumber, $partValue, $checksum) = ($1, $2, $3);
+        $partNumber =~ s/^0//g;
+        my $rcheck = compCheck(substr($part, 0, -8));
+        if ($rcheck ne $checksum) {
+            return (-2, $checksum, $rcheck);
+        }
+        return (TRUE, $partNumber, $partValue);
+    }
+@| parsePart @}
+
+\subsection{{\tt parseKey} --- Parse encoded key record}
+
+Parse an encoded key record, extracting the length, key, and checksum,
+then validate the checksum.  This used to validate key records after
+they are reassembled from parts.  A list is returned with a status
+indicating validity of the checksum and the extracted private key.
+
+@o perl/multi_key.pl
+@{
+    sub parseKey {
+        my ($rpk) = @@_;
+
+        my $rlen = ord(substr($rpk, 0, 1)) - 32;
+        my $privad = substr($rpk, 1, $rlen);
+        my $cksum = substr($rpk, $rlen + 1, 8);
+
+        my $kcheck = compCheck(substr($rpk, 0, $rlen + 1));
+        if ($kcheck ne $cksum) {
+            return (FALSE, "$cksum != $kcheck");
+        }
+        return (TRUE, $privad);
+    }
+@| parseKey @}
+
+\subsection{{\tt compCheck} --- Compute checksum on string}
+
+The checksum is a Bitcoin-address-like double SHA256 hash expressed in
+hexadecimal and trimmed to just the first 8 hexadecimal digits (4
+bytes).
+
+@o perl/multi_key.pl
+@{
+    sub compCheck {
+        my ($s) = @@_;
+
+        return substr(sha256_hex(sha256($s)), 0, 8);
+    }
+@| compCheck @}
+
+\subsection{{\tt showHelp} --- Show help information}
+
+@o perl/multi_key.pl
+@{
+    sub showHelp {
+        my $help = <<"EOD";
+perl multi_key.pl [ option... ] file...
+  Commands and arguments:
+    -help               Print this message
+    -join               Join parts and reconstruct keys
+    -name filename      Specify name of part or joined key files
+    -needed k           Set k parts required to reconstruct keys
+    -parts n            Split keys into n parts, of which k are needed
+    -prime p            Use p as prime number to encode (super-experts only!)
+EOD
+        print($help);
+        exit(0);
+    }
+@}
+
 \chapter{Paper Wallet Utilities}
 
+These utilities, @<PW@> and @<VW@>, create and validate cold storage
+paper wallets, starting with Bitcoin or Ethereum addresses in the CSV
+format generated by @<BA@>.  Paper wallets are created by expressing
+them as an HTML file, which may be loaded into a browser and printed.
+
 \section{Paper Wallet Generator}
+
+Read a list of addresses and private keys generated by @<BA@> and
+output HTML which prints them in a format suitable for offline
+cold storage.  You'll usually print multiple copies and store them
+in redundant secure locations.  This program can also produce
+printable documents from parts of multiple key wallets generated
+by @<MK@>.
 
 @o perl/paper_wallet.pl
 @{@<Explanatory header for Perl files@>
@@ -2349,44 +3356,33 @@ EOD
     use POSIX qw(strftime);
     use Getopt::Long;
 #use Data::Dumper;
+@}
 
-    #   Date override for address page
-    my $date = "";
+\subsection{Modes and option processing}
 
-    #   Font name for addresses
-    my $fontname = "monospace";
-
-    #   Font size for addresses
-    my $fontsize = "medium";
-
-    #   Font weight for addresses
-    my $fontweight = "normal";
-
-    #   Add this to the address numbers in the input file
-    my $offset = 0;
-
-    #   Print this number of addresses per page
-    my $perpage = 10;
-
-    #   Prefix the address numbers with this string
-    my $prefix = "";
-
-    #   Separator for address groups
-    my $separator = "";
-
-    #   Title for page
-    my $title = "";
+@o perl/paper_wallet.pl
+@{
+    my $date = "";                  #   Date override for address page
+    my $fontname = "monospace";     #   Font name for addresses
+    my $fontsize = "medium";        #   Font size for addresses
+    my $fontweight = "normal";      #   Font weight for addresses
+    my $offset = 0;                 #   Add to address numbers in the input file
+    my $perpage = 10;               #   Print this number of addresses per page
+    my $prefix = "";                #   Prefix the address numbers with this string
+    my $separator = "";             #   Separator for address groups
+    my $title = "";                 #   Title for page
 
     GetOptions(
-        "date=s"    =>  \$date,
-        "font=s"    =>  \$fontname,
-        "offset=i"  =>  \$offset,
-        "perpage=i" =>  \$perpage,
-        "prefix=s"  =>  \$prefix,
-        "separator=s" => \$separator,
-        "size=s"    =>  \$fontsize,
-        "title=s"   =>  \$title,
-        "weight=s"  =>  \$fontweight
+        "date=s"        =>  \$date,
+        "font=s"        =>  \$fontname,
+        "help"          =>  \&showHelp,
+        "offset=i"      =>  \$offset,
+        "perpage=i"     =>  \$perpage,
+        "prefix=s"      =>  \$prefix,
+        "separator=s"   =>  \$separator,
+        "size=s"        =>  \$fontsize,
+        "title=s"       =>  \$title,
+        "weight=s"      =>  \$fontweight
     ) || die("Command line option error");
 
     my $csv = Text::CSV->new({ binary => 1 }) ||
@@ -2396,15 +3392,19 @@ EOD
     if ($date eq "") {
         $date = strftime("%F", gmtime(time()));
     }
+@}
 
+\subsection{First pass: read address records}
+
+In the first pass, read the records, determine which kind of blockchain
+they represent, and save them in an array for processing on the second
+pass.  This allows us to know how many pages we're going to generate if
+the output is paginated.
+
+@o perl/paper_wallet.pl
+@{
     my $started = FALSE;
     my $inpage = 0;
-
-    #   First pass.  Read the records, determine which kind of
-    #   blockchain they represent, and save them in an array for
-    #   processing on the second pass.  This allows us to know
-    #   how many pages we're going to generate if the output is
-    #   paginated.
 
     my @@records;
     my ($naddrs, $npages) = (0, 0);
@@ -2436,10 +3436,15 @@ EOD
            }
         }
     }
+@}
 
-    #   Second pass.  Process the records from the first pass and
-    #   generate the HTML output.
+\subsection{Second pass: generate HTML output}
 
+In the second pass we process the records from the first pass and
+generate the HTML output.
+
+@o perl/paper_wallet.pl
+@{
     $inpage = 0;
     $started = FALSE;
     my $pageno = 1;
@@ -2463,9 +3468,18 @@ EOD
 
     pageFooter($pageno, $npages);
     HTMLend();
+@}
 
-    #   Format address with separators
+\subsection{Utility functions}
 
+\subsubsection{{\tt addrFormat} --- Format address with separators}
+
+Format a public address or private key.  If a nonblank separator has
+been set, insert them between groups of four characters in the
+string to make it more primate-readable.
+
+@o perl/paper_wallet.pl
+@{
     sub addrFormat {
         my ($addr) = @@_;
 
@@ -2479,9 +3493,14 @@ EOD
         }
         return $addr;
     }
+@}
 
-    #   Generate page header
+\subsubsection{{\tt pageHeader} --- Generate page header}
 
+Generate the HTML for the page heading.
+
+@o perl/paper_wallet.pl
+@{
     sub pageHeader {
         my ($pageno) = @@_;
 
@@ -2493,9 +3512,14 @@ EOD
     </div>
 EOD
     }
+@}
 
-    #   Generate page footer
+\subsubsection{{\tt pageFooter} --- Generate page footer}
 
+Generate the HTML for the page footer.
+
+@o perl/paper_wallet.pl
+@{
     sub pageFooter {
         my ($pageno, $ofpages) = @@_;
 
@@ -2506,9 +3530,18 @@ EOD
     </div>
 EOD
     }
+@}
 
-    #   Output HTML prologue
+\subsubsection{{\tt HTMLstart} --- Generate HTML file prologue}
 
+Generate the prologue at the start of the HTML file.  With the
+exception of the title and date, this is entirely canned and
+identical for every file we generate.  The bulk of the header is
+the Cascading Style Sheet (CSS), which we define later and include
+here.
+
+@o perl/paper_wallet.pl
+@{
     sub HTMLstart {
         my ($date, $title) = @@_;
         print <<"EOD";
@@ -2518,6 +3551,104 @@ EOD
 <meta charset="utf-8" />
 <title>$title</title>
 <style>
+@<Style sheet for paper wallets@>
+</style>
+</head>
+
+<body class="standard">
+
+EOD
+    }
+@}
+
+\subsubsection{{\tt HTMLrec} --- Output one address record to HTML file}
+
+Emit the record for one blockchain address / private key pair.  Note
+that our @<VW@> program is sensitively dependent upon the
+format of these records; if you change them indiscriminately, you're
+likely to break that program.
+
+@o perl/paper_wallet.pl
+@{
+    sub HTMLrec {
+        my ($pagetop, $n, $pub, $priv) = @@_;
+
+        $pub = addrFormat($pub);
+        $priv = addrFormat($priv);
+        print <<"EOD";
+
+    <table class="addr">
+        <tr class="pub">
+            <th class="num" rowspan="2">
+                $n
+            </th>
+            <td class="type">Pub:</td>
+            <td class="pub">
+                $pub
+            </td>
+        </tr>
+        <tr class="priv">
+            <td class="type">Priv:</td>
+            <td class="priv">
+                $priv
+            </td>
+        </tr>
+    </table>
+EOD
+    }
+@}
+
+\subsubsection{{\tt HTMLend} --- Generate HTML file epilogue}
+
+Emit the end of the HTML file.
+
+@o perl/paper_wallet.pl
+@{
+    sub HTMLend {
+        print <<"EOD";
+
+</body>
+</html>
+EOD
+    }
+@}
+
+\subsubsection{{\tt showHelp} --- Show help information}
+
+@o perl/paper_wallet.pl
+@{
+    sub showHelp {
+        my $help = <<"EOD";
+perl paper_wallet.pl [ option... ] file...
+  Commands and arguments:
+    -date text          Use text as generation date
+    -font fname         Display addresses and keys in CSS font fname
+    -help               Print this message
+    -offset n           Add n to the address numbers in the input file
+    -perpage n          Print n addresses per page
+    -prefix text        Prefix address labels with text
+    -separator text     Show addresses as 4 character groups with separator text
+    -size fsize         Display addresses with CSS font size fsize
+    -title text         Use text as page title
+    -weight wgt         Show addresses with CSS font weight wgt
+EOD
+        print($help);
+        exit(0);
+    }
+@}
+
+\subsection{Style sheet}
+
+This CSS style sheet is embedded in the HTML file we generate.  It is
+embedded in the interest of its being entirely self-contained and thus
+more easily transferred from, for example, an air-gapped computer on
+which it is generated and another machine with a direct connection
+to a printer.
+
+\subsubsection{Page-level formatting}
+
+@d Style sheet for paper wallets
+@{
     body.standard {
         background-color: #FFFFFF;
         color: #000000;
@@ -2530,20 +3661,12 @@ EOD
     div.subsequentpage {
         page-break-before: always;
     }
+@}
 
-    h1 {
-        margin-bottom: 0px;
-    }
+\subsubsection{Table of addresses and keys}
 
-    h3 {
-        margin-top: 0px;
-    }
-
-    span.s:after {
-        font-family: sans-serif;
-        content: "$separator";
-    }
-
+@d Style sheet for paper wallets
+@{
     table.addr {
         border-collapse: collapse;
         margin-bottom: 1.5ex;
@@ -2587,59 +3710,28 @@ EOD
         padding-right: 6px;
         width: 180mm;
     }
+@}
+
+\subsubsection{Formatting of items}
+
+@d Style sheet for paper wallets
+@{
+
+    h1 {
+        margin-bottom: 0px;
+    }
+
+    h3 {
+        margin-top: 0px;
+    }
+
+    span.s:after {
+        font-family: sans-serif;
+        content: "";
+    }
 
     .c {
         text-align: center;
-    }
-</style>
-</head>
-
-<body class="standard">
-
-EOD
-    }
-
-    #   Emit the record for one blockchain address / private key pair.
-    #   Note that the validate_wallet.py program is sensitively dependent
-    #   upon the format of these records; if you change them
-    #   indiscriminately, you're likely to break that program.
-
-    sub HTMLrec {
-        my ($pagetop, $n, $pub, $priv) = @@_;
-
-        $pub = addrFormat($pub);
-        $priv = addrFormat($priv);
-        print <<"EOD";
-
-    <table class="addr">
-        <tr class="pub">
-            <th class="num" rowspan="2">
-                $n
-            </th>
-            <td class="type">Pub:</td>
-            <td class="pub">
-                $pub
-            </td>
-        </tr>
-        <tr class="priv">
-            <td class="type">Priv:</td>
-            <td class="priv">
-                $priv
-            </td>
-        </tr>
-    </table>
-EOD
-
-    }
-
-    #   Generate HTML file epilogue
-
-    sub HTMLend {
-        print <<"EOD";
-
-</body>
-</html>
-EOD
     }
 @}
 
@@ -2649,9 +3741,13 @@ This program, completely independent of the Perl blockchain utilities
 that generate them, verifies that the private keys in a cold storage
 wallet file correspond to the public addresses generated from them.  It
 avoids the tragedy when, for whatever cause, funds are sent to a public
-address for which the corresponding private key is not known.
+address for which the corresponding private key is not known.  It can
+validate either a CSV wallet generated by @<BA@>, or a printable HTML
+file created from it with @<PW@>.
 
-This program requires Python version 3 or above.
+To avoid any commonality with the wallet generation code, it is
+written in a different programming language, Python, and used that
+language's libraries.  This program requires Python version 3 or above.
 
 \subsection{Bitcoin key and address functions}
 
@@ -2751,7 +3847,7 @@ def Key_to_Ethereum_address(privkey_hex):
 
 \subsubsection{Remove separators from address}
 
-In the interest of readability, @{PW@} allows inserting separators
+In the interest of readability, @<PW@> allows inserting separators
 between groups of characters in the long public address and private
 key strings.  This function recognises these sequences and removes
 them, allowing the raw addresses to be processed.
@@ -2769,7 +3865,7 @@ def removeSep(addr):
 The {\tt nextAddr()} function returns the next quadruple of label,
 public address, private key, and currency type from the wallet file.
 It reads either machine-readable CSV wallets or the HTML files
-generated from them by @{PW@}, which are intended to be printed to make
+generated from them by @<PW@>, which are intended to be printed to make
 offline cold storage wallets.  This allows verifying the correctness of
 both formats of wallets, guarding against corruption creating HTML from
 the CSV master (or corruption after they are created).
@@ -2904,7 +4000,7 @@ def currencyID(pub, priv):
 
 \subsection{Validate addresses in file}
 
-This is the main processing loop of @{VW@}.  It reads records from
+This is the main processing loop of @<VW@>.  It reads records from
 the input stream, parses them into number, public address, and
 private key, and verifies that the address can be re-generated from
 the key.
@@ -2975,6 +4071,433 @@ import sys
 print("Addresses: %d good, %d bad." % (goodRec, badRec))
 sys.exit(0 if ((goodRec > 0) and (badRec == 0)) else 1)
 @}
+
+\chapter{Cold Storage Monitor}
+
+The @<CC@> program monitors a list of Bitcoin or Ethereum addresses,
+queries their current balance from free servers, compares it with
+the expected balance, and reports any discrepancies.  This can be
+employed by users of offline ``cold storage'' to detect any
+unauthorised transactions referencing them.
+
+\section{Program plumbing}
+
+@o perl/cold_comfort.pl
+@{@<Explanatory header for Perl files@>
+
+    @<Perl language modes@>
+@}
+
+\section{Required library modules}
+
+@o perl/cold_comfort.pl
+@{
+    use Crypt::Random::Seed;
+    use Getopt::Long;
+    use JSON;
+    use LWP::Simple;
+    use List::Util qw(shuffle);
+    use Math::Random::MT;
+    use Text::CSV qw(csv);
+#    use Data::Dumper;
+@}
+
+\section{Definitions and mode settings}
+
+@o perl/cold_comfort.pl
+@{
+    use constant SATOSHI => 0.00000001;
+    use constant ERRFLAG => " ****";
+
+    my $APIretry = 3;                   # Maximum attempts to make API query
+    my $ignoreZero = FALSE;             # Ignore zero balance addresses
+    my $dust = 0.001;                   # Don't report balance increases less than this
+    my $loop = FALSE;                   # Loop forever checking addresses
+    my $shuffle = FALSE;                # Shuffle order of address queries
+    my $verbose = FALSE;                # Show all queries, not just alerts
+    my $waitconst = 17;                 # Constant wait between queries, seconds
+    my $waitloop = 3600;                # Wait between series of queries
+    my $waitrand = 20;                  # Random wait between queries, seconds
+@}
+
+\section{Data sources for address balance queries}
+
+The following sites can be queried for the balance of Bitcoin and
+Ethereum addresses, respectively.  The user can select the site used
+with the {\tt -btcsource} and {\tt -ethsource} command line options.
+These sites tend to come and go, so we provide three alternatives
+for each.  Note that adding a new site involves more than just adding
+an entry to one of these tables: you must write a function which
+composes a query, sends it to the site, and parses the result it
+returns.
+
+@o perl/cold_comfort.pl
+@{
+    #   Bitcoin data sources
+    my $srcBTC = "blockchain.info";
+    my %btcSource = (
+        "blockchain.info"   =>  \&s_b_blockchain,
+        "blockcypher.com"   =>  \&s_b_blockcypher,
+        "btc.com"           =>  \&s_b_btc
+    );
+
+    #   Ethereum data sources
+    my $srcETH = "blockchain.com";
+    my %ethSource = (
+        "blockchain.com"    =>  \&s_e_blockchain,
+        "etherscan.io"      =>  \&s_e_etherscan,
+        "ethplorer.io"      =>  \&s_e_ethplorer
+    );
+@}
+
+\section{Initialisation and command line option processing}
+
+@o perl/cold_comfort.pl
+@{
+    randInit();
+
+    GetOptions(
+        "btcsource=s"   =>  \$srcBTC,
+        "dust=f"        =>  \$dust,
+        "ethsource=s"   =>  \$srcETH,
+        "help"          =>  \&showHelp,
+        "loop"          =>  \$loop,
+        "retry=i",      =>  \$APIretry,
+        "shuffle"       =>  \$shuffle,
+        "verbose"       =>  \$verbose,
+        "waitconst=f"   =>  \$waitconst,
+        "waitloop=f"    =>  \$waitloop,
+        "waitrand=f"    =>  \$waitrand,
+        "zero"          =>  \$ignoreZero
+    ) || die("Command line option error");
+
+    #   Validate address query source specifications
+
+    if (!defined($btcSource{$srcBTC})) {
+        print("Unknown Bitcoin query source.\n");
+        exit(2);
+    }
+
+    if (!defined($ethSource{$srcETH})) {
+        print("Unknown Ethereum query source.\n");
+        exit(2);
+    }
+@}
+
+\section{First pass: Read list of addresses to be monitored}
+
+Read the list of addresses from the input stream.  The addresses to
+be watched are specified in CSV format with the following fields.
+
+\begin{quote}
+\begin{enumerate}
+\dense
+    \item   Label
+    \item   Public address
+    \item   Private key (ignored if specified)
+    \item   Expected balance
+\end{enumerate}
+\end{quote}
+
+These are stored in an array of arrays, with an additional item,
+initialised to zero, added to the end which is used to keep track
+of the number of retries for queries that failed.
+
+@o perl/cold_comfort.pl
+@{
+    my $csv = Text::CSV->new({ binary => 1 }) ||
+        die("Cannot use CSV: " . Text::CSV->error_diag());
+
+    my $adrs = [ ];
+    while (my $l = <>) {
+        chomp($l);
+        $l =~ s/^\s+//;
+        $l =~ s/\s+$//;
+        if (($l ne "") && ($l !~ m/^#/)) {
+            if ($csv->parse($l)) {
+                push(@@$adrs, [ $csv->fields, 0 ]);
+           }
+        }
+    }
+@}
+
+\section{Second pass: Query addresses and report discrepancies}
+
+If {\tt -shuffle} is specified, we shuffle the order in which
+addresses are queried.  This makes is more difficult for API services
+to identify our queries as representing a fixed collection of cold
+storage addresses.
+
+@o perl/cold_comfort.pl
+@{
+    my ($balErrs, $APIerrs);
+
+    do {
+        if ($shuffle) {
+            @@$adrs = shuffle(@@$adrs);
+        }
+@}
+
+Query the balance of the addresses and compare against the expected
+balance, reporting any discrepancies.
+
+@o perl/cold_comfort.pl
+@{
+        ($balErrs, $APIerrs) = (0, 0);
+        for (my $i = 0; $i < scalar(@@$adrs); $i++) {
+            my ($label, $bcaddr, $balance, $tries) =
+                ($adrs->[$i][0], $adrs->[$i][1], $adrs->[$i][3], $adrs->[$i][4]);
+            if ((!$ignoreZero) || ($balance > 0)) {
+                $balance += 0;
+                my $warn = "";
+                my $cbal;
+                my $cbalf;
+                if ($bcaddr =~ m/^0x/i) {
+                    $cbal = $ethSource{$srcETH}($bcaddr);
+                } else {
+                    $cbal = $btcSource{$srcBTC}($bcaddr);
+                }
+                if (defined($cbal)) {
+@}
+
+We compare the balance reported by the query with the expected balance
+using a slightly complicated set of rules.  Due to floating point
+round-off and rounding in values reported by servers, we ignore any
+discrepancy less than one {\tt SATOSHI} ($10^{-8}$).  If the reported
+balance is less than expected by greater than this threshold, we treat
+it as an error.  If the reported balance is greater, we compare it with
+the {\tt -dust} setting.  Cryptocurrency blockchains, particularly
+Bitcoin at this writing, are afflicted by spammers who send nugatory
+funds to addresses with significant balances to promote a variety of
+scams.  These small deposits are referred to as “dust”, in that the
+transaction cost to spend or transfer them exceeds their value.  But
+they can cause discrepancies in the balance comparison.  We ignore
+these balance increases up to the {\tt -dust} threshold.  If you're
+getting dust reports and confirm that's what they are, just update the
+balance in your cold storage database to include the dust.
+
+@o perl/cold_comfort.pl
+@{
+                    my $bdiff = $cbal - $balance;
+                    $cbalf = sprintf("%16.8f", $cbal);
+                    if ($bdiff < -(SATOSHI)) {
+                         $warn = ERRFLAG;
+                         $balErrs++;
+                    } elsif ($bdiff > SATOSHI) {
+                         $warn = ($cbal < ($balance + $dust)) ? " Dust" : ERRFLAG;
+                    }
+                } else {
+@}
+
+If the API query for the address balance fails, we increment the number
+of queries made for it.  If we've made fewer than the number of tries
+set by {\tt -retry}, increment the try count re-queue the query at the
+end of the address list for next try.  If the number of tries has been
+exhausted, this is flagged as a hard fail and abandoned.
+
+@o perl/cold_comfort.pl
+@{
+                    $cbalf = " " x 16;
+                    $tries++;
+                    if ($tries < $APIretry) {
+                        if ($verbose) {
+                            $warn = " API fail, try $tries/$APIretry";
+                        }
+                        push(@@$adrs, [ $label, $bcaddr, $adrs->[$i][2], $balance, $tries ]);
+                    } else {
+                        $warn = " API failure";
+                        $APIerrs++;
+                    }
+                }
+                if ($verbose || ($warn ne "")) {
+                    printf("%-12s  %-42s  %16.8f  %s%s\n",
+                           $label, $bcaddr, $balance, $cbalf, $warn);
+                }
+                if ($i < (scalar(@@$adrs) - 1)) {
+                    sleep($waitconst + randNext($waitrand));
+                }
+            }
+        }
+        if ($loop && ($waitloop > 0)) {
+            sleep($waitloop);
+        }
+    } while ($loop);
+
+    exit(($balErrs > 0) ? 1 : (($APIerrs > 0) ? 2 : 0));
+@}
+
+\section{Local functions}
+
+\subsection{{\tt showHelp}: Show how to call information}
+
+@o perl/cold_comfort.pl
+@{
+    sub showHelp {
+        my $btcsites = join(", ", sort(keys(%btcSource)));
+        my $ethsites = join(", ", sort(keys(%ethSource)));
+        my $help = <<"EOD";
+perl cold_comfort.pl [ options... ] address_file...
+  Options:
+    -btcsource site     Site to query for Bitcoin balances: $btcsites
+    -dust n             Ignore "dust" sent to address less than n units
+    -ethsource site     Site to query for Ethereum balances: $ethsites
+    -help               Print this message
+    -loop               Loop forever polling addresses
+    -retry n            Try failed API query requests n times
+    -shuffle            Shuffle order in which addresses queried
+    -verbose            Show all polls, regardless of error status
+    -waitconst n        Wait constant n seconds between queries
+    -waitloop n         Wait n seconds between re-polls in -loop
+    -waitrand n         Wait random time 0 to n seconds between address polls
+    -zero               Ignore addresses with zero expected balance
+EOD
+        print($help);
+        exit(0);
+    }
+@}
+
+\section{Utility functions}
+
+@o perl/cold_comfort.pl
+@{
+    @<Pseudorandom number generator@>
+@}
+
+\section{Address query source handlers}
+
+These functions query different services to obtain the balance for a
+specified Bitcoin or Ethereum address.  The argument is the address
+and the value returned is the balance as a floating point value of
+currency units or {\tt undef} if the query fails.
+
+\subsection{Bitcoin}
+
+\subsubsection{{\tt blockcypher.com}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_b_blockcypher {
+        my ($address) = @@_;
+
+        my $balance;
+        my $reply = get("https://api.blockcypher.com/v1/btc/main/addrs/$address/balance");
+        if (defined($reply)) {
+            my $r = decode_json($reply);
+            $balance = $r->{balance} * SATOSHI;
+        }
+
+        return $balance;
+    }
+@| s_b_blockcypher @}
+
+\subsubsection{{\tt blockchain.info}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_b_blockchain {
+        my ($address) = @@_;
+
+        my $balance = get("https://blockchain.info/q/addressbalance/$address");
+
+        if (defined($balance)) {
+            $balance *= SATOSHI;
+        }
+
+        return $balance;
+    }
+@| s_b_blockchain @}
+
+\subsubsection{{\tt btc.com}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_b_btc {
+        my ($address) = @@_;
+
+        my $balance;
+
+        my $request = LWP::UserAgent->new();
+        $request->agent("cold_comfort");
+        my $response = $request->get("https://btc.com/btc/search?q=$address");
+        if ($response->is_success) {
+            my $reply = $response->content;
+            if ($reply =~ m:Balance</div><div\s+class="ant-col\s+ant-col-24\s+text-c">([\d\.\,]+)\s+BTC</div>:) {
+                $balance = $1;
+                $balance =~ s:[,<>/b]::g;
+                $balance = $balance + 0;
+            }
+        }
+
+        return $balance;
+    }
+@| s_b_btc @}
+
+\subsection{Ethereum}
+
+\subsubsection{{\tt blockchain.com}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_e_blockchain {
+        my ($address) = @@_;
+
+        my $balance;
+        my $reply = get("https://www.blockchain.com/eth/address/$address");
+        if (defined($reply)) {
+            if ($reply =~ m/The\s+current\s+value\s+of\s+this\s+address\s+is\s+([\d\.,]+)\s+ETH/) {
+                $balance = $1;
+                $balance =~ s/,//g;
+                $balance = $balance + 0;
+            }
+        }
+
+        return $balance;
+    }
+@| s_e_blockchain @}
+
+\subsubsection{{\tt etherscan.io}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_e_etherscan {
+        my ($address) = @@_;
+
+        my $balance;
+        my $request = LWP::UserAgent->new();
+        $request->agent("cold_comfort");
+        my $response = $request->get("https://etherscan.io/address/$address");
+        if ($response->is_success) {
+            my $reply = $response->content;
+            if ($reply =~ m:<div\s+class="col\-md\-8">([\d\.,<>/b]+)\s+Ether</div>:) {
+                $balance = $1;
+                $balance =~ s:[,<>/b]::g;
+                $balance = $balance + 0;
+            }
+        }
+
+        return $balance;
+    }
+@| s_e_etherscan @}
+
+\subsubsection{{\tt ethplorer.io}}
+
+@o perl/cold_comfort.pl
+@{
+    sub s_e_ethplorer {
+        my ($address) = @@_;
+
+        my $balance;
+        my $reply = get("https://api.ethplorer.io/getAddressInfo/$address?apiKey=freekey");
+        if (defined($reply)) {
+            my $r = decode_json($reply);
+            if ($r->{address} eq lc($address)) {
+                $balance = $r->{ETH}->{balance};
+            }
+        }
+
+        return $balance;
+    }
+@| s_e_ethplorer @}
 
 \chapter{Bitcoin Address Watcher}
 
@@ -3071,10 +4594,15 @@ When watching wallet addresses, we re-fetch the list for every poll
 of the blockchain to accommodate any changes due to transactions since
 the previous poll.
 
+When reading the list of addresses from a {\tt -wfile} CSV file, we
+ignore blank lines, comments which begin with ``\verb+#+'', and Ethereum
+addresses which begin with ``{\tt 0x}''.
+
 @o perl/address_watch.pl
 @{
     my %adrh;
 
+    #   Add watch addresses specified on the command line
     foreach my $a (@@watch_addrs) {
         my ($label, $balance) = ("", "");
 
@@ -3088,14 +4616,25 @@ the previous poll.
     }
     undef(@@watch_addrs);
 
+    #   Add watch addresses specified in a -wfile
     if ($watch_file ne "") {
-        my $adrs = csv(in => $watch_file) || die(Text::CSV->error_diag);
-
-        #   Convert watch list to a hash addressed by Bitcoin address
-        for (my $i = 0; $i < scalar(@@$adrs); $i++) {
-            $adrh{$adrs->[$i][1]} = [ $adrs->[$i][0], $adrs->[$i][2] ];
+        my $csv = Text::CSV->new({ binary => 1 }) ||
+            die("Cannot use CSV: " . Text::CSV->error_diag());
+        open(WF, "<$watch_file") || die("Cannot open $watch_file");
+        while (my $l = <WF>) {
+            chomp($l);
+            $l =~ s/^\s+//;
+            $l =~ s/\s+$//;
+            if (($l ne "") && ($l !~ m/^#/)) {
+                if ($csv->parse($l)) {
+                    my @@fields = $csv->fields;
+                    if ($fields[1] !~ m/^0x/i) {
+                        $adrh{$fields[1]} = [ $fields[0], $fields[3] ];
+                    }
+                }
+            }
         }
-        undef(@@$adrs);
+        close(WF);
     }
 
     if (scalar(keys(%adrh)) == 0) {
@@ -3287,7 +4826,7 @@ functions common to multiple programs.
 
 \section{Local functions}
 
-\subsection{{\tt scanBlock} --  Scan a block by index on the blockchain}
+\subsection{{\tt scanBlock} --- Scan a block by index on the blockchain}
 
 The transactions in the block are scanned for references to addresses
 on the watch list.  Any found are returned as an array of arrays, with
@@ -3655,7 +5194,7 @@ If we unlocked the wallet, lock it again.
 @{
     sub showHelp {
         my $help = <<"    EOD";
-perl address_watch.pl [ command... ]
+perl address_watch.pl [ option... ] address_file
   Commands and arguments:
     -bfile filename     Set file to save last block scanned
     -end n              Last block to scan
@@ -3960,10 +5499,6 @@ to programs which read and process the log.
 
     @<RPC configuration variables@>
 
-#$RPCmethod = "local";
-#$RPCmethod = "rpc";
-#$RPChost = "localhost";
-
     use LWP;
     use JSON;
     use Text::CSV qw(csv);
@@ -4136,7 +5671,7 @@ Import utility functions we share with other programs.
 @{
     sub showHelp {
         my $help = <<"    EOD";
-perl fee_watch.pl [ command... ]
+perl fee_watch.pl [ option... ]
   Commands and arguments:
     -confirmed n        Confirmations to deem transaction confirmed
     -ffile filename     Log file for fee statistics
@@ -4225,7 +5760,7 @@ interactively.
     }
 @| processCommand @}
 
-\subsection{{\tt arg\_inter} -- Process interactive commands}
+\subsection{{\tt arg\_inter} --- Process interactive commands}
 
 A utility may process interactive commands from the user by processing
 the @{-inter@} option and calling this handler.  It prompts the user
@@ -4598,11 +6133,11 @@ and use to create and initialise our generator, {\tt \$randGen}.
 
 Any code which requires the random generator should call {\tt
 randInit()} before requesting any data.  If the generator has not been
-initialised, a 2496 byte random seed is obtained from {\tt
-/dev/urandom} and used to initialise a new generator.  If the generator
-has been previously initialised, the call is ignored, so there's no
-need for application code to check whether a call to {\tt randInit()}
-is needed.
+initialised, a 2496 byte random seed is obtained from non-blocking {\tt
+Crypt::Random::Seed} and used to initialise a new generator.  If the
+generator has been previously initialised, the call is ignored, so
+there's no need for application code to check whether a call to {\tt
+randInit()} is needed.
 
 @d Pseudorandom number generator
 @{
@@ -4614,17 +6149,19 @@ is needed.
         if (!defined($randGen)) {
             my (@@seed, $rbuf);
 
-            open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
-            read(RI, $rbuf, 624 * 4) == (624 * 4) ||
-                die("Cannot read data from /dev/urandom");
+#            open(RI, "</dev/urandom") || die("Cannot open /dev/urandom");
+#            read(RI, $rbuf, 624 * 4) == (624 * 4) ||
+#                die("Cannot read data from /dev/urandom");
+#            close(RI);
+            my $rgen = Crypt::Random::Seed->new(NonBlocking => 1);
+            $rbuf = $rgen->random_bytes(624 * 4);
             @@seed = unpack("L4", $rbuf);
             $randGen = Math::Random::MT->new(@@seed);
-            close(RI);
         }
     }
 @| randInit @}
 
-\section{{\tt randNext} --- Get next value from pseudorandom generator}
+\subsection{{\tt randNext} --- Get next value from pseudorandom generator}
 
 The next pseudorandom value is returned by {\tt randNext(}$n${\tt )},
 where $n$ specifies the range of values returned, in the half-open
@@ -4860,7 +6397,8 @@ stats:
                 `grep "Build date and time " build.w | \
                 sed 's/[^:0-9 \-]//g' | sed 's/^ *//'`
         @@echo Web: `wc -l *.w`
-        @@echo Lines: `find . -type f -name perl/\*.pl -exec cat {} \; | wc -l`
+        @@echo Lines: `find . -type f \( -wholename ./perl/\*.pl \
+                -o -wholename ./python/\*.py \) -exec cat {} \; | wc -l`
         @@if [ -f $(PROJECT).log ] ; then \
                 echo -n "Pages: " ; \
                 tail -5 $(PROJECT).log | grep pages | sed 's/[^0-9]//g' ; \
@@ -4954,6 +6492,7 @@ Makefile.mkf
 run
 tools
 *.pl
+*.py
 @}
 
 \clearpage
@@ -4988,6 +6527,17 @@ Sections which define identifiers are underlined.
 \parindent=0pt
 
 \begin{appendices}
+
+\chapter{Abbreviations used in this document}
+
+@d AW @{{\tt address\_watch}@}
+@d BA @{{\tt blockchain\_address}@}
+@d CC @{{\tt cold\_comfort}@}
+@d CW @{{\tt confirmation\_watch}@}
+@d FW @{{\tt fee\_watch}@}
+@d MK @{{\tt multi\_key}@}
+@d PW @{{\tt paper\_wallet}@}
+@d VW @{{\tt validate\_wallet}@}
 
 \chapter{Development Log} \label{log}
 
