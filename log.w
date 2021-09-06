@@ -536,14 +536,27 @@ If no strong generator is available, the {\tt -random} command in
 
 Added {\tt -help} option support to @<MK@> and @<PW@>.
 
-\chapter{To do}
+\date{2021 September 6}
 
-Add ability to write the stack to a file in either hex or binary form.
+Made the {\tt -dump} command in @<BA@> write its output to a file if
+{\tt -outfile} has diverted it from the console.  The output is
+written in such a format and order that {\tt -hexfile} will
+reload it onto the stack.
+
+Modified the {\tt -help} command in @<BA@> so it doesn't exit
+if invoked in interactive {\tt -inter} mode.
+
+Added a {\tt -bindump} command to @<BA@> which writes the entire
+contents of the stack in binary to a specified file.  Such files can
+be loaded back on the stack with the {\tt -binfile} command.
+
+Replaced all \verb+\ref{LBL}+ references with \verb+\hyperref[LBL]{}+
+wrapped around the referenced text.
+
+\chapter{To do}
 
 Accumulate value in to address as well as value out in @<AW@>
 and report in statistics.
 
 Options which request passwords prompt the user interactively if given
 a blank argument.
-
-

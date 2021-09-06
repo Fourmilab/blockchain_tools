@@ -11,7 +11,7 @@ The following definitions configure the defaults for RPC access
 to a host running {\tt bitcoind}.  All of these may be overridden
 by command line options.
 
-@d RPC query method @{ssh@}
+@d RPC query method @{rpc@}
 @d RPC host @{localhost@}
 @d RPC port @{8332@}
 @d Bitcoin CLI path @{bitcoin-cli@}
