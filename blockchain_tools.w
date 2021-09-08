@@ -43,7 +43,7 @@
 \cftsetindents{subsubsection}{6em}{5em}
 
 %   Enable PDF output and hyperlinks within PDF files
-\usepackage[unicode=true,pdftitle={Fourmilab Blockchain Tools},pdfauthor={John Walker},colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[unicode=true,pdftitle={Fourmilab @<Project Title@>},pdfauthor={John Walker},colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
 
 %   Enable inclusion of graphics files
 \usepackage{graphicx}
@@ -58,15 +58,15 @@
 \usepackage{mathtools}
 
 \expunge{begin}{userguide}
-\title{\bf Fourmilab Blockchain Tools}
+\title{\bf Fourmilab @<Project Title@>}
 \expunge{end}{userguide}
-\impunge{userguide}{\title{\bf Fourmilab Blockchain Tools\\ User Guide}}
+\impunge{userguide}{\title{\bf Fourmilab @<Project Title@>\\ User Guide}}
 
 \author{
     by \href{http://www.fourmilab.ch/}{John Walker}
 }
 \date{
-    Version 1.0 \\
+    Version @<Project Version@> \\
     September 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png} \\
@@ -81,6 +81,7 @@
 \pagenumbering{roman}
 \maketitle
 \tableofcontents
+\clearpage
 \pagenumbering{arabic}
 
 \expunge{begin}{userguide}
@@ -102,6 +103,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
+@d Project Version @{1.0@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -144,7 +146,7 @@ Python version 3 or greater below.
 
 \section{Overview}
 
-Fourmilab Blockchain Tools provide a variety of utilities for users,
+Fourmilab @<Project Title@> provide a variety of utilities for users,
 experimenters, and researchers working with blockchain-based
 cryptocurrencies such as Bitcoin and Ethereum.  These are divided
 into two main categories.
@@ -1415,7 +1417,7 @@ line or via a configuration file common to all of the programs.
 
 \section{Installation}
 
-Fourmilab Blockchain Tools are written in the Perl and Python
+Fourmilab @<Project Title@> are written in the Perl and Python
 programming languages, which are pre-installed on most modern versions
 of Unix-like operating systems such as Linux, FreeBSD, and Macintosh OS
 X, and available for many other systems.  Consequently, you can run any
@@ -1533,6 +1535,51 @@ in the Introduction chapter, section ``Configuration''.  Most of the
 configuration parameters set defaults which can be overridden by
 command-line options, so usually setting them is a convenience to
 avoid having to specify the options you prefer, not a necessity.
+
+\section{License and Disclaimer of Warranty and Liability}
+
+This product (software, documents, and data files) is licensed under a
+Creative Commons
+\href{https://creativecommons.org/licenses/by-sa/4.0/}{Attribution-ShareAlike
+4.0 International License}
+(\href{https://creativecommons.org/licenses/by-sa/4.0/legalcode}{legal
+text}).  You are free to copy and redistribute this material in any
+medium or format, and to remix, transform, and build upon the material
+for any purpose, including commercially.  You must give credit, provide
+a link to the license, and indicate if changes were made.  If you
+remix, transform, or build upon this material, you must distribute your
+contributions under the same license as the original.
+
+This product is provided with no warranty, either expressed or implied,
+including but not limited to any implied warranties of merchantability
+or fitness for a particular purpose, regarding these materials and is
+made available available solely on an ``as-is'' basis.
+
+In no event shall John Walker be liable to anyone for special,
+collateral, incidental, or consequential damages in connection with or
+arising out of distribution or use of these materials.  The sole and
+exclusive liability of John Walker, regardless of the form of action,
+shall not exceed the compensation received by the author for the
+product.
+
+John Walker reserves the right to revise and improve this products as
+he sees fit.  This publication describes the state of this product at
+the time of its publication, and may not reflect the product at all
+times in the future.
+
+In particular, no claims are made for, or warranty of, the correctness
+of results produced by these programs, or security of them, and no
+liability shall result from their use or misuse.  Before sending funds
+to any cryptocurrency address, it is {\em essential} to verify that you
+possess the correct private key to retrieve them, and that this key is
+stored securely in a manner that protects it from loss, theft, or
+destruction.  Because the correctness and security of any computer
+system depends upon not just the applications running on it, but the
+language and system libraries they use, the underlying operating
+system, the hardware on which it runs, and the personnel and procedures
+which operate it, it is entirely the responsibility of the user to
+independently verify the correctness of any results it produces and to
+satisfy themselves of their security for the intended application.
 
 \expunge{begin}{userguide}
 
@@ -2804,7 +2851,7 @@ The @<MK@> program implements
 Secret Sharing} for blockchain private keys, allowing them to be
 distributed among multiple custodians or storage locations, then
 reconstructed from a minimum specified number of parts.  Each secret
-key is split into $n$ parts ($n\geq 2$), of which any $k, k\leq n$
+key is split into $n$ parts ($n\geq 2$), of which any $k, 2\leq k\leq n$
 are sufficient to reconstruct the entire original key, but from which
 the key cannot be computed from fewer than $k$ parts.  In the
 implementation below, we refer to $n$ as the number of {\tt parts}
@@ -2868,11 +2915,11 @@ Ethereum addresses may be used.
 \section{First pass}
 
 On the first pass, read the records from the input file(s) and save
-them in the @@records array.  We use the {\tt Text::CSV} parser for the
-standard first three fields (label, address, and private key), then
-save any extra material which follows them to be re-appended when the
-output file is written.  This allows preserving extra information, such
-as balances, when keys are split and reassembled.
+them in the {\tt @@records} array.  We use the {\tt Text::CSV} parser
+for the standard first three fields (label, address, and private key),
+then save any extra material which follows them to be re-appended when
+the output file is written.  This allows preserving extra information,
+such as balances, when keys are split and reassembled.
 
 @o perl/multi_key.pl
 @{
@@ -2911,14 +2958,14 @@ After loading the records, if this is a join operation, invoke the
 
 \section{Split private keys into parts}
 
-Each private key in the input file will be encoded into the
-specified number of {\tt parts}, and written to separate CSV
-output files which bear the base name of the first input file
-with a hyphen and part number appended.
+Each private key in the input file will be encoded into the specified
+number of {\tt parts}, and written to separate CSV output files which,
+if no {\tt -name} is specified,  bear the base name of the first input
+file with a hyphen and part number appended.
 
 \subsection{Create part output files}
 
-Start by creating the files of each of the split key parts.  These
+Start by creating files for each of the split key parts.  These
 are CSV files like those used for addresses and keys, except the
 key field is replaced by the encoded part for that key.  The files
 have headers with fields:
@@ -2978,7 +3025,7 @@ which is actually split into parts.
 Assemble the part item, prefixing it with the
 type sentinel, part number, and delimiter, and
 computing and appending the checksum of these.
-We save a copy of the parts in @@hexpart, which we'll
+We save a copy of the parts in {\tt @@hexpart}, which we'll
 use to confirm the ability to reconstruct the key
 from the parts in the safety check below.  A record
 is added to the part file, consisting of the fields from
@@ -3004,8 +3051,8 @@ quality check.
 \subsubsection{Reconstruction quality check}
 
 Now that we've generated the parts for this address and written them to
-the parts files, using copies of the parts squirreled away in the
-@@hexpart array, re-assemble them in random order as many different
+the parts files, using copies of the parts squirreled away in the {\tt
+@@hexpart} array, re-assemble them in random order as many different
 ways as there are parts. This verifies that when the time comes we'll
 actually be able to reconstruct the original keys from the parts files.
 
@@ -3074,12 +3121,12 @@ successfully generated (0) or an error occurred (1).
 
 \section{Join parts into complete keys}
 
-When @<MK@> is invoked with the {\tt -join}, the input is expected
-to be the concatenation of the {\em needed} number of split key files
-produced by an earlier run.  These may be specified as multiple file
-names on the command line, and may be in any order.  If more split
-parts are supplied than needed, a warning is issued and the extras
-ignored.
+When @<MK@> is invoked with the {\tt -join} option, the input is
+expected to be the concatenation of the {\em needed} number of split
+key files produced by an earlier run.  These may be specified as
+multiple file names on the command line, and may be in any order.  If
+more split parts are supplied than needed, a warning is issued and the
+extras ignored.
 
 @o perl/multi_key.pl
 @{
@@ -3096,7 +3143,7 @@ ignored.
 \subsection{Read split parts, validate, and save}
 
 Process all of the records read from the input file, representing
-the parts to be reconstructed.  Each is checked, and saved as an
+the parts to be reconstructed.  Each is checked and saved as an
 object in a hash with a key of the public address to which it
 corresponds.
 
@@ -3211,7 +3258,7 @@ public address pointing to an array indexed by part number.
 
 Now that all of the parts specifications have been loaded, check
 that the {\em needed} number of parts have been supplied (error if
-too few, warning if too many, with the extras ignored), and that
+too few, warning if too many, with any extras ignored), and that
 all parts have been specified for all public addresses.
 
 @o perl/multi_key.pl
@@ -3263,13 +3310,12 @@ to it identifying the parts from which it was assembled.
 
 \subsection{Reconstruct, validate, and output private keys}
 
-We're finally ready to assemble the pieces into the
-private keys.  We iterate using the {\tt @@addresses} array
-to preserve the order of the keys in the first shared
-key input file.  As each private key is reconstructed, its
+We're finally ready to assemble the pieces into the private keys.  We
+iterate using the {\tt @@addresses} array to preserve the order of the
+keys in the first part file.  As each private key is reconstructed, its
 internal checksum, appended when the original key was split, is
-verified and any errors reported.  A record is appended to the
-output file with the reassembled private key.
+verified and any errors reported.  A record is appended to the output
+file with the reassembled private key.
 
 @o perl/multi_key.pl
 @{
@@ -3394,8 +3440,9 @@ EOD
 
 These utilities, @<PW@> and @<VW@>, create and validate cold storage
 paper wallets, starting with Bitcoin or Ethereum addresses in the CSV
-format generated by @<BA@>.  Paper wallets are created by expressing
-them as an HTML file, which may be loaded into a browser and printed.
+format generated by @<BA@> or parts of multiple part keys created by
+@<MK@>.  Paper wallets are created by expressing them as an HTML file,
+which may be loaded into a browser and printed.
 
 \section{Paper Wallet Generator}
 
@@ -3802,10 +3849,12 @@ wallet file correspond to the public addresses generated from them.  It
 avoids the tragedy when, for whatever cause, funds are sent to a public
 address for which the corresponding private key is not known.  It can
 validate either a CSV wallet generated by @<BA@>, or a printable HTML
-file created from it with @<PW@>.
+file created from it with @<PW@>.  This program cannot directly
+validate multi-part keys created by @<MK@>, it may be used to
+validate their reconstruction after the parts are joined.
 
 To avoid any commonality with the wallet generation code, it is
-written in a different programming language, Python, and used that
+written in a different programming language, Python, and uses that
 language's libraries.  This program requires Python version 3 or above.
 
 \subsection{Bitcoin key and address functions}
@@ -3858,7 +3907,7 @@ def WIF_to_Bitcoin_address(WIF):
 \subsubsection{Ethereum library modules}
 
 The following Python library modules are used to manipulate Ethereum
-public addresses amd private keys.
+public addresses and private keys.
 
 @d Ethereum library modules
 @{
@@ -3868,7 +3917,7 @@ from sha3 import keccak_256
 
 \subsubsection{Add ``checksum'' to Ethereum public address}
 
-Add the ``checksum'' to public Ethereum address by computing its hash
+Add the ``checksum'' to a public Ethereum address by computing its hash
 and setting hexadecimal letter digits to upper case based upon the
 magnitude of the byte of the hash.  Note that re-generating the public
 address with checksum and comparing against the address in the file
@@ -4186,7 +4235,7 @@ with the {\tt -btcsource} and {\tt -ethsource} command line options.
 These sites tend to come and go, so we provide three alternatives
 for each.  Note that adding a new site involves more than just adding
 an entry to one of these tables: you must write a function which
-composes a query, sends it to the site, and parses the result it
+composes a query, sends it to the server, and parses the result it
 returns.
 
 @o perl/cold_comfort.pl
@@ -4281,9 +4330,9 @@ of the number of retries for queries that failed.
 
 \section{Second pass: Query addresses and report discrepancies}
 
-If {\tt -shuffle} is specified, we shuffle the order in which
-addresses are queried.  This makes is more difficult for API services
-to identify our queries as representing a fixed collection of cold
+If {\tt -shuffle} is specified, we shuffle the order in which addresses
+are queried.  This may make it more difficult for query services to
+identify our requests as representing a fixed collection of cold
 storage addresses.
 
 @o perl/cold_comfort.pl
@@ -4322,7 +4371,7 @@ We compare the balance reported by the query with the expected balance
 using a slightly complicated set of rules.  Due to floating point
 round-off and rounding in values reported by servers, we ignore any
 discrepancy less than one {\tt SATOSHI} ($10^{-8}$).  If the reported
-balance is less than expected by greater than this threshold, we treat
+balance is less than expected by more than this threshold, we treat
 it as an error.  If the reported balance is greater, we compare it with
 the {\tt -dust} setting.  Cryptocurrency blockchains, particularly
 Bitcoin at this writing, are afflicted by spammers who send nugatory
@@ -4332,7 +4381,8 @@ transaction cost to spend or transfer them exceeds their value.  But
 they can cause discrepancies in the balance comparison.  We ignore
 these balance increases up to the {\tt -dust} threshold.  If you're
 getting dust reports and confirm that's what they are, just update the
-balance in your cold storage database to include the dust.
+balance in your cold storage database to include the dust it has
+collected.
 
 @o perl/cold_comfort.pl
 @{
@@ -4347,11 +4397,11 @@ balance in your cold storage database to include the dust.
                 } else {
 @}
 
-If the API query for the address balance fails, we increment the number
-of queries made for it.  If we've made fewer than the number of tries
-set by {\tt -retry}, increment the try count re-queue the query at the
-end of the address list for next try.  If the number of tries has been
-exhausted, this is flagged as a hard fail and abandoned.
+If the API query for the address balance fails, increment the number of
+queries made for it.  If we've made fewer than the number of tries set
+by {\tt -retry}, re-queue the query at the end of the address list for
+next try.  If the number of tries has been exhausted, this is flagged
+as a hard fail and abandoned.
 
 @o perl/cold_comfort.pl
 @{
@@ -4559,12 +4609,12 @@ currency units or {\tt undef} if the query fails.
 
 \chapter{Bitcoin Address Watcher}
 
-This program monitors the blockchain and, whenever new blocks are
-added, scans them for transactions involving a watch list, which may be
-specified on the command line, from a file, or from the user's wallet.
-For every transaction inolving that address, whether as input or
-output, a message on standard output and an optional permanent log
-entry is generated showing:
+This program monitors the Bitcoin blockchain and, whenever new blocks
+are added, scans them for transactions involving addresses on a watch
+list, which may be specified on the command line, from a file, or from
+the user's wallet.  For every transaction inolving that address,
+whether as input or output, a message on standard output and an
+optional permanent log entry is generated showing:
 
 \begin{quote}
 \begin{enumerate}
@@ -4581,7 +4631,7 @@ entry is generated showing:
 
 \section{Main program}
 
-We start with the usual start of program definitions and defining and
+We start with the usual start-of-program definitions and declaring and
 processing the command-line options.
 
 @o perl/address_watch.pl
@@ -4643,7 +4693,7 @@ processing the command-line options.
 
 \subsection{Build list of watched addresses}
 
-Now, we build the list of Bitcoin addresses we'll be watching.  These
+Next, build the list of Bitcoin addresses we'll be watching.  These
 may be specified on the command line with the {\tt -watch} option, or
 read from a (single) file specified by the {\tt -wfile} option.  In
 addition, addresses in the user's wallet with an unspent balance can
@@ -4718,7 +4768,7 @@ specified, ask the user for it from standard input.
 
 Determine the start and ending blocks to scan.  This depends in a
 non-trivial but convenient way on the {\tt -start}, {\tt -end},
-and {\tt -bfile} options.  If {\tt bfile} is specified, the start
+and {\tt -bfile} options.  If {\tt -bfile} is specified, the start
 block will be read from it.  Otherwise, the start block will be that
 specified by {\tt -start} or, if $-1$ (the default), the most recent
 block.  If a negative start block is specified, the scan will start
@@ -4765,12 +4815,12 @@ not be re-scanned.
 
 \subsection{Retrieve and scan blocks}
 
-Having determined the range to blocks to scan, proceed to scan them
-and accumulate references to addresses we're watching within them.
-Before entering the scanning loop, we perform an initial scan of the
-wallet for addresses with unspent balances.  This avoids missing
-any address which was spent between the time we started the program
-and the first block we receive after starting.
+Having determined the range to blocks to scan, proceed to scan them and
+accumulate references to addresses we're watching within them. Before
+entering the scanning loop, we perform an initial scan of the wallet
+for addresses with unspent balances.  This avoids missing any address
+whose balance changed between the time we started the program and the
+first block we receive after starting.
 
 @o perl/address_watch.pl
 @{
@@ -4831,8 +4881,8 @@ found in them to addresses we're watching.
 
 \subsection{Save last block scanned for next run}
 
-If a block file is specified, save last block scanned so we can resume
-with the next block on a subsequent run.
+If a block file is specified, save the last block scanned so we can
+resume with the next block on a subsequent run.
 
 @o perl/address_watch.pl
 @{
@@ -4902,8 +4952,8 @@ each containing:
 \end{enumerate}
 \end{quote}
 
-From this, the user can recover the details of the transaction and see
-what's going on.
+From this, the caller can recover the details from the transaction and
+see what's going on.
 
 @d scanBlock: Scan a block by index on the blockchain
 @{
@@ -5277,7 +5327,7 @@ label.
 
 @o perl/confirmation_watch.pl
 @{
-    my $log_file = "@<AW log file@>";               # Log file from Bitwatch
+    my $log_file = "@<AW log file@>";               # Log file from Address Watch
     my $watch = @<CW watch confirmations@>;         # Watch for confirmations ?
     my $poll_time = @<Blockchain poll interval@>;   # Poll time for watch check
     my $verbose = @<Verbosity level@>;              # Verbose output ?
@@ -5303,13 +5353,13 @@ label.
 
 \subsection{Look up address or label in {address\_watch} log}
 
-If an address is specified, try looking up in the Bitwatch log to find
-the transaction ID and block hash.  We accept either the Bitcoin
-address or the label the user assigned to it.  If a single argument
-if specified, we have a kludgelet to decide whether it's a label or
-a transaction ID: if the length is less than 48 characters or it
-contains a character which isn't a valid hexadecimal digit, we deem it
-a label, otherwise it's interpreted as a transaction ID.
+If an address is specified, try looking up in the Address Watch log to
+find the transaction ID and block hash.  We accept either the Bitcoin
+address or the label the user assigned to it.  If a single argument if
+specified, we have a kludgelet to decide whether it's a label or a
+transaction ID: if the length is less than 48 characters or it contains
+a character which isn't a valid hexadecimal digit, we deem it a label,
+otherwise it's interpreted as a transaction ID.
 
 @o perl/confirmation_watch.pl
 @{
@@ -5321,7 +5371,7 @@ a label, otherwise it's interpreted as a transaction ID.
                 exit(2);
             }
             my $found = FALSE;
-            #   If the address has not yet appeared in the Bitwatch log,
+            #   If the address has not yet appeared in the Address Watch log,
             #   continue to poll until it shows up.
             do {
                 open(LI, "<$log_file") || die("Cannot open log file $log_file");
@@ -5345,7 +5395,7 @@ a label, otherwise it's interpreted as a transaction ID.
                 }
             } while ($watch && (!$found));
             if (!$found) {
-                print("Bitcoin address not found in Bitwatch log file.\n");
+                print("Bitcoin address not found in Address Watch log file.\n");
                 exit(1);
             }
         } else {
@@ -5486,10 +5536,10 @@ EOD
 This utility collects data which may be used to plot, analyse, and
 predict the evolution of Bitcoin transaction fees over time.  Data are
 collected at a specified polling interval and may be displayed on
-standard output and/or written to a log file in comma-separated format.
-Both Bitcoin Core's estimated fees and actual fee data from blocks
-added to the blockchain are reported.  No analysis is done---that's up
-to programs which read and process the log.
+standard output and/or written to a log file in comma-separated value
+(CSV) format. Both Bitcoin Core's estimated fees and actual fee data
+from blocks added to the blockchain are reported.  No analysis is
+done---that's up to programs which read and process the log.
 
 \section{Main program}
 
@@ -5558,10 +5608,10 @@ We poll for the current fees at each specified interval.  This occurs
 at an even multiple of the interval, not at intervals based upon when
 the program started.  For example, if you set the interval to 10
 minutes, polls will be at the top of the hour, 10, 20,\ldots\ etc.\
-thereafter.  In each poll, we begin by making an {\tt estimatesmartfee}
-query, which provides the estimate which the Bitcoin Core wallet
-recommends for transactions it submits.  If logging is enabled, this is
-logged as a type 1 record.
+minutes thereafter.  In each poll, begin by making an {\tt
+estimatesmartfee} query, which provides the estimate which the Bitcoin
+Core wallet recommends for transactions it submits.  If logging is
+enabled, this is logged as a type 1 record.
 
 @o perl/fee_watch.pl
 @{
@@ -5600,12 +5650,12 @@ logged as a type 1 record.
         }
 @}
 
-Now we query block-level statistics for all blocks which have arrived
+Now query block-level statistics for all blocks which have arrived
 since the last poll.  These are obtained with {\tt getblockstats},
 which provides the minimum, maximum. mean, and median fees paid by
 transactions in the block, as well as a histogram of fees at the
 10, 25, 50, 75, and 90 percentile levels.  If logging is enabled,
-these are logged as type 2 item.
+these are logged as a type 2 record.
 
 @o perl/fee_watch.pl
 @{
@@ -5782,11 +5832,13 @@ two characters.
             print("> ");
             my $l = <> || last;
             chomp($l);
-            my ($v, $n);
-            eval {
-                ($v, $n) = processCommand($l, TRUE);
-            };
-            last if ($v eq "");
+            if ($l !~ m/^\s*$/) {
+                my ($v, $n);
+                eval {
+                    ($v, $n) = processCommand($l, TRUE);
+                };
+                last if ($v eq "");
+            }
         }
         $interactive = FALSE;
     }
@@ -5847,7 +5899,7 @@ files.
 The user is prompted to enter a password by the message
 argument, which is output on standard error (in case standard
 output has been redirected), then the user's input is accepted
-with echo turned off in the interest of security.
+with echo disabled in the interest of security.
 
 @d getPassword: Prompt user to enter password
 @{
@@ -6077,7 +6129,7 @@ according to:
     sub blockReward {
         my ($b) = @@_;
 
-        return 50 / 2 ** int(($b + 1) / 210000);
+        return 50 / (2 ** int(($b + 1) / 210000));
     }
 @| blockReward @}
 
@@ -6279,6 +6331,7 @@ the tabs as required.
 @<Explanatory header for shell-like files@>
 
 PROJECT = @<Project File Name@>
+VERSION = @<Project Version@>
 
 #       Path names for build utilities
 
@@ -6288,7 +6341,7 @@ PDFVIEW = evince
 GNUFIND = find
 
 duh:
-        @@echo "What'll it be, mate?  build view peek lint stats clean"
+        @@echo "What'll it be, mate?  build view peek guide geek lint stats clean bl"
 @}
 
 \subsection{Build program files}
@@ -6321,13 +6374,16 @@ contents, does not wreck this one.
 
 @o Makefile.mkf
 @{
-view:
+pdf:
         rm -f $(PROJECT).log $(PROJECT).toc $(PROJECT).out $(PROJECT).aux
         $(NUWEB) -o -r $(PROJECT).w
         $(LATEX) $(PROJECT).tex
         # We have to re-run Nuweb to incorporate the updated TOC
         $(NUWEB) -o -r $(PROJECT).w
         $(LATEX) $(PROJECT).tex
+
+view:
+        make pdf
         $(PDFVIEW) $(PROJECT).pdf
 
 peek:
@@ -6342,7 +6398,7 @@ Build the composite document for the program, then process it with
 
 @o Makefile.mkf
 @{
-guide:
+gpdf:
         rm -f $(PROJECT)_user_guide.log $(PROJECT)_user_guide.toc \
               $(PROJECT)_user_guide.out $(PROJECT)_user_guide.aux
         $(NUWEB) -o -r $(PROJECT).w
@@ -6351,6 +6407,9 @@ guide:
             sed -e 's/\\impunge{userguide}//' >$(PROJECT)_user_guide.tex
         $(LATEX) $(PROJECT)_user_guide.tex
         $(LATEX) $(PROJECT)_user_guide.tex
+
+gview:
+        make gpdf
         $(PDFVIEW) $(PROJECT)_user_guide.pdf
 
 geek:
@@ -6404,6 +6463,34 @@ stats:
         fi
 @}
 
+\subsection{Copy development files into distribution directories}
+
+@o Makefile.mkf
+@{
+dist:
+        make bl
+        make pdf
+        make gpdf
+        cp -pv perl/*.pl python/*.py bin
+        cp -pv $(PROJECT).pdf $(PROJECT)_user_guide.pdf doc
+@}
+
+\subsection{Build release archive from distribution directories}
+
+@o Makefile.mkf
+@{
+release:
+        rm -rf $(PROJECT)-$(VERSION)
+        tar cfv release_temp.tar \
+            *.w Makefile bin doc \
+            figures perl/.keep python/.keep tools
+        mkdir $(PROJECT)-$(VERSION)
+        ( cd $(PROJECT)-$(VERSION) ; tar xfv ../release_temp.tar )
+        rm release_temp.tar
+        tar cfvz $(PROJECT)-$(VERSION).tar.gz $(PROJECT)-$(VERSION)
+        rm -rf $(PROJECT)-$(VERSION)
+@}
+
 \subsection{Clean up intermediate files from earlier builds}
 
 Delete intermediate files from the build process, or all files
@@ -6413,13 +6500,11 @@ generated from the web.
 @{
 clean:
         rm -f nw[0-9]*[0-9] rm *.aux *.log *.out *.pdf *.tex *.toc \
-            perl/*.pl
+            perl/*.pl python/*.py *.gz bin/*.p[ly] doc/*.pdf
 
 squeaky:
-        #make clean
-        #rm -f Makefile.mkf
-        #find scripts -type f -name \*.pl -exec rm -f {} \;
-        #  Need to clean tools directory after all integrated here
+        make clean
+        rm -f Makefile.mkf
 @}
 
 \section{Build number and date maintenance}
@@ -6488,10 +6573,13 @@ Makefile.mkf
 *.pdf
 *.tex
 *.toc
+bin/*.pl
+bin/*.py
 run
 tools
 *.pl
 *.py
+*.gz
 @}
 
 \clearpage

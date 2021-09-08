@@ -21,14 +21,14 @@ Fixed some messiness with {\tt -verbose} handling in @<AW@>.  It makes
 more sense now and the output is easier to
 read.
 
-Added the ability in @<CW@> to specify the RPC
-password from the keyboard with no echo or piped from standard input.
-This is handled by a new function, {\tt getPassword(<prompt>)}, which
-we can use in other cases where passwords are required.
+Added the ability in @<CW@> to specify the RPC password from the
+keyboard with no echo or piped from standard input. This is handled by
+a new function, {\tt getPassword(}{\em prompt>}{\tt )}, which we can
+use in other cases where passwords are required.
 
-If no {\tt -wfile} was specified to @<AW@> but explicit
-addresses were specified with {\tt -watch}, an error would be reported.
-Fixed so there's an error only if no addresses specified by either
+If no {\tt -wfile} was specified to @<AW@> but explicit addresses were
+specified with {\tt -watch}, an error would be reported. Fixed so
+there's an error only if no addresses are specified by either
 mechanism.
 
 \date{2021 April 6}
@@ -196,8 +196,8 @@ argument, it to be either a label looked up in the @<AW@> {\tt -lfile}
 log or a transaction ID, which may be specified without the block hash
 in which it resides if Bitcoin Core has been built with {\tt
 txindex=1}.  This is done with a hideous kludge which considers
-anything of 48 or fewer characters or which contains a character which
-is not a hexadecimal digitto be a label.  If two arguments are
+anything of 48 or fewer characters or which contains a character that
+is not a hexadecimal digit to be a label.  If two arguments are
 specified, they continue to be interpreted as a transaction index and
 block hash.
 
@@ -226,7 +226,7 @@ For each block, the value items in the ``{\tt vout}'' section of the
 first transaction (which is always the ``coinbase'' reward to the
 miner who published the block) are summed, giving the total reward.
 The portion of that which is the current standard reward for a new
-bloc, computed by the new common utility function {\tt blockReward()},
+block, computed by the new common utility function {\tt blockReward()},
 is output and subtracted to yield the portion of the reward due to
 transaction fees.  This information is included in the status shown
 on standard ouput by the {\tt -stats} option and in the file written
@@ -407,7 +407,7 @@ perl} directory and all of the configuration, log, and status files
 needed to run them locally.  This will make it convenient to test and
 run in production locally without contaminating the development and
 distribution files with any local configuration information.  The {\tt
-run} directory will be excluded from the Git repository.
+run} directory is excluded from the Git repository.
 
 Renamed the project and all derivative files {\tt blockchain\_tools}.
 This required a little wizardry in the intermediate steps to get the
@@ -420,7 +420,7 @@ directory prefix before the program name.
 \date{2021 August 14}
 
 Added an {\tt -outfile} command to @<BA@> to redirect the output of
-key generation commands to a specified file.
+key generation commands to the specified file.
 
 \date{2021 August 15}
 
@@ -445,7 +445,7 @@ with:
 
 A new {\tt guide} target in the {\tt Makefile} generates the complete
 document, then runs {\tt sed} filters over it to remove everything
-marked to be expunge and expand the material which appears only in
+marked to be expunged and expand the material which appears only in
 the User Guide, compiles the document, and displays the resulting
 PDF\@@.  The {\tt geek} target just views this PDF.
 
@@ -520,8 +520,8 @@ Replaced our own function to shuffle the order of items in an array
 with the {\tt List::Util shuffle()} function in @<CC@> and @<MK@>.  The
 shuffling of bytes on the stack performed by the @<BA@>'s {\tt
 -shuffle} command continues to be done by a custom function which uses
-the higher-quality Mersenne Twister algorithm in the interest of
-security.
+the higher-quality Mersenne Twister pseudorandom generator in the
+interest of security.
 
 Integrated @<MK@> into the main web.
 
@@ -544,7 +544,7 @@ written in such a format and order that {\tt -hexfile} will
 reload it onto the stack.
 
 Modified the {\tt -help} command in @<BA@> so it doesn't exit
-if invoked in interactive {\tt -inter} mode.
+if invoked in interactive ({\tt -inter}) mode.
 
 Added a {\tt -bindump} command to @<BA@> which writes the entire
 contents of the stack in binary to a specified file.  Such files can
@@ -552,6 +552,27 @@ be loaded back on the stack with the {\tt -binfile} command.
 
 Replaced all \verb+\ref{LBL}+ references with \verb+\hyperref[LBL]{}+
 wrapped around the referenced text.
+
+\date{2021 September 7}
+
+Fixed page numbering in the PDF, where the last two pages of the
+table of contents had Arabic rather than Roman numbers.
+
+Modified handling of {\tt -inter} mode in @<BA@> so a blank line does
+not terminate interactive mode, but is simply ignored.
+
+Added a ``Project Version'' declaration in the Introduction and used
+it as the version number in the document and distribution archive.
+
+Began the process of building distributions for release in the {\tt
+Makefile}.  Added a {\tt dist} target which copies the generated Perl
+and Python files to a {\tt bin} directory, where there are pre-created
+symbolic links to invoke the programs without the file type extension,
+and to copy the PDF documentation to a {\tt doc} directory.  A new {\tt
+release} target builds a Gzipped tar archive containing the web files,
+the {\tt Makefile}, and the {\tt bin}, {\tt doc}, {\tt figures}, and
+{\tt tools} directories.  I have yet to see if this is sufficient to
+rebuild everything from bare metal.
 
 \chapter{To do}
 
