@@ -574,6 +574,11 @@ the {\tt Makefile}, and the {\tt bin}, {\tt doc}, {\tt figures}, and
 {\tt tools} directories.  I have yet to see if this is sufficient to
 rebuild everything from bare metal.
 
+\date{2021 September 8}
+
+Added README.md, LICENSE.md, and CONTRIBUTING.md to the main archive
+in preparation for publication on GitHub.
+
 \chapter{To do}
 
 Accumulate value in to address as well as value out in @<AW@>
