@@ -579,6 +579,82 @@ rebuild everything from bare metal.
 Added README.md, LICENSE.md, and CONTRIBUTING.md to the main archive
 in preparation for publication on GitHub.
 
+\date{2021 September 9}
+
+Renamed the @<BA@> command {\tt -sha256} to {\tt -sha2} to make room
+for support of SHA3.
+
+Modified the {\tt -sha2} command in @<BA@> to respond to the
+{\tt -repeat} setting.  It now computes the 256 bit digest of the
+concatenation of the specified number of items, top to bottom being
+concatenated left to right, and replaces them with the digest.
+
+Added a {\tt -sha3} command which computes SHA-3 digests in the
+same manner as {\tt -sha2}.
+
+Rationalised the handling of AES encryption and decryption in @<BA@>.
+The main problem in providing a useful encryption and decryption
+facility is the requirement that all of the objects upon which @<BA@>
+operates be 256 bit quantities.  Typical use of AES encryption in,
+for example, cipher-block-chaining mode, is not length-preserving:
+the encrypted text is longer than the plaintext, with a header
+containing the (usually random) initial vector used to encrypt the it.
+This complete message is required, then, to decrypt the shorter
+plaintext.  But since things we might want to encrypt are 256 bits
+and we can only pass quantities of that length along our pipelines,
+there's a problem.
+
+But consider what this might be used for in our application: almost
+always encrypting private keys so that they may be stored separately
+from the encryption key in the interest of security.  (Of course, for
+most such applications, splitting keys into parts with @<MK@> is a
+better solution.)  The main rationale for a random initial vector is to
+avoid known plaintext attacks.  But the private keys that people will
+be encryption will be near-maximal entropy random or pseudorandom bit
+strings (unless the user is doing something stupid which, of course,
+with a toolbox utility like this, they are entitled to do).
+Consequently, the additional security provided by a random initial
+vector is not as important as for potentially low entropy text.  To
+maintain a secure form of encryption and not increase message length,
+we synthesise an initial vector from the encryption key, forming its
+256 bit SHA2 digest, then using the first 16 bytes of this as the
+initial vector.  Used with the cipher feedback mode and no header, the
+encrypted data remain 256 bits long.  To decrypt it with the key, we
+rebuild the initial vector from the key, then pass it to decryption.
+
+Encryption is now done by an {\tt -aesenc} command with decryption
+performed by {\tt aesdec}, both of which take the encryption key from
+the top of the stack and the plaintext or codetext from the second item
+and place the result back on the stack.
+
+Building the initial vector from the key may not have the crystalline
+purity of a purely random initial vector, but it not only preserves
+message length by allowing us to dispense with a header, it also has
+the salutary effect of making the codetext produced by encrypting data
+with a key deterministic, which allows it to be easily checked in
+regression tests.
+
+Modified the {\tt -test} command in @<BA@> to respect the {\tt -repeat}
+setting, allowing any number of items to be tested.  The {\tt -testall}
+command is thus no longer strictly necessary, but left in as a
+convenience so you don't have to fiddle with the repeat setting when
+loading keys from a binary or hexadecimal file, for example.
+
+Modified @<BA@>'s {-tt shuffle} command to respect the {\tt -repeat}
+setting instead of blindly shuffling the entire contents of the stack.
+This also provides the useful capability to shuffle just the bytes of
+the top item on the stack.
+
+Fixed the flaw that caused @<BA@> to blow out to the command line when
+something was entered that {\tt processCommand()} could not parse.
+
+Added a {\tt -pseudoseed} command to @<BA@> to facilitate regression
+testing.  It seeds the pseudorandom number generator with up 78 seeds
+with the number set by {\tt -repeat} (additional values are ignored
+and left on the stack), representing the maximum of 624 32-bit state
+values used by Mersenne Twister.
+
+
 \chapter{To do}
 
 Accumulate value in to address as well as value out in @<AW@>
