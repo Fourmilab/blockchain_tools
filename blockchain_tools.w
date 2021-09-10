@@ -6609,6 +6609,32 @@ squeaky:
         rm -f Makefile.mkf
 @}
 
+\subsection{Regression testing}
+
+The main regression test for the stand-alone blockchain utilities
+resides in the {\tt test} subdirectory but may be run from any
+directory.  It writes its temporary output in a {\tt test/test\_output}
+directory, which it cleans up every time it runs.
+
+@o Makefile.mkf
+@{
+regress:
+        test/test.sh
+
+@}
+
+The {\tt regress\_update} target updates the reference output which
+is tested against regression runs from the results of the most
+recent run.  This should only be done when a change is made to the
+regression test which creates a known difference in the output.
+
+@o Makefile.mkf
+@{
+regress_update:
+        cp -p test/test_output/test_log.txt test/test_log_expected.txt
+@}
+
+
 \section{Build number and date maintenance}
 
 This Perl program is run by the {\tt Makefile} every time a ``{\tt make
@@ -6678,6 +6704,7 @@ Makefile.mkf
 bin/*.pl
 bin/*.py
 run
+test/test_output
 tools
 *.pl
 *.py

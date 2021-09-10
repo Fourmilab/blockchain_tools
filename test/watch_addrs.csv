@@ -1,0 +1,17 @@
+#
+#   A few Bitcoin and Ethereum addresses with large balances
+#   and no payments out (at the time of this writing).  These
+#   are used for testing Cold Comfort.  It is normal for these
+#   addresses to accrete "dust" over time as they are targets
+#   of spammers and scammers.  If these discrepanices bother
+#   you, update the balances to include the dust.
+#
+#                   Bitcoin
+#
+BTC1,"1BAFWQhH9pNkz3mZDQ1tWrtKkSHVCkc3fV","",10000.07740276
+BTC2,"bc1qyr9dsfyst3epqycghpxshfmgy8qfzadfhp8suk","",9900.45178622
+#
+#                   Ethereum
+#
+ETH1,"0x8921e2464776d4d7e92b5d617b870deb9b96b73d","",226082.4940635705078915
+ETH2,"0x59448fe20378357f206880c58068f095ae63d5a5","",215368.75561612

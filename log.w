@@ -654,6 +654,21 @@ with the number set by {\tt -repeat} (additional values are ignored
 and left on the stack), representing the maximum of 624 32-bit state
 values used by Mersenne Twister.
 
+\date{2021 September 10}
+
+Added a regression test in a new subdirectory {\tt test/test.sh}.
+This tests all of the stand-alone blockchain utilities: @<BA@>,
+@<CC@>, @<MK@>, @<PW@>, @<VW@>.  The Bitcoin node monitoring
+utilities are not tested, as configuring access to a full Bitcoin
+node is more complicated to arrange.  The test may be run from a
+new {\tt Makefile} target, ``{\tt regress}''.  When the test is run,
+it compares the output to a reference file,
+{\tt test/test\_log\_expected.txt}.  If discrepancies are found, the
+{\tt diff} is shown and an exit status of 1 is returned, which will
+cause {\tt make} to report the failure.  If a change to the test
+or the environment in which it runs requires the reference output to
+be updated, the make target {\tt regress\_update} will copy the most
+recent test run output to the reference master.
 
 \chapter{To do}
 

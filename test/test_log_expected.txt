@@ -1,0 +1,171 @@
+
+Generate Bitcoin and Ethereum address/key pairs
+
+    Entropy = 0.997180 bits per bit.
+    Optimum compression would reduce the size
+      of this 256 bit file by 0 percent.
+    Chi square distribution for 256 samples is 1.00, and randomly
+      would exceed this value 31.73 percent of the times.
+    Arithmetic mean value of data bits is 0.4688 (0.5 = random).
+    Monte Carlo value for Pi is 3.200000000 (error 1.86 percent).
+    Serial correlation coefficient is 0.027451 (totally uncorrelated = 0.0).
+  DEEEB4EE2960F494D9DF928255575DE33ED7F620029ACD129E2BDA7D64F153A6
+  84470BBBE927839A4980DA9BEB80E06F2D837DCDA3B689098CCDB8E91ABF9FF4
+  84470BBBE927839A4980DA9BEB80E06F2D837DCDA3B689098CCDB8E91ABF9FF4
+  DEEEB4EE2960F494D9DF928255575DE33ED7F620029ACD129E2BDA7D64F153A6
+  D7F67D20DAE3F4F102DF55D9B4A62BDE5DEE64821257EE532994CD60923E9A9E
+  2B89B35AA45598A54F197DEF6CB50B90B6109E1219A172220727684AA398CEA0
+  03803185814993ABB239D7C927ECDFB11401056FF409638ED14C5AD5CE59ABC1
+Private key:
+    Hexadecimal:      CF576D08EB3F39A2E73B51BB06B47F54B5D13C99FE04D9FDDAA12D3CF9FB4405
+    Base64:           z1dtCOs/OaLnO1G7BrR/VLXRPJn+BNn92qEtPPn7RAU=
+    BIP39:            soon rocket drama stool vicious sphere
+                      ostrich health roast cup cabin practice
+                      fringe oxygen gun scene supreme uphold
+                      portion foil sort world avoid pioneer
+    WIF compressed:   L4AknMRuRZ5vctxGKYV7w8s4wPPacHvM5nF1vGb2Mipfg19Sd3tQ
+    WIF uncompressed: 5KPbqns3pFX7iDDyVDa76vSPeF8qPx37pJW1D4z6kDCFesa3MZR
+
+Public Bitcoin address:
+  Compressed:
+    Legacy:  1MbSje9Daaq9XpXct6c6bNtnAtfR3ddHxM
+    Compat:  3EAwYjupWMbY3eT2Nd3YZGbHKFDSgf1RVg
+    Segwit:  bc1qu8nzgxsp64ydd2j7hunmwzsnxucx76nxlsxyhh
+    Hex:     02C3F2B005D8F03C1EAA8E4C2CE42AF605D342D8CC402929031EB008170B10D2DC
+  Uncompressed:
+    Legacy:  12D4hD2eBHF4HyCsyGe4ATrmRX3GKdR38u
+    Compat:  3Q45SvBtkYWBNUX5FPyFCchJ7QSfMP4mFA
+    Segwit:  bc1qp4qrx3tu5rg45fk232j4vzldzz5kprulmln3wl
+    Hex:     04C3F2B005D8F03C1EAA8E4C2CE42AF605D342D8CC402929031EB008170B10D2DCD4AC862291DCFCFD454DEC8CEFE0DAEC39E41E8618A4E653DD5D3DF3B9D7D45C
+Private key:
+    Hexadecimal:      F40EC013F6043BCA0AFB93F5E5717B784ADFFEEEB7195C5055FEC33417FAC431
+    Base64:           9A7AE/YEO8oK+5P15XF7eErf/u63GVxQVf7DNBf6xDE=
+    BIP39:            village invite agent ugly dry topic cloud
+                      include vote clog gain vacuum pupil youth
+                      river tobacco fox live leisure major door
+                      word awkward clog
+    WIF compressed:   L5Q8KUkbEHaS6r2g4XSpZ4NDibZivuP3YouCAafSiooMY3D7B1Gy
+    WIF uncompressed: 5KfmhtboGhTc982jqNrMHnAnvqAE8EE9jYvWibMwmN2SVrvcAoi
+
+Public Bitcoin address:
+  Compressed:
+    Legacy:  137gkRvPXfwnB3LTS63u1y3UNiLURCASMf
+    Compat:  39dhRmhwqgeRB7or98sqCbuNmY2d7h2Wcx
+    Segwit:  bc1qzue7mrn5a7vq9pjdtk6wpcnw0nr95zh7al87ce
+    Hex:     03779FFCE1611CAB68A3E88D967B9D09EEAC4A8E857A1390F08E00F6F5815E31B3
+  Uncompressed:
+    Legacy:  1JA1uqtdP46U6ydpQVviE4eWZXD9bdGrt8
+    Compat:  37248TNW2MBX7kSyjcZnTeGbxfrrSzJKns
+    Segwit:  bc1qhsh2g7l2ecsa90vu5hrc2hgy0ym6ztn2rt36gu
+    Hex:     04779FFCE1611CAB68A3E88D967B9D09EEAC4A8E857A1390F08E00F6F5815E31B3943C089B02CB6493C866526EFCF217EAE0103C27CF8BA9D8D380168F921F7F0B
+Private key:
+    Hexadecimal:      3084470BBBE927839A4980DA9BEB80E06F2D837DCDA3B689098CCDB8E91ABF9F
+    Base64:           MIRHC7vpJ4OaSYDam+uA4G8tg33No7aJCYzNuOkav58=
+    BIP39:            correct captain seed jelly mystery scrub
+                      hard copy surround tent then school
+                      version script warm refuse repair embark
+                      glimpse opinion model minute wrist unveil
+    WIF compressed:   Kxr2Ayf6M2Zp8wDc7e4SZRX6Cs8UFHNZhpaVGgumeZzgb2dRYwNM
+    WIF uncompressed: 5JBeskCMF45GDDjjPoTcF9Gt2L4WHNqPN2ia95xui8vrJJu5Qm6
+
+Public Bitcoin address:
+  Compressed:
+    Legacy:  12dBdG8gRaaBCuBFnea8tqRJUCFPkB9GjS
+    Compat:  37GRdvX2Gf7zqrqsmToSGKjBas5aySmj4d
+    Segwit:  bc1qz88lsj2vhv2ymzx624m05xf57vsfzgl0ytqrpy
+    Hex:     0340524D08661DF233E80F95362570F00C09FB1C2C3BD3FB7BA8B35C0BE49B8704
+  Uncompressed:
+    Legacy:  1CbW7tG7p8BxR2uSUrAXndqNa3c2BYjwLK
+    Compat:  3DDAybWNYEhDSwrXhtab2sFoGkKXp1Rshk
+    Segwit:  bc1q0uha2kpuqjpf5q5fjqp6gfd30y0ar5825vwt03
+    Hex:     0440524D08661DF233E80F95362570F00C09FB1C2C3BD3FB7BA8B35C0BE49B87042DE455B1ACC05D9DBFA6C94B8AAAC9C11931017F5B5D672F3C10E393E97721AB
+Private key:
+  Hexadecimal: 0xcf576d08eb3f39a2e73b51bb06b47f54b5d13c99fe04d9fddaa12d3cf9fb4405
+
+Public Ethereum address:
+  Address:     0xe286cf7220ca97e5f6e464093bf98133d2d68159
+  Checksum:    0xe286CF7220CA97e5F6e464093bF98133d2D68159
+  Public key:  04c3f2b005d8f03c1eaa8e4c2ce42af605d342d8cc402929031eb008170b10d2dcd4ac862291dcfcfd454dec8cefe0daec39e41e8618a4e653dd5d3df3b9d7d45c
+Private key:
+  Hexadecimal: 0xf40ec013f6043bca0afb93f5e5717b784adffeeeb7195c5055fec33417fac431
+
+Public Ethereum address:
+  Address:     0x57a9980c40a43d99840cb41ecaed8e85b3c12144
+  Checksum:    0x57a9980c40A43d99840cB41EcAeD8E85b3c12144
+  Public key:  04779ffce1611cab68a3e88d967b9d09eeac4a8e857a1390f08e00f6f5815e31b3943c089b02cb6493c866526efcf217eae0103c27cf8ba9d8d380168f921f7f0b
+Private key:
+  Hexadecimal: 0x3084470bbbe927839a4980da9beb80e06f2d837dcda3b689098ccdb8e91abf9f
+
+Public Ethereum address:
+  Address:     0x21a35356e4eb947dbfa42f4db2d3f1fa318161fa
+  Checksum:    0x21a35356e4EB947DbFA42F4Db2d3F1fA318161fA
+  Public key:  0440524d08661df233e80f95362570f00c09fb1c2c3bd3fb7ba8b35c0be49b87042de455b1acc05d9dbfa6c94b8aaac9c11931017f5b5d672f3c10e393e97721ab
+1,"1MbSje9Daaq9XpXct6c6bNtnAtfR3ddHxM","L4AknMRuRZ5vctxGKYV7w8s4wPPacHvM5nF1vGb2Mipfg19Sd3tQ"
+2,"137gkRvPXfwnB3LTS63u1y3UNiLURCASMf","L5Q8KUkbEHaS6r2g4XSpZ4NDibZivuP3YouCAafSiooMY3D7B1Gy"
+3,"12dBdG8gRaaBCuBFnea8tqRJUCFPkB9GjS","Kxr2Ayf6M2Zp8wDc7e4SZRX6Cs8UFHNZhpaVGgumeZzgb2dRYwNM"
+1,"0xe286CF7220CA97e5F6e464093bF98133d2D68159","0xcf576d08eb3f39a2e73b51bb06b47f54b5d13c99fe04d9fddaa12d3cf9fb4405"
+2,"0x57a9980c40A43d99840cB41EcAeD8E85b3c12144","0xf40ec013f6043bca0afb93f5e5717b784adffeeeb7195c5055fec33417fac431"
+3,"0x21a35356e4EB947DbFA42F4Db2d3F1fA318161fA","0x3084470bbbe927839a4980da9beb80e06f2d837dcda3b689098ccdb8e91abf9f"
+1,"1MbSje9Daaq9XpXct6c6bNtnAtfR3ddHxM",""
+2,"137gkRvPXfwnB3LTS63u1y3UNiLURCASMf",""
+3,"12dBdG8gRaaBCuBFnea8tqRJUCFPkB9GjS",""
+1,"0xe286CF7220CA97e5F6e464093bF98133d2D68159",""
+2,"0x57a9980c40A43d99840cB41EcAeD8E85b3c12144",""
+3,"0x21a35356e4EB947DbFA42F4Db2d3F1fA318161fA",""
+
+Validate generated addresses
+
+Addresses: 3 good, 0 bad.
+Addresses: 3 good, 0 bad.
+
+Generate paper wallet HTML from the addresses
+
+ba461b2fd18ea144b4cc42a9e46eecac7338f65af514a74c6ce26908c5a5a8ed  test/test_output/btc.html
+719b6970b8ead1d27aec23776c69c0ff0d099be9935f516d3ead76605ba7ae5b  test/test_output/eth.html
+
+Validate the HTML paper wallets
+
+Addresses: 3 good, 0 bad.
+Addresses: 3 good, 0 bad.
+
+Split the generated addresses into parts, different for BTC and ETH
+
+3eb6de5c797caeeaf5a1550f4b65c2be1e61c0c6987dd8c53f0b9e19a145beb4  test/test_output/btc-1.csv
+926e89beb2fc80d3cfeee24503f32ea0c528ce9ae26ea93e4951ef3122238e68  test/test_output/btc-2.csv
+ae2347a5b25e91bdf70d3154dab6562d0aa438ddf6cd4d58cadf97ba1f2a832a  test/test_output/btc-3.csv
+2024569211dab185f0150010ce7ed7fd23ff4806faf4fe48f5bfeb687afa1bfe  test/test_output/btc-4.csv
+648a2621be812acae3adea41556d1a3b82f9fe87d6eacf619a172407efa70515  test/test_output/btc-5.csv
+779ceee012280339a5c417665f13764bd6c2aa9e125d8a805834e01821a0e897  test/test_output/eth-01.csv
+a830ab0b80a969846dc2973bf411ada5f7ed306a435f249ce18707291800a96e  test/test_output/eth-02.csv
+62f2b5992156110d2352bd39f5132392a945ce4fec1314d7a6a5d55c75239d7a  test/test_output/eth-03.csv
+cb04785a6a473759b82c8f6ba276c94f8b11e3d540f53846ed4f680d94945562  test/test_output/eth-04.csv
+f04727c071cce86a6bc123376f55bc4c87c150372e990f1da211ff29cc13e137  test/test_output/eth-05.csv
+a0877f9420ec800c2cebacf22945eae21a38605866bad874f7aadb7a8b96a0ea  test/test_output/eth-06.csv
+c8c226e5b6beea54929644bc635d6948cbe66396c1a224ef08e232f20908bd0e  test/test_output/eth-07.csv
+b358dc99876993f3021f69267af9568fb6674d0523448131d837292ff91eba89  test/test_output/eth-08.csv
+697d1a924c6858ec2114a3a4152eefe8fea9528226489ab4f5709f3a3c38a745  test/test_output/eth-09.csv
+ba52883b1e73cfa05d330b68e452df87ed39826c2a85db886824c6c9aa4b960a  test/test_output/eth-10.csv
+51ea110282d8e51dbe2f7e3b52d2c5a1f532519b7419e9c44274e6d5c7528618  test/test_output/eth-11.csv
+
+Join the parts of the generated address into reconstituted address/key files
+
+
+Compare the re-constructed keys with the originals.
+They should differ only in the comment specifying the parts used.
+
+0a1
+> # Private keys assembled from parts 1, 3, 5
+0a1
+> # Private keys assembled from parts 1, 2, 4, 6, 8, 9, 10
+
+Validate keys re-constructed from parts
+
+Addresses: 3 good, 0 bad.
+Addresses: 3 good, 0 bad.
+
+Run Cold Comfort on some large Bitcoin and Ethereum addresses
+
+BTC1          1BAFWQhH9pNkz3mZDQ1tWrtKkSHVCkc3fV            10000.07740276    10000.07740276
+BTC2          bc1qyr9dsfyst3epqycghpxshfmgy8qfzadfhp8suk     9900.45178622     9900.45178622
+ETH1          0x8921e2464776d4d7e92b5d617b870deb9b96b73d   226082.49406357   226082.49406357
+ETH2          0x59448fe20378357f206880c58068f095ae63d5a5   215368.75561612   215368.75561612
