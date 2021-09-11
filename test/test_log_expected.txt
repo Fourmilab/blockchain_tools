@@ -174,8 +174,8 @@ Addresses: 3 good, 0 bad.
 
 Generate paper wallet HTML from the addresses
 
-717ef4f3cdb6c85e40c14af09fbdac96ff49df6439ee14f7edb3da039f0f572a  test/test_output/btc.html
-aceee50b43f64af7f813de00eb521b0a9eec20ca9f1cbff7aeb504feea3c4728  test/test_output/eth.html
+c2290d225b5a2ef31fd91cc94dcd11f81001ccff7ee4911f338bdc53081f3405  test/test_output/btc.html
+dd8463fc5645a9f6e1c38237210ece7a6273e8f78ca5a2d19f66df7f021e2fab  test/test_output/eth.html
 
 Validate the HTML paper wallets
 
@@ -216,6 +216,11 @@ Validate keys re-constructed from parts
 
 Addresses: 3 good, 0 bad.
 Addresses: 3 good, 0 bad.
+
+Make paper wallets of parts of generated addresses
+
+c934f02fa6109458d0ee45006c4c96c22b20c59d8ac0f879aa1ba35a9d8d62d6  test/test_output/btc-3.html
+0202099955625ada776a465fe4a6faddd1cb62dd97030e6a514f3711f2380a6f  test/test_output/eth-09.html
 
 Run Cold Comfort on some large Bitcoin and Ethereum addresses
 

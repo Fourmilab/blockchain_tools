@@ -108,6 +108,11 @@ echo -e         \\nValidate keys re-constructed from parts\\n >>$O
 validate_wallet.py $TESTOUT/btc-merged.csv >>$O
 validate_wallet.py $TESTOUT/eth-merged.csv >>$O
 
+echo -e         \\nMake paper wallets of parts of generated addresses\\n >>$O
+paper_wallet.pl -date Today $TESTOUT/btc-3.csv >$TESTOUT/btc-3.html
+paper_wallet.pl -date Today $TESTOUT/eth-09.csv >$TESTOUT/eth-09.html
+sha256sum $TESTOUT/btc-3.html $TESTOUT/eth-09.html >>$O
+
 echo -e         \\nRun Cold Comfort on some large Bitcoin and Ethereum addresses\\n >>$O
 
 cold_comfort.pl -verbose -waitconst 5 -waitrand 0 -zero \

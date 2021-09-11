@@ -579,6 +579,16 @@ perform.
         installed on your system to use this command.
         Randomness is evaluated at the bit stream level.
 
+    \item[{\tt -testmode} {\em n}] ~\\
+        Set developer test modes to the bit-coded value {\em n}, which
+        is the sum of the mode bits to enable.  These are intended for
+        development and regression testing and should not be enabled
+        for production use, leaving the setting at the default of 0.
+        The 1 bit makes the {\tt -minigen} produce deterministic output
+        from a fixed {\tt -pseudoseed}.  The 2 bit causes @<BA@> to
+        list all of the Perl library modules it has used during its
+        execution.
+
     \item[{\tt -type} {\em Any text}] ~\\
         Display the text on the console.  This is often used in command
         files to inform the user what's going on.
@@ -1749,6 +1759,14 @@ them, then process command line options.
                %options
               ) ||
         die("Invalid command line option");
+
+    if ($testMode & 4) {
+        print("Modules used\n  ",
+              join("\n  ", map { s|/|::|g;
+                                 s/\.pm$//; $_
+                               }
+                           sort(keys(%INC))));
+    }
 @}
 
 Include local and utility functions we employ.
@@ -3793,6 +3811,8 @@ the output is paginated.
 @{
     my $started = FALSE;
     my $inpage = 0;
+    my $multipart = FALSE;
+    my ($partsn, $partsk, $partsthis);
 
     my @@records;
     my ($naddrs, $npages) = (0, 0);
@@ -3805,6 +3825,13 @@ the output is paginated.
                 $naddrs++;
                 my @@fields = $csv->fields;
                 if (!$started) {
+                    if ($fields[0] eq "-1") {
+                        $multipart = TRUE;
+                        ($partsn, $partsk, $partsthis) = ($fields[1],
+                            $fields[2], $fields[4]);
+                        $naddrs--;
+                        next;
+                    }
                     $started = TRUE;
                     if ($title eq "") {
                         $title = (($fields[1] =~ m/^0x/g) ?
@@ -3892,11 +3919,16 @@ Generate the HTML for the page heading.
     sub pageHeader {
         my ($pageno) = @@_;
 
+        my ($multihead, $multistyle) = ("", "");
+        if ($multipart) {
+            $multihead = "\n        <h4>Part $partsthis of $partsn ($partsk needed)";
+            $multistyle = " class=\"multi\"";
+        }
         my $headerdiv = ($pageno == 1) ? "firstpage" : "subsequentpage";
         print <<"EOD";
     <div class="$headerdiv">
-        <h1 class="c">$title</h1>
-        <h3 class="c">$date</h3>
+        <h1>$title</h1>
+        <h3$multistyle>$date</h3>$multihead
     </div>
 EOD
     }
@@ -4107,19 +4139,26 @@ to a printer.
 
     h1 {
         margin-bottom: 0px;
+        text-align: center;
     }
 
     h3 {
         margin-top: 0px;
+        text-align: center;
+    }
+
+    h3.multi {
+        margin-bottom: 0px;
+    }
+
+    h4 {
+        margin-top: 0px;
+        text-align: center;
     }
 
     span.s:after {
         font-family: sans-serif;
         content: "";
-    }
-
-    .c {
-        text-align: center;
     }
 @}
 
@@ -6783,6 +6822,7 @@ generated from the web.
 clean:
         rm -f nw[0-9]*[0-9] rm *.aux *.log *.out *.pdf *.tex *.toc \
             perl/*.pl python/*.py *.gz bin/*.p[ly] doc/*.pdf
+        rm -rf test/test_output
 
 squeaky:
         make clean
@@ -6794,7 +6834,11 @@ squeaky:
 The main regression test for the stand-alone blockchain utilities
 resides in the {\tt test} subdirectory but may be run from any
 directory.  It writes its temporary output in a {\tt test/test\_output}
-directory, which it cleans up every time it runs.
+directory, which it cleans up every time it runs.  Tests are run
+on programs from the {\tt bin} subdirectory where the {\tt dist}
+target installs them.  To avoid confusion, we make sure the most
+recently built version of one program is the same as the one in
+that directory and warn if it looks like we're testing an old version.
 
 @o Makefile.mkf
 @{
