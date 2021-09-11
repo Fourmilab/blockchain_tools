@@ -6926,7 +6926,7 @@ Makefile.mkf
 *.aux
 *.log
 *.out
-*.pdf
+/*.pdf
 *.tex
 *.toc
 bin/*.pl
