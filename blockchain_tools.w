@@ -377,7 +377,6 @@ perform.
         that may be used with utilities such as @<CC@> and @<AW@>
         without risking compromise of the private keys.
 
-
     \item[{\tt -hbapik} {\em APIkey}] ~\\
         When requesting true random data from Fourmilab's HotBits
         radioactive random number generator, use the
@@ -413,6 +412,41 @@ perform.
         mode and return to processing commands from the command line,
         enter ``{\tt end}'', ``{\tt exit}'', ``{\tt quit}'', or the
         end of file character.
+
+    \item[{\tt -minigen}] ~\\
+        Generate a Bitcoin
+        \href{https://en.bitcoin.it/wiki/Mini_private_key_format}{mini
+        private key}, display the generated key, and push the full seed
+        for the key on the stack.  Mini private keys were introduced to
+        allow encoding a Bitcoin private key on physical coins, bills,
+        or other objects which lack the space for a full private key,
+        which can be up to 52 characters long.  A mini key is just 30
+        characters, but can represent only a subset of possible Bitcoin
+        addresses and is consequently less secure---they should be used
+        only when absolutely necessary.  Due to the nature of mini
+        keys, the generation process is different that used by the {\tt
+        -btc} command.  The {\tt -minigen} command internally generates
+        the seed for the key by mixing the system's fast entropy
+        generator and this program's internal pseudorandom generator
+        seeded by the system fast entropy generator.  After finding a
+        suitable key, it pushes the seed on the stack and displays the
+        corresponding key.  You may then use the {\tt -btc} command to
+        generate the corresponding public Bitcoin address in whichever
+        format(s) you wish.  If the {\tt -format} is set to ``{\tt
+        CSV}'', an address file is generated which is compatible with
+        the {\tt btc} command, but with the addition of a fifth field
+        in every record containing the mini key.  You may use the
+        {\tt -repeat} command to generate multiple keys and the ``{\tt
+        k}'' option on the {\tt -format} to keep the seeds on the
+        stack.
+
+    \item[{\tt -minikey}] {\em mini\_private\_key} ~\\
+        Validate and decode the specified mini private key (see above)
+        and, if it is properly formatted, place the seed it encodes on
+        the stack.  You may then use the {\tt -btc} command to generate
+        other forms of private keys or public addresses from the seed.
+        Both legacy 22 character and the present standard 30 character
+        mini keys may be specified.
 
     \item[{\tt -mnemonic}] ~\\
         Generate a
@@ -1658,6 +1692,7 @@ them, then process command line options.
 
     my $repeat = 1;             # Repeat command this number of times
     my $outputFile = "-";       # Output file for keys
+    my $testMode = 0;           # Bit-coded test modes
     my @@seeds;                 # Stack of seeds
 
     my %options = (
@@ -1677,6 +1712,8 @@ them, then process command line options.
         "hexfile=s" =>  \&arg_hexfile,
         "hotbits"   =>  \&arg_hotbits,
         "inter"     =>  \&arg_inter,
+        "minigen"   =>  \&arg_minigen,
+        "minikey=s" =>  \&arg_minikey,
         "mnemonic"  =>  \&arg_mnemonic,
         "not"       =>  \&arg_not,
         "outfile=s" =>  \&arg_outfile,
@@ -1698,6 +1735,7 @@ them, then process command line options.
         "swap"      =>  \&arg_swap,
         "test"      =>  \&arg_test,
         "testall"   =>  \&arg_testall,
+        "testmode=i" => \$testMode,
         "type=s"    =>  sub { print("$_[1]\n"); },
         "urandom"   =>  \&arg_urandom,
         "wif=s"     =>  \&arg_wif,
@@ -1728,6 +1766,7 @@ Include local and utility functions we employ.
     @<bytesToHex: Convert binary string to hexadecimal@>
     @<genBtcAddress: Generate Bitcoin address from one hexadecimal seed@>
     @<editBtcAddress: Edit Bitcoin private key and public address@>
+    @<findMiniKey: Find a Bitcoin mini key@>
     @<genEthAddress: Generate Ethereum address from one hexadecimal seed@>
     @<editEthAddress: Edit Ethereum private key and public address@>
     @<computeEthChecksum: Add checksum to Ethereum address@>
@@ -1755,6 +1794,8 @@ Include local and utility functions we employ.
     @<arg\_eth: Generate Ethereum key/address from top of stack@>
     @<arg\_hexfile: Push seeds from hexfile on stack@>
     @<arg\_hotbits: Request seed(s) from HotBits@>
+    @<arg\_minigen: Find Bitcoin mini private key@>
+    @<arg\_minikey: Decode Bitcoin mini private key@>
     @<arg\_mnemonic: Generate mnemonic phrase from stack top@>
     @<arg\_not: Invert bits in top of stack item@>
     @<arg\_outfile: Redirect generated address output to file@>
@@ -1871,7 +1912,7 @@ Include local and utility functions we employ.
                 push(@@kept, $seed);
             }
             my ($priv, $pub) = genBtcAddress($seed, $opt_Format, 1);
-            print(editBtcAddress($priv, $pub, $opt_Format, $keyn++));
+            print(editBtcAddress($priv, $pub, $opt_Format, $keyn++, ""));
         @<End command repeat@>
         @<Close output file@>
         if ($keep) {
@@ -1987,6 +2028,86 @@ Include local and utility functions we employ.
         }
     }
 @| arg_hotbits @}
+
+\subsubsection{{\tt arg\_minigen} --- {\tt -minigen}: Find Bitcoin mini private key}
+
+Find a Bitcoin mini key, push the seed to which it corresponds onto
+the stack, and output the mini key.  This command responds to the
+{\tt -repeat} setting to create multiple mini keys.
+
+@d arg\_minigen: Find Bitcoin mini private key
+@{
+    sub arg_minigen {
+        my $keyn = 1;
+        my $keep = ($opt_Format =~ m/k/);
+        my @@kept;
+        @<Open output file@>
+        @<Begin command repeat@>
+            my ($minikey, $privkey) = findMiniKey();
+# my ($minikey, $privkey) = ("SoEGNB7gNfVnnjUFK4YYmuPgJD2t7M", "A71E1257AEF63B24BBB37D294C7E09096F921622D6D92600F25A3F250C20E0D9");
+            if ($keep) {
+                push(@@kept, $privkey);
+            }
+            my ($priv, $pub) = genBtcAddress($privkey, $opt_Format, 1);
+            print(editBtcAddress($priv, $pub, $opt_Format, $keyn++, $minikey));
+        @<End command repeat@>
+        @<Close output file@>
+        if ($keep) {
+            @<Begin command repeat@>
+                push(@@seeds, pop(@@kept));
+            @<End command repeat@>
+        }
+    }
+@| arg_minigen @}
+
+\subsubsection{{\tt arg\_minikey} --- {\tt -minikey} {\em key}: Decode seed from mini private key}
+
+Decode a \href{https://en.bitcoin.it/wiki/Mini_private_key_format}{mini
+private key} and push the result on the stack.  Mini private keys are
+used in some physical forms of Bitcoin and applications where a compact
+representation of a private key is desirable.  They are 30 character
+sequences (22 characters for early Casascius Series 1 coins, but
+discouraged due to its limited security) consisting of the
+letter ``{\tt S}'' followed by characters from the Bitcoin
+\href{https://en.bitcoin.it/wiki/Base58Check_encoding}{base58}
+character set.  A valid mini key will, when the character ``{\tt ?}''
+is appended, have an SHA2-256 hash whose first byte is zero.  The
+private key is obtained simply by taking the SHA2-256 hash of the
+entire mini key itself, including the ``{\tt S}''.  There is no way
+to practically generate a mini-key from an arbitrary key---mini keys
+are discovered by a randomised search for strings which pass the
+validity hash test.  We accept both 22- and 30-character mini keys.
+
+@d arg\_minikey: Decode Bitcoin mini private key
+@{
+    sub arg_minikey {
+        my ($name, $value) = @@_;
+
+        my $goof = "";
+        if ($value =~ m/^S/) {
+            if (($value =~ m/^S([\w]{29})$/) ||
+                ($value =~ m/^S([\w]{21})$/)) {
+                my $adr = $1;
+                if ($adr =~ m/^[1-9A-HJ-NP-Za-km-z]+$/) {
+                    if (sha256_hex("$value?") =~ m/^00/) {
+                        push(@@seeds, uc(sha256_hex($value)));
+                    } else {
+                        $goof = "bad checksum";
+                    }
+                } else {
+                    $goof = "invalid character in key";
+                }
+            } else {
+                $goof = "incorrect length";
+            }
+        } else {
+            $goof = "does not start with \"S\"";
+        }
+        if ($goof) {
+            print("Invalid mini key: $goof.\n");
+        }
+    }
+@| arg_minikey @}
 
 \subsubsection{{\tt arg\_mnemonic} --- {\tt -mnemonic}: Generate BIP39 mnemonic phrase from stack top}
 
@@ -2464,7 +2585,7 @@ you wish from the private key.
 @d editBtcAddress: Edit Bitcoin private key and public address
 @{
     sub editBtcAddress {
-        my ($priv, $pub, $mode, $n) = @@_;
+        my ($priv, $pub, $mode, $n, $minikey) = @@_;
 @| editBtcAddress @}
 
 Extract the seed from the private key in hexadecimal and encode it
@@ -2551,7 +2672,12 @@ be ``{\tt CSV}{\em t}'', where ``{\em t}'' is one or more of:
                 $pubK = $comp ? $pub_segwit : $pub_segwit_u;
             }
 
-            $r = "$n,\"$pubK\",\"$privK\"\n";
+            my $mk = "";
+            #   If generated from mini key, append it to CSV record
+            if ($minikey && ($CSVmodes !~ m/b/i)) {
+                $mk = ",,\"$minikey\"";
+            }
+            $r = "$n,\"$pubK\",\"$privK\"$mk\n";
 
         } else {
 @}
@@ -2576,6 +2702,7 @@ which the user may choose whichever they prefer.
 
             $r .= "    WIF compressed:   $WIFc\n";
             $r .= "    WIF uncompressed: $WIFu\n";
+            $r .= "    Minikey:          $minikey\n" if $minikey;
 
             #   Display public Bitcoin address in various formats
 
@@ -2872,6 +2999,56 @@ original).
     }
 @| bytesToHex @}
 
+\subsection{{\tt findMiniKey} --- Find a Bitcoin mini key}
+
+Search for a Bitcoin mini key that passes the checksum test,
+then return the mini key and corresponding full hexadecimal
+private key.  Since there is no way to encode an arbitrary
+seed into a mini key, we simply search the name space with
+pseudorandomly generated strings until we find one whose hash
+is correct, then generate the seed from it.
+
+@d findMiniKey: Find a Bitcoin mini key
+@{
+    sub findMiniKey {
+        my $b58r = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        my $b58rl = length($b58r);
+
+        randInit();
+        my $rgen;
+        my $rbuf = "";
+        if (!($testMode & 1)) {
+            $rgen = Crypt::Random::Seed->new(NonBlocking => 1);
+        }
+
+        my $mk;
+        do {
+            $mk = "S";
+            for my $i (1 .. 29) {
+                my $ri;
+                if ($rgen) {
+                    do {
+                        $ri = randNext(64);
+                        if (defined($rgen)) {
+                            if ($rbuf eq "") {
+                                $rbuf = $rgen->random_bytes(64);
+                            }
+                            $rbuf =~ s/^(.)//s;
+                            my $rch = $1;
+                            $ri ^= ord($rch) & 63;
+                        }
+                    } while ($ri >= $b58rl);
+                } else {
+                    $ri = randNext($b58rl);
+                }
+                $mk .= substr($b58r, $ri, 1);
+            }
+        } while (sha256_hex("$mk?") !~ m/^00/);
+
+        return ($mk, uc(sha256_hex($mk)));
+    }
+@}
+
 \subsection{{\tt showHelp} --- Show help information}
 
 @d showHelp: Show Bitcoin address help information
@@ -2911,6 +3088,8 @@ perl blockchain_address.pl [ command... ]
 
 @d showHelp: Show Bitcoin address help information
 @{    -inter              Process interactive commands
+    -minigen            Generate Bitcoin mini private key
+    -minikey key        Decode Bitcoin mini private key
     -mnemonic           Generate BIP39 mnemonic phrase from stack top
     -not                Invert stack top
     -outfile filename   Redirect key generation output to file or - for console
@@ -2932,6 +3111,7 @@ perl blockchain_address.pl [ command... ]
     -swap               Swap the two top items on the stack
     -test               Test stack items for randomness
     -testall            Test entire stack contents for randomness
+    -testmode n         Select test modes (0 for production)
     -type Any text      Display text argument on standard output
     -urandom            Obtain a seed from system fast generator, push on stack
     -wif                Push seed extracted from Wallet Input Format private key
@@ -6619,6 +6799,10 @@ directory, which it cleans up every time it runs.
 @o Makefile.mkf
 @{
 regress:
+        @@if cmp -s perl/blockchain_address.pl bin/blockchain_address.pl; [ $$? -ne 0 ] ; \
+        then \
+            echo "Did you forget to make dist?" ; \
+        fi
         test/test.sh
 
 @}

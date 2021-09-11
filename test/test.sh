@@ -17,6 +17,7 @@ O=$TESTOUT/test_log.txt
 echo -e         \\nGenerate Bitcoin and Ethereum address/key pairs\\n >$O
 
 blockchain_address.pl \
+    -testmode 1 \
     -seed 0x1b34f57bcdc7bd5368136ebe1e019bc7013884d0f7d8754d5b0ff6fb5f923f9a \
     -dup        \
     -pseudoseed \
@@ -39,6 +40,14 @@ blockchain_address.pl \
     -pick 2     \
     -zero       \
     -xor        \
+    -minikey S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy \
+    -minikey S4b3N3oGqDqR5jNuxEvDwf         \
+    -repeat 2   \
+    -minigen    \
+    -format CSVk    \
+    -minigen    \
+    -format CSVkb   \
+    -minigen    \
     -dump       \
     -clear      \
     -repeat 3   \

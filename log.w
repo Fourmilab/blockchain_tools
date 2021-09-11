@@ -670,6 +670,34 @@ or the environment in which it runs requires the reference output to
 be updated, the make target {\tt regress\_update} will copy the most
 recent test run output to the reference master.
 
+Added decoding of Bitcoin mini private keys to @<BA@> with the {\tt
+-minikey} command.  Both the standard 30 character format and legacy 22
+character form used by Series 1 Casascius physical Bitcoin tokens are
+accepted.
+
+Added generation of Bitcoin mini private keys to @<BA@> with the {\tt
+-minigen} command.  Due to the screwball way mini keys are ``found'',
+this command combines generation of seeds with creation of keys and
+does not take seeds off the stack.  Only the current standard 30
+character mini keys are produced; the (even more) insecure legacy 22
+character format is not supported.
+
+Added tests of {\tt -minikey} to the regression test.
+
+To aid in regression testing where we want to test things which are
+usually non-deterministic, I added a {\tt -testmode} command to @<BA@>.
+This sets a bit-coded value, initially zero, to select test modes. The
+only bit currently used is 1, which causes {\tt -minigen} to not mix
+input from the local fast entropy source into the key, and thus behave
+deterministically and repeatably.
+
+Added some ``big hack attack'' code to the Makefile {\tt regress}
+target to check for the all-too-frequent omission of running ``{\tt
+make dist}'' before running the regression test, and thus using an
+older version of the code.  We just check one of the Perl programs,
+counting on the discrepancy in build number being the same in all
+generated code.
+
 \chapter{To do}
 
 Accumulate value in to address as well as value out in @<AW@>
