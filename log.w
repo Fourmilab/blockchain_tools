@@ -698,6 +698,36 @@ older version of the code.  We just check one of the Perl programs,
 counting on the discrepancy in build number being the same in all
 generated code.
 
+\date{2021 September 11}
+
+Added a {\tt -testmode 4} bit to print all of the modules loaded
+by @<BA@> by the time it finally exits.
+
+Added support for multi-part keys in @<PW@>.  If the key file has an
+initial record with the special label ``{\tt -1}'', the multi-part
+parameters are parsed and used to label the printed pages for that
+part with a heading of ``Part $i$ of $n$ ($k$ needed)''.
+
+Added tests for creation of paper wallets from multi-part keys to the
+regression test.
+
+Logged on to github.com.
+
+Created a new {\tt blockchain\_tools} repository with access URLs:
+\begin{description}
+\dense
+\item[HTTPS]{\tt https://github.com/Fourmilab/blockchain\_tools.git}
+\item[SSH]{\tt git@@github.com:Fourmilab/blockchain\_tools.git}
+\end{description}
+
+Linked the local repository to the GitHub archive:\\
+    {\tt git remote add origin git@@github.com:Fourmilab/blockchain\_tools.git}
+
+Confirmed that my local ``{\tt git sync}'' command works with the
+remote repository.
+
+The documents in the repository root now work properly.
+
 \chapter{To do}
 
 Accumulate value in to address as well as value out in @<AW@>
