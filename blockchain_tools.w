@@ -1278,6 +1278,14 @@ communicates with the Bitcoin Core Application Programming Interface
         wallet.  If this option is not specified, transactions must
         be identified by their transaction ID.
 
+    \item[{\tt -testmode}] ~\\
+        Instead of taking the transaction to be watched from the
+        command line or indirectly from the @<AW@> log file, choose a
+        transaction from the most recently mined block and watch its
+        confirmations.  This allows developers to test the program on a
+        representative transaction without the need to to submit one or
+        manually find one in a block dump.
+
     \item[{\tt -type} {\em Any text}] ~\\
         Print the text on the console.
 
@@ -5623,9 +5631,7 @@ label.
     {\tt confirmation\_watch} {\em address}/{\em label}
 \end{quote}
 
-\section{Main program}
-
-\subsection{Program plumbing}
+\section{Program plumbing}
 
 @o perl/confirmation_watch.pl
 @{@<Explanatory header for Perl files@>
@@ -5644,13 +5650,14 @@ label.
     use Data::Dumper;
 @}
 
-\subsection{Command line option processing}
+\section{Command line option processing}
 
 @o perl/confirmation_watch.pl
 @{
     my $log_file = "@<AW log file@>";               # Log file from Address Watch
     my $watch = @<CW watch confirmations@>;         # Watch for confirmations ?
     my $poll_time = @<Blockchain poll interval@>;   # Poll time for watch check
+    my $testmode = FALSE;                           # Test on recent blockchain transaction
     my $verbose = @<Verbosity level@>;              # Verbose output ?
     my $confirmed = @<CW deem confirmed@>;          # Number of confirmations required
 
@@ -5660,7 +5667,8 @@ label.
         "help"          => \&showHelp,
         "lfile=s"       => \$log_file,
         "poll=i"        => \$poll_time,
-        "type=s"        =>  sub { print("$_[1]\n"); },
+        "testmode"      => \$testmode,
+        "type=s"        => sub { print("$_[1]\n"); },
         "verbose+"      => \$verbose,
         "watch"         => \$watch
     );
@@ -5672,7 +5680,46 @@ label.
     ) || die("Command line option error");
 @}
 
-\subsection{Look up address or label in {address\_watch} log}
+\section{For test mode, choose transaction from recent block}
+
+When {\tt -testmode} is specified, rather than taking the transaction
+ID and block hash from the command, line we scan recent blocks,
+starting with the newest, looking for the non-codebase transaction with
+the fewest inputs and outputs.  We'll usually find one with the mininum
+of one input and output early in the first block we scan.  We then use
+that as the transaction to watch, allowing easy testing without the
+need to submit an actual transaction or manually dig out a transaction
+from a block dump.  Because we know the hash of the block in which we
+found the transaction, this works even when the node is configured
+without a transaction index.
+
+@o perl/confirmation_watch.pl
+@{
+    my ($txID, $blockHash);
+
+    if ($testmode) {
+        my ($nvin, $nvout, $vtotal, $vaddr);
+        my $lastBlock = sendRPCcommand([ "getblockcount" ]);
+        while (TRUE) {
+            print("Searching block $lastBlock\n") if $verbose >= 2;
+            ($txID, $blockHash, $nvin, $nvout, $vtotal, $vaddr) = getRecentTransaction($lastBlock);
+            if (defined($txID)) {
+                print("Testing with transaction: $txID\n  Block: $lastBlock\n");
+                print("  Hash:  $blockHash\n") if $blockHash;
+                print("  Sending BTC $vtotal to ");
+                if ($nvout <= 2) {
+                    print("$vaddr\n");
+                } else {
+                    print("$nvout addresses\n");
+                }
+                last;
+            }
+            $lastBlock--;
+        }
+    } else {
+@}
+
+\section{Look up address or label in {\tt address\_watch} log}
 
 If an address is specified, try looking up in the Address Watch log to
 find the transaction ID and block hash.  We accept either the Bitcoin
@@ -5684,59 +5731,88 @@ otherwise it's interpreted as a transaction ID.
 
 @o perl/confirmation_watch.pl
 @{
-    if (scalar(@@ARGV) == 1) {
-        my $addr = $ARGV[0];
-        if ((length($addr) < 48) || ($addr !~ m/[^\da-f]/i)) {
-            if ($log_file eq "") {
-                print("Cannot look up address or label unless log file (-lfile) specified.\n");
-                exit(2);
-            }
-            my $found = FALSE;
-            #   If the address has not yet appeared in the Address Watch log,
-            #   continue to poll until it shows up.
-            do {
-                open(LI, "<$log_file") || die("Cannot open log file $log_file");
-                my ($txid, $blockhash);
-                while (my $l = <LI>) {
-                    if (($l =~ m/^"[^"]*",$addr,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/) ||
-                        ($l =~ m/^"$addr",\S+,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/)
-                       ) {
-                        ($txid, $blockhash) = ($1, $2);
-                        $found = TRUE;
+        if (scalar(@@ARGV) == 1) {
+            my $addr = $ARGV[0];
+            if ((length($addr) < 48) || ($addr =~ m/[^\da-f]/i)) {
+                if ($log_file eq "") {
+                    print("Cannot look up address or label unless log file (-lfile) specified.\n");
+                    exit(2);
+                }
+                my $found = FALSE;
+@}
+
+If the address has not yet appeared in the @<AW@> log,
+continue to poll until it shows up.  This allows starting
+the confirmation watch on a labeled address as soon as (or
+for that matter before) a transaction is entered, without
+waiting for its first confirmation to appear on the
+blockchain.
+
+@o perl/confirmation_watch.pl
+@{
+                do {
+                    open(LI, "<$log_file") || die("Cannot open log file $log_file");
+                    my ($txid, $blockhash);
+                    while (my $l = <LI>) {
+                        if (($l =~ m/^"[^"]*",$addr,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/) ||
+                            ($l =~ m/^"$addr",\S+,\S+,\S+\s+\S+,\S+,(\S+),(\S+)/)
+                           ) {
+                            ($txid, $blockhash) = ($1, $2);
+                            $found = TRUE;
+                        }
                     }
+                    close(LI);
+                    if ($watch && (!$found)) {
+                        print("No transaction for this address found in address_watch log.\n" .
+                              "Waiting $poll_time seconds before next check.\n")
+                            if $verbose;
+                        sleep($poll_time);
+                    }
+                    if ($found) {
+                        @@ARGV = ( $txid, $blockhash );
+                    }
+                } while ($watch && (!$found));
+                if (!$found) {
+                    print("Bitcoin address not found in Address Watch log file.\n");
+                    exit(1);
                 }
-                close(LI);
-                if ($watch && (!$found)) {
-                    print("No transaction for this address found in address_watch log.\n" .
-                          "Waiting $poll_time seconds before next check.\n") if $verbose;
-                    sleep($poll_time);
+            } else {
+@}
+
+If the user has specified just a transaction ID with no
+block hash, we can only process the request if the Bitcoin
+node to which we're talking is configured to maintain a
+transaction index.  We verify whether this is the case and
+reject the request if it isn't.  It would be possible to
+handle the case where a transaction ID has been assigned
+but the transaction hasn't been mined from the mempool onto
+the blockchain, waiting for it to show up in a block the
+same way we do polling for a label or address to appear
+in the @<AW@> log, but this isn't presently implemented.
+
+@o perl/confirmation_watch.pl
+@{
+                $ARGV[1] = "";
+                if (!(hasTXindex())) {
+                    print("No transaction index (txindex=1) on Bitcoin node.\n");
+                    print("You must supply the block hash for the transaction.\n");
+                    exit(1);
                 }
-                if ($found) {
-                    @@ARGV = ( $txid, $blockhash );
-                }
-            } while ($watch && (!$found));
-            if (!$found) {
-                print("Bitcoin address not found in Address Watch log file.\n");
-                exit(1);
             }
         } else {
-            #   This looks like a transaction index alone, assuming
-            #   txindex=1 allows queries without the block hash.
-            $ARGV[1] = "";
+            if (scalar(@@ARGV) < 2) {
+                print("usage: confirmation_watch transaction_id block_hash\n");
+                exit(0);
+            }
         }
-    } else {
-        if (scalar(@@ARGV) < 2) {
-            print("usage: confirmation_watch transaction_id block_hash\n");
-            exit(0);
-        }
-    }
 
-    my $txID = $ARGV[0];
-    my $blockHash = $ARGV[1];
+        $txID = $ARGV[0];
+        $blockHash = $ARGV[1];
+    }
     @@ARGV = ( );
 @}
 
-\subsection{Prompt for RPC password}
+\section{Prompt for RPC password}
 
 If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
@@ -5748,11 +5824,13 @@ specified, ask the user for it from standard input.
     }
 @}
 
-\subsection{Retrieve confirmations for transaction}
+\section{Retrieve confirmations for transaction}
 
 Now retrieve the confirmations for the transaction. If {\tt -watch} is
 specified, continue to watch until we've received the {\tt -confirm}
-number of confirmations, at which point we exit.
+number of confirmations, at which point we exit.  On confirmations
+after the first, we date the confirmation to the time of the last
+block mined before we received it.
 
 @o perl/confirmation_watch.pl
 @{
@@ -5766,37 +5844,49 @@ number of confirmations, at which point we exit.
         my $txj = sendRPCcommand($query);
         my $tx = decode_json($txj);
 
-        print(Data::Dumper->Dump([$tx], [ qw(Transaction) ])) if $verbose >= 2;
+        print(Data::Dumper->Dump([$tx], [ qw(Transaction) ])) if $verbose >= 3;
 
         my $t_confirmations = $tx->{confirmations};
         my $t_time = $tx->{time};
 
         if ((!$watch) || ($t_confirmations != $l_confirmations)) {
             $l_confirmations = $t_confirmations;
+            #   If confirmation count is greater than 1, set time to
+            #   that of the most recent block.
+            if ($t_confirmations > 1) {
+                my $lastBlock = sendRPCcommand([ "getblockcount" ]);
+                my $lbStat = sendRPCcommand([ "getblockstats", $lastBlock, '[ "time" ]' ]);
+                if ($lbStat) {
+                    my $lbT = decode_json($lbStat);
+                    $t_time = $lbT->{time};
+                }
+            }
 
             #   Show date and time and number of confirmations
             print(etime($t_time) . "  Confirmations: $t_confirmations\n");
 
-            #   Number of "vout" items in transaction
-            my $t_nvout = scalar(@@{$tx->{vout}});
-            #   Loop over vout items
-            for (my $v = 0; $v < $t_nvout; $v++) {
-                if (defined($tx->{vout}->[$v]->{scriptPubKey}) &&
-                    defined($tx->{vout}->[$v]->{scriptPubKey}->{addresses})) {
-                    my $v_naddr = scalar(@@{$tx->{vout}->[$v]->{scriptPubKey}->{addresses}});
-                    my $v_value = $tx->{vout}->[$v]->{value};
-                    #   Loop over addresses in vout item
-                    for (my $a = 0; $a < $v_naddr; $a++) {
-                        #   Show destination addresses and amounts
-                        my $a_addr = $tx->{vout}->[$v]->{scriptPubKey}->{addresses}->[$a];
-                        printf("  => %-42s  %12.8f\n", $a_addr, $v_value);
+            if (($verbose >= 2) && ($t_confirmations == 1)) {
+                #   Number of "vout" items in transaction
+                my $t_nvout = scalar(@@{$tx->{vout}});
+                #   Loop over vout items
+                for (my $v = 0; $v < $t_nvout; $v++) {
+                    if (defined($tx->{vout}->[$v]->{scriptPubKey}) &&
+                        defined($tx->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                        my $v_naddr = scalar(@@{$tx->{vout}->[$v]->{scriptPubKey}->{addresses}});
+                        my $v_value = $tx->{vout}->[$v]->{value};
+                        #   Loop over addresses in vout item
+                        for (my $a = 0; $a < $v_naddr; $a++) {
+                            #   Show destination addresses and amounts
+                            my $a_addr = $tx->{vout}->[$v]->{scriptPubKey}->{addresses}->[$a];
+                            printf("  => %-42s  %12.8f\n", $a_addr, $v_value);
+                        }
                     }
                 }
             }
         }
 @}
 
-\subsection{Test for confirmation and wait until next poll}
+\section{Test for confirmation and wait until next poll}
 
 If we've received the specified number of confirmations, exit.  If
 {\tt -watch} is specified, wait until the next poll time and check
@@ -5810,12 +5900,14 @@ for new confirmations.
    } while ($watch && ($l_confirmations < $confirmed));
 @}
 
-\subsection{Utility functions}
+\section{Utility functions}
 
 Define our local functions.
 
 @o perl/confirmation_watch.pl
 @{
+    @<getRecentTransaction: Choose recent transaction for test mode@>
+    @<hasTXindex: Test Bitcoin node transaction index support@>
     @<showHelp: Show confirmation watch help information@>
 @}
 
@@ -5827,6 +5919,150 @@ Import utility functions we share with other programs.
     @<Command and option processing@>
     @<sendRPCcommand: Send a Bitcoin RPC/JSON command@>
     @<getPassword: Prompt user to enter password@>
+@}
+
+\subsection{{\tt getRecentTransaction} --- Choose recent transaction for test mode}
+
+When {\tt -testmode} is selected, rather than monitoring a transaction
+specified on the command line, we pick a transaction from the most
+recent block (which is guaranteed, therefore, to have just a single
+confirmation) and monitor it instead.  This allows testing without
+making a transaction or the need to configure the node with {\tt
+txindex=1} and/or go through a hideously complicated process of
+searching for a transaction and block hash pair to monitor.  We pick a
+non-coinbase transaction from the block with the fewest inputs and
+outputs, usually quickly finding one with just one of each.  Should we
+fail for some screwball reason (a miner publishes a block with no
+transactions just to collect the reward), we return undefined to inform
+the caller to try again with an older block.  The transaction ID and
+block hash of the selected transaction is returned, along with the
+number of inputs and outputs, the total value in BTC, and the
+transaction's output addresses.
+
+Start by retrieving the block specified by the argument.
+
+@d getRecentTransaction: Choose recent transaction for test mode
+@{
+    sub getRecentTransaction {
+        my ($blockNo) = @@_;
+
+        my $bh = sendRPCcommand([ "getblockhash", "$blockNo" ]);
+        print("    Block hash $bh\n") if $verbose;
+        my $blk = sendRPCcommand([ "getblock",  $bh, "2" ]);
+        my $r = decode_json($blk);
+
+        my $b_hash = $r->{hash};            # Block hash
+        my $b_nTx = $r->{nTx};              # Transactions in block
+
+        print("    Block $blockNo " . gmtime($r->{time}) .
+              " Transactions $b_nTx\n") if $verbose >= 2;
+
+        my ($vinmin, $voutmin) = (1e20, 1e20);
+        my $strans = -1;
+@}
+
+Iterate over the transactions in the block, keeping track of
+the transaction with the minimum number of both inputs and
+outputs.  Coinbase transactions (rewards to miners) are ignored.
+If we find a transaction with just one input and output, we
+aren't going to see anything better, we quit immediately at
+that point choose it.
+
+@d getRecentTransaction: Choose recent transaction for test mode
+@{
+        for (my $t = 0; $t < $b_nTx; $t++) {
+            #   Transaction ID
+            my $t_txid = $r->{tx}->[$t]->{txid};
+
+            my $t_nvin = scalar(@@{$r->{tx}->[$t]->{vin}});
+            my $t_nvout = scalar(@@{$r->{tx}->[$t]->{vout}});
+
+            if ($verbose >= 3) {
+                my $nvinc = (($t_nvin == 1) &&
+                             (defined($r->{tx}->[$t]->{vin}->[0]->{coinbase}))) ? "coinbase" : $t_nvin;
+                print("  $t.  $t_txid  In: $nvinc  Out: $t_nvout\n");
+            }
+
+            #   Ignore coinbase transactions
+            if (!(($t_nvin == 1) &&
+                  (defined($r->{tx}->[$t]->{vin}->[0]->{coinbase})))) {
+                #   Not coinbase
+                if (($t_nvin == 1) && ($t_nvout == 1)) {
+                    #   Found a (1, 1): shortcut escape from search
+                    $strans = $t;
+                    last;
+                }
+                if (($t_nvin <= $vinmin) && ($t_nvout <= $voutmin)) {
+                    $strans = $t;
+                    $vinmin = $t_nvin;
+                    $voutmin = $t_nvout;
+                }
+            }
+        }
+@}
+
+If we found a suitable transaction, compute its value and
+return.  In order to return the value of the transaction
+in BTC, walk through the {\tt vout} items and sum the
+values in each.  If no suitable transaction was found, return
+{\tt undef} for all values.
+
+@d getRecentTransaction: Choose recent transaction for test mode
+@{
+        if ($strans >= 0) {
+            my $v_total = 0;
+            my $v_addr = "";
+            #   Loop over vout items to collect addresses and values
+            for (my $v = 0; $v < scalar(@@{$r->{tx}->[$strans]->{vout}}); $v++) {
+                if (defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}) &&
+                    defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                    my $v_naddr = scalar(@@{$r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses}});
+                    my $v_value = $r->{tx}->[$strans]->{vout}->[$v]->{value};
+                    #   Loop over addresses in vout item
+                    for (my $a = 0; $a < $v_naddr; $a++) {
+                        #   Show destination addresses and amounts
+                        my $a_addr = $r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses}->[$a];
+                        printf("$strans.$v  To %-42s Value %12.8f\n",
+                            $a_addr, $v_value) if $verbose >= 2;
+                        $v_total += $v_value;
+                        $v_addr .= ($v_addr ? ", " : "") . $a_addr;
+                    }
+                }
+            }
+            return ($r->{tx}->[$strans]->{txid}, $r->{hash},
+                    scalar(@@{$r->{tx}->[$strans]->{vin}}),
+                    scalar(@@{$r->{tx}->[$strans]->{vout}}), $v_total, $v_addr);
+        }
+        return (undef) x 6;
+    }
+@}
+
+\subsection{{\tt hasTXindex} --- Test if Bitcoin node has transaction index}
+
+By default, the Bitcoin Core node software maintains only an index
+for transactions in the user's wallet and unconfirmed ``active''
+transactions.  This prevents looking up other transactions by
+just their transaction ID---the hash of the block containing them
+must be supplied.  The operator of the node can enable an index of all
+transactions by setting {\tt txindex=1} in the node configuration
+file.  This function tests whether the node to which it is talking
+maintains a transaction index, and allows callers to adjust their
+behaviour accordingly.
+
+@d hasTXindex: Test Bitcoin node transaction index support
+@{
+    sub hasTXindex {
+        my $txindex = FALSE;
+
+        my $ixqs = sendRPCcommand([ "getindexinfo", "txindex" ]);
+        if ($ixqs) {
+            my $ixq = decode_json($ixqs);
+            if ($ixq) {
+                $txindex = $ixq->{txindex}->{synced};
+            }
+        }
+        return $txindex;
+    }
 @}
 
 \subsection{{\tt showHelp} --- Show help information}
@@ -5841,6 +6077,7 @@ perl confirmation_watch.pl [ option... ] transaction\_id/address/label [ block\_
     -help               Print this message
     -lfile filename     Log file from address_watch for looking up labels
     -poll n             Poll for new block every n seconds, 0 = never
+    -testmode           Test with a randomly chosen recent transaction
     -type Any text      Display text argument on standard output
     -verbose            Print debug information, more for every -verbose
     -watch              Poll waiting for -confirmed confirmations
@@ -5862,9 +6099,7 @@ standard output and/or written to a log file in comma-separated value
 from blocks added to the blockchain are reported.  No analysis is
 done---that's up to programs which read and process the log.
 
-\section{Main program}
-
-\subsection{Program plumbing}
+\section{Program plumbing}
 
 @o perl/fee_watch.pl
 @{@<Explanatory header for Perl files@>
@@ -5883,7 +6118,7 @@ done---that's up to programs which read and process the log.
     use Data::Dumper;
 @}
 
-\subsection{Command line option processing}
+\section{Command line option processing}
 
 @o perl/fee_watch.pl
 @{
@@ -5911,7 +6146,7 @@ done---that's up to programs which read and process the log.
     ) || die("Command line option error");
 @}
 
-\subsection{Prompt for RPC password}
+\section{Prompt for RPC password}
 
 If the ``{\tt rpc}'' query method was selected and no password was
 specified, ask the user for it from standard input.
@@ -5923,7 +6158,7 @@ specified, ask the user for it from standard input.
     }
 @}
 
-\subsection{Poll fees at the specified interval}
+\section{Poll fees at the specified interval}
 
 We poll for the current fees at each specified interval.  This occurs
 at an even multiple of the interval, not at intervals based upon when
@@ -6018,7 +6253,7 @@ these are logged as a type 2 record.
     }
 @}
 
-\subsection{Local functions}
+\section{Local functions}
 
 Define our local functions.
 
@@ -6296,8 +6531,9 @@ the means specified by the {\tt \$RPCmethod} variable, as follows.
 
 @d Request via bitcoin-cli on the local machine
 @{
+    map({ s/^(\[.*?\])$/'$1'/ } @@$args);
     my $cmd = join(" ", @@$args);
-    $result = `$RPCcli $cmd`;
+    $result = `$RPCcli $cmd 2>&1`;
 
 @}
 
@@ -6305,8 +6541,10 @@ the means specified by the {\tt \$RPCmethod} variable, as follows.
 
 @d Request via bitcoin-cli on a remote machine via ssh
 @{
+    map({ s/^(\[.*?\])$/'$1'/ } @@$args);
     my $cmd = join(" ", @@$args);
-    $result = `ssh $RPChost $RPCcli $cmd`;
+    $cmd =~ s/"/\\"/g;
+    $result = `ssh $RPChost $RPCcli \"$cmd\" 2>&1`;
 @}
 
 \subsection{Request via direct RPC call}
@@ -6329,7 +6567,7 @@ strings, to which quotes are added and embedded quotes escaped.
 @d Request via direct RPC call
 @{
     for (my $i = 0; $i < scalar(@@$args); $i++) {
-        if ($args->[$i] !~ m/^(?:true|false|null|[\d\.]+|".*")$/) {
+        if ($args->[$i] !~ m/^(?:true|false|null|[\d\.]+|".*"|\[.*?\])$/) {
             my $s = $args->[$i];
             $s =~ s/"/\\"/g;
             $args->[$i] = "\"$s\"";

@@ -711,6 +711,21 @@ part with a heading of ``Part $i$ of $n$ ($k$ needed)''.
 Added tests for creation of paper wallets from multi-part keys to the
 regression test.
 
+\date{2021 September 12}
+
+Extended the {\tt sendRPCcommand()} function used by all the utilities
+that interact with a Bitcoin node to accept RPC arguments which are
+JSON lists.  These are tricky and messy to handle, as each of our
+access methods: {\tt local}, {\tt rpc}, and {\tt ssh} require different
+quoting of the argument to make it through correctly to the JSON
+request received by the API.
+
+Fixed @<CW@> so that when it displays the time a confirmation was
+received, it shows the time of the most recent block at the time the
+confirmation arrived.  Previously, it always showed the time of the
+block containing the transaction when it first appeared on the
+blockchain.
+
 Logged on to github.com.
 
 Created a new {\tt blockchain\_tools} repository with access URLs:
@@ -727,6 +742,19 @@ Confirmed that my local ``{\tt git sync}'' command works with the
 remote repository.
 
 The documents in the repository root now work properly.
+
+\date{2021 September 13}
+
+Implemented the {\tt -testmode} option in @<CW@> to allow easy testing
+without the need to submit a transaction or find one in a recent block.
+When set, @<CW@> scans the most recent block (and more, if necessary)
+to find a transaction with a single confirmation and uses its
+transaction ID and block hash instead of requiring they be specified
+from the command line or the @<AW@> log file.  This is useless for
+normal user cases, but it makes testing much simpler.
+
+
+
 
 \chapter{To do}
 
