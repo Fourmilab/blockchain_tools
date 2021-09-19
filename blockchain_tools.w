@@ -70,6 +70,8 @@
     September 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png} \\
+    \vspace{2cm}
+    \includegraphics[width=4cm]{figures/eth_btc.png} \\
     \vspace{\fill}
     {\small
     Build @<Build number@> --- @<Build date and time@> UTC
@@ -6900,7 +6902,7 @@ PDFVIEW = evince
 GNUFIND = find
 
 duh:
-        @@echo "What'll it be, mate?  build view peek guide geek lint stats clean bl"
+        @@echo "What'll it be, mate?  build view pdf peek gview gpdf geek lint stats clean bl"
 @}
 
 \subsection{Build program files}

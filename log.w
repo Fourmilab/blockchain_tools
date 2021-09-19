@@ -753,7 +753,9 @@ transaction ID and block hash instead of requiring they be specified
 from the command line or the @<AW@> log file.  This is useless for
 normal user cases, but it makes testing much simpler.
 
+\date{2021 September 17}
 
+Added Ethereum and Bitcoin logos to title page of PDF documents.
 
 
 \chapter{To do}
