@@ -757,6 +757,14 @@ normal user cases, but it makes testing much simpler.
 
 Added Ethereum and Bitcoin logos to title page of PDF documents.
 
+\date{2021 September 19}
+
+Added a {\tt -sort} option to @<CC@> which accumulates all of the
+output records from a pass of queries of the watched addresses
+and sorts them back into the order the addresses were specified in
+the files named on the command line.  This makes the output easier to
+interpret but defers output until all addresses have been
+queried.
 
 \chapter{To do}
 

@@ -1029,6 +1029,11 @@ The @<CC@> program is configured by the following command line options.
         pass checking them.  This may (or may not) make it less obvious
         they represent a single cold storage vault.
 
+    \item[{\tt -sort}] ~\\
+        When {\tt -shuffle} is specified, sort the results from queries
+        back into the order the addresses were specified in the files
+        on the command line.
+
     \item[{\tt -verbose}] ~\\
         Report all addresses, even if an address's current balance is
         the same as expected.  Transient query failures and retries
@@ -4552,6 +4557,7 @@ unauthorised transactions referencing them.
     my $dust = 0.001;                   # Don't report balance increases less than this
     my $loop = FALSE;                   # Loop forever checking addresses
     my $shuffle = FALSE;                # Shuffle order of address queries
+    my $sortrep = FALSE;                # Restore original order of shuffled queries in report
     my $verbose = FALSE;                # Show all queries, not just alerts
     my $waitconst = 17;                 # Constant wait between queries, seconds
     my $waitloop = 3600;                # Wait between series of queries
@@ -4602,6 +4608,7 @@ returns.
         "loop"          =>  \$loop,
         "retry=i",      =>  \$APIretry,
         "shuffle"       =>  \$shuffle,
+        "sort"          =>  \$sortrep,
         "verbose"       =>  \$verbose,
         "waitconst=f"   =>  \$waitconst,
         "waitloop=f"    =>  \$waitloop,
@@ -4639,7 +4646,12 @@ be watched are specified in CSV format with the following fields.
 
 These are stored in an array of arrays, with an additional item,
 initialised to zero, added to the end which is used to keep track
-of the number of retries for queries that failed.
+of the number of retries for queries that failed.  If {\tt -sort}
+is specified, we build an auxiliary hash, {\tt \%adrOrder}, which is
+keyed by the public address and returns the sequence number of the
+address in the list of those to be watched.  This is used after
+performing all of the queries to sort them back into the order the
+addresses were specified in the files on the command line.
 
 @o perl/cold_comfort.pl
 @{
@@ -4647,13 +4659,19 @@ of the number of retries for queries that failed.
         die("Cannot use CSV: " . Text::CSV->error_diag());
 
     my $adrs = [ ];
+    my %adrOrder;
+    my $addrn = 0;
     while (my $l = <>) {
         chomp($l);
         $l =~ s/^\s+//;
         $l =~ s/\s+$//;
         if (($l ne "") && ($l !~ m/^#/)) {
             if ($csv->parse($l)) {
+                $addrn++;
                 push(@@$adrs, [ $csv->fields, 0 ]);
+                if ($sortrep && (!$adrOrder{($csv->fields())[1]})) {
+                    $adrOrder{($csv->fields())[1]} = $addrn;
+                }
            }
         }
     }
@@ -4671,6 +4689,7 @@ storage addresses.
     my ($balErrs, $APIerrs);
 
     do {
+        my @@repRec;
         if ($shuffle) {
             @@$adrs = shuffle(@@$adrs);
         }
@@ -4734,6 +4753,16 @@ by {\tt -retry}, re-queue the query at the end of the address list for
 next try.  If the number of tries has been exhausted, this is flagged
 as a hard fail and abandoned.
 
+If we've shuffled the order in which addresses will be queried and the
+{\tt -sort} option was specified, we defer reporting the results of
+queries when the arrive and, instead, save them in the {\tt @@repRec}
+array, tagged with the address queried.  At the end of a pass over all
+of the addresses, these are sorted back into the order the addresses
+were originally specified and reported in order.  This produces an
+easier to read result, but it does defer output until all addresses
+have been queried, so for immediate results as they come in, omit the
+{\tt -sort} option.
+
 @o perl/cold_comfort.pl
 @{
                     $cbalf = " " x 16;
@@ -4749,13 +4778,27 @@ as a hard fail and abandoned.
                     }
                 }
                 if ($verbose || ($warn ne "")) {
-                    printf("%-12s  %-42s  %16.8f  %s%s\n",
-                           $label, $bcaddr, $balance, $cbalf, $warn);
+                    my $rl = sprintf("%-12s  %-42s  %16.8f  %s%s",
+                               $label, $bcaddr, $balance, $cbalf, $warn);
+                    if ($shuffle && $sortrep) {
+                        #   Sorting addresses: save result record
+                        push(@@repRec, "$bcaddr,$rl");
+                    } else {
+                        print("$rl\n");
+                    }
                 }
                 if ($i < (scalar(@@$adrs) - 1)) {
                     sleep($waitconst + randNext($waitrand));
                 }
             }
+        }
+        if ($shuffle && $sortrep) {
+            #   Sort results in order addresses were specified
+            foreach my $rs (sort(byOrderSpecified @@repRec)) {
+                $rs =~ s/^\w+,//;
+                print("$rs\n");
+            }
+            @@repRec = ();
         }
         if ($loop && ($waitloop > 0)) {
             sleep($waitloop);
@@ -4784,6 +4827,7 @@ perl cold_comfort.pl [ options... ] address_file...
     -loop               Loop forever polling addresses
     -retry n            Try failed API query requests n times
     -shuffle            Shuffle order in which addresses queried
+    -sort               Restore order of shuffled queries in report
     -verbose            Show all polls, regardless of error status
     -waitconst n        Wait constant n seconds between queries
     -waitloop n         Wait n seconds between re-polls in -loop
@@ -4797,9 +4841,40 @@ EOD
 
 \section{Utility functions}
 
+\subsection{Pseudorandom number generator}
+
+The pseudorandom number generator is used only for shuffling
+the order in which addresses are queried if selected and determining
+the stochastic component of the delay between queries.  A full-blown
+Mersenne twister generator is overkill for such purposes, but we have
+one laying around, so why not use it?
+
 @o perl/cold_comfort.pl
 @{
     @<Pseudorandom number generator@>
+@}
+
+\subsection{Sort report records in order addresses specified}
+
+When the {\tt -shuffle} and {\tt -sort} options are specified, we
+randomise the order in which addresses are queried but then sort them
+back into the order they were originally specified in the report we
+generate.  This is accomplished by saving the output records as they
+are generated in an array which, after all queries in a pass are
+complete, is sorted using this comparison function.  It extracts the
+addresses queried, prefixed to the record and delimited by a
+comma, and then compares their input sequence numbers which are looked
+up in the {\tt \%adrOrder} hash keyed by the address.
+
+@o perl/cold_comfort.pl
+@{
+    sub byOrderSpecified {
+        $a =~ m/^(\w+),/;
+        my $aAddr = $1;
+        $b =~ m/^(\w+),/;
+        my $bAddr = $1;
+        return $adrOrder{$aAddr} <=> $adrOrder{$bAddr};
+    }
 @}
 
 \section{Address query source handlers}
