@@ -67,7 +67,7 @@
 }
 \date{
     Version @<Project Version@> \\
-    September 2021 \\
+    October 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png} \\
     \vspace{2cm}
@@ -157,7 +157,7 @@ into two main categories.
 
 These programs assist in generating, analysing, archiving,
 protecting, and monitoring addresses on the Bitcoin and
-Ethereum blockchains.  They do not require you run a local
+Ethereum blockchains.  They do not require you to run a local
 node or maintain a copy of the blockchain, and all
 security-related functions may be performed on an ``air-gapped''
 machine with no connection to the Internet or any other computer.
@@ -185,22 +185,23 @@ machine with no connection to the Internet or any other computer.
         off-line copies of addresses and keys.
 
     \item \hyperref[UG:CSM]{Cold Storage Monitor} connects to free
-        blockchain query services to allow periodic monitoring of
-        a list of cold storage addresses to detect unauthorised
-        transactions which may indicate they have been compromised.
+        blockchain query services to allow periodic monitoring of a
+        list of cold storage addresses to detect unauthorised
+        transactions which may indicate that they have been
+        compromised.
 \end{itemize}
 
 \subsection{Bitcoin Blockchain Analysis Tools}
 
 This collection of tools allows various kinds of monitoring and
-analysis of the Bitcoin blockchain.  They do not support Ethereum.
+analysis of the Bitcoin blockchain.  It does not support Ethereum.
 These programs are intended for advanced, technically-oriented users
 who run their own full Bitcoin Core node on a local computer.  Note
 that anybody can run a Bitcoin node as long as they have a computer
 with the modest CPU and memory capacity required, plus the very large
 (and inexorably growing) file storage capacity to archive the entire
 Bitcoin blockchain. You can run a Bitcoin node without being a
-``miner'', nor need you expose your computer to external accesses from
+``miner'', or exposing your computer to external accesses from
 other nodes unless you so wish.
 
 These tools are all read-only monitoring and analysis utilities.
@@ -222,7 +223,7 @@ unlocked access to the node owner's wallet.
 
     \item \hyperref[UG:TFW]{Transaction Fee Watch} analyses the
         transaction fees paid to include transactions in blocks
-        and the reward to miners and produces real-time statistics
+        and the reward to miners, producing real-time statistics
         and log files which may be used to analyse transaction fees
         over time.
 \end{itemize}
@@ -405,7 +406,7 @@ perform.
         radioactive random number generator, using the API key specified
         by the {\tt -hbapik} command.  If the {\tt -repeat} command has
         specified multiple keys, that number of keys will be retrieved
-        from HotBits and pushed on the stack.
+        from HotBits and pushed onto the stack.
 
     \item[{\tt -inter}] ~\\
         Enter interactive mode.  The user is prompted for commands,
@@ -419,28 +420,28 @@ perform.
         Generate a Bitcoin
         \href{https://en.bitcoin.it/wiki/Mini_private_key_format}{mini
         private key}, display the generated key, and push the full seed
-        for the key on the stack.  Mini private keys were introduced to
-        allow encoding a Bitcoin private key on physical coins, bills,
-        or other objects which lack the space for a full private key,
-        which can be up to 52 characters long.  A mini key is just 30
-        characters, but can represent only a subset of possible Bitcoin
-        addresses and is consequently less secure---they should be used
-        only when absolutely necessary.  Due to the nature of mini
-        keys, the generation process is different that used by the {\tt
-        -btc} command.  The {\tt -minigen} command internally generates
-        the seed for the key by mixing the system's fast entropy
-        generator and this program's internal pseudorandom generator
-        seeded by the system fast entropy generator.  After finding a
-        suitable key, it pushes the seed on the stack and displays the
-        corresponding key.  You may then use the {\tt -btc} command to
-        generate the corresponding public Bitcoin address in whichever
-        format(s) you wish.  If the {\tt -format} is set to ``{\tt
-        CSV}'', an address file is generated which is compatible with
-        the {\tt btc} command, but with the addition of a fifth field
-        in every record containing the mini key.  You may use the
-        {\tt -repeat} command to generate multiple keys and the ``{\tt
-        k}'' option on the {\tt -format} to keep the seeds on the
-        stack.
+        for the key onto the stack.  Mini private keys were introduced
+        to allow encoding a Bitcoin private key on physical coins,
+        bills, or other objects which lack the space for a full private
+        key, which can be up to 52 characters long.  A mini key is just
+        30 characters, but can represent only a subset of possible
+        Bitcoin addresses and is consequently less secure---they should
+        be used only when absolutely necessary.  Due to the nature of
+        mini keys, the generation process differs from that used by the
+        {\tt -btc} command.  The {\tt -minigen} command internally
+        generates the seed for the key by mixing the system's fast
+        entropy generator and this program's internal pseudorandom
+        generator seeded by the system fast entropy generator.  After
+        finding a suitable key, it pushes the seed onto the stack and
+        displays the corresponding key.  You may then use the {\tt
+        -btc} command to generate the corresponding public Bitcoin
+        address in whichever format(s) you wish.  If the {\tt -format}
+        is set to ``{\tt CSV}'', an address file is generated which is
+        compatible with the {\tt btc} command, but with the addition of
+        a fifth field in every record containing the mini key.  You may
+        use the {\tt -repeat} command to generate multiple keys and the
+        ``{\tt k}'' option on the {\tt -format} to keep the seeds on
+        the stack.
 
     \item[{\tt -minikey}] {\em mini\_private\_key} ~\\
         Validate and decode the specified mini private key (see above)
@@ -470,7 +471,7 @@ perform.
         command.
 
     \item[{\tt -over}] ~\\
-        Duplicate the second item on the stack and push it on the top
+        Duplicate the second item on the stack and push it onto the top
         of the stack.
 
     \item[{\tt -p}] ~\\
@@ -494,10 +495,10 @@ perform.
     \item[{\tt -pseudoseed}] ~\\
         Use the number of stack items set by {\tt -repeat} to seed the
         pseudorandom generator.  You may specify up to 78 stack items,
-        representing 624 32-bit seed values. Any more are not used and
-        left on the stack.  Any previous generator and seed is deleted.
-        This is normally used only for regression testing where
-        repeatable pseudorandom data are required.
+        representing 624 32-bit seed values. Any more than 78 are not
+        used will be left on the stack.  Any previous generator and
+        seed are deleted. This is normally used only for regression
+        testing where repeatable pseudorandom data are required.
 
     \item[{\tt -random}] ~\\
         Push one or more seeds read from the system's strong
@@ -593,7 +594,7 @@ perform.
 
     \item[{\tt -type} {\em Any text}] ~\\
         Display the text on the console.  This is often used in command
-        files to inform the user what's going on.
+        files to inform the user of what's going on.
 
     \item[{\tt -urandom}] ~\\
         Push one or more seeds read from the system's fast entropy
@@ -639,7 +640,7 @@ five ways, with copies entrusted to the chief executive officer,
 chief financial officer, an inside director, an outside director,
 and one kept in a safe at the office of the company's legal firm.
 If the parts were generated so that any three would re-generate
-the secret keys, then at at least three people would have to approve
+the secret keys, then at least three people would have to approve
 access to the funds stored in the vault, which reduces the
 likelihood of their misappropriation.  The existence of more
 parts than required guards against loss or theft of one of the parts:
@@ -716,10 +717,10 @@ for private client information, or the formula for fizzy soft drinks.
         in the files specified on the command line.  You must supply
         at least the {\tt -needed} number of parts when they were
         created (if you specify more, the extras are ignored).  The
-        output is written to a file with the specified {\tt -name}
-        or, if none is given, that of the first part with its number
-        replaced with ``{\tt -merged}''.  The file will be will be in
-        the comma-separated value (CSV) format in which @<BA@> writes
+        output is written to a file with the specified {\tt -name} or,
+        if none is given, that of the first part with its number
+        replaced with ``{\tt -merged}''.  The file will be in the
+        comma-separated value (CSV) format in which @<BA@> writes
         addresses and keys it generates and is used by other programs
         in this collection.
 
@@ -768,14 +769,15 @@ in this chapter aid in creating and verifying.
 \subsection{Paper Wallet Generator}
 \label{UG:PWg}
 
-The @<PW@> program reads a list of Bitcoin or Ethereum public address and
-private key pairs, generated by @<BA@> in comma-separated value
-(CSV) format, and creates an HTML file which can be loaded into a
-browser and then printed locally to create paper cold storage wallets.
-In the interest of security, this process, as with generation of the
-CSV file, should be done on a machine with no connection to the
-Internet (``air gappped''), and copies of the files deleted from its
-storage before the machine is connected to a public network.
+The @<PW@> program reads a list of Bitcoin or Ethereum public address
+and private key pairs, generated by the @<BA@> program in
+comma-separated value (CSV) format, and creates an HTML file which can
+be loaded into a browser and then printed locally to create paper cold
+storage wallets. In the interest of security, this process, as with
+generation of the CSV file, should be done on a machine with no
+connection to the Internet (``air gapped''), and copies of the files
+deleted from its storage before the machine is connected to a public
+network.
 
 \subsubsection{Creating a paper wallet}
 
@@ -807,7 +809,11 @@ with:
 You can now load the {\tt coldstore.html} file into a Web browser with
 a {\tt file:coldstore.html} URL, use print preview to verify it is
 properly formatted, then print as many copies as you require for safe
-storage to a local printer.
+storage to a local printer.  Even though you're using a Web browser
+to load and print the file, security is not compromised as long as the
+computer running it is not connected to the Internet.  After printing
+the paper wallet, be sure to clear the browser's cache, deleting any
+copy it may have made of the file.
 
 \subsubsection{Command line options}
 
@@ -848,7 +854,7 @@ storage to a local printer.
 
     \item[{\tt -separator} {\em text}] ~\\
         Display addresses and private keys as groups of four letters
-        and number separated by the sequence {\em text}, which may be
+        and numbers separated by the sequence {\em text}, which may be
         an HTML text entity such as ``\verb+&ndash;+''.
 
     \item[{\tt -size} {\em sspec}] ~\\
@@ -1077,7 +1083,7 @@ configured with transaction indexing (``{\tt txindex=1}'').
 
 Address Watch is configured by the following command line options.
 In addition to the options listed here, an additional set of options,
-common to other programs in the collection, specify how the program
+common to other programs in the collection, specifies how the program
 communicates with the Bitcoin Core Application Programming Interface
 (API): see ``\hyperref[RPC:API]{RPC API configuration}'' for details.
 
@@ -1152,7 +1158,7 @@ communicates with the Bitcoin Core Application Programming Interface
     \item[{\tt -wfile} {\em filename}] ~\\
         Add addresses read from the specified {\em filename} in
         Comma Separated Value (CSV) format to the watch list.  Each line
-        in the file specified an address as:
+        in the file specifies an address as:
             {\em Label}{\tt ,}{\em Bitcoin address}{\tt ,}{\em Private
                  key}{\tt ,}{\em Balance}.
         The {\em Label} is an optional human-readable name for the
@@ -1219,7 +1225,7 @@ transaction fee per byte they offer, validate them against their
 local copy of the entire Bitcoin blockchain and, if and when they
 find a hash for a candidate block that meets the present
 difficulty requirement, publish the block to the blockchain and
-notify other nodes of its publication.  Other nodes indepedently
+notify other nodes of its publication.  Other nodes independently
 validate the transactions it contains and add their confirmations
 to the transaction, which are recorded on the blockchain.  By
 convention, a transaction is deemed fully confirmed once six or
@@ -1244,7 +1250,7 @@ can run @<CW@> with the following command lines.
         by @<AW@>.
 
     \item[@<CW@> {\em transaction\_id}] ~\\
-        If your Bitcoin Core node has been configured with
+        If your Bitcoin Core node has been configured
         with ``{\tt txindex=1}'', which maintains an index of
         transactions, you can specify just the {\em transaction\_id},
         with the block hash found from the transaction index.
@@ -1253,7 +1259,7 @@ can run @<CW@> with the following command lines.
         If you have specified a log file maintained by @<AW@> on the
         command line with the {\tt -lfile} option, you may specify
         just the Bitcoin public address to which the transaction
-        pertains or the label you have assigned to in the the Bitcoin
+        pertains or the label you have assigned to it in the Bitcoin
         Core wallet.  The most recent transaction involving that
         address will be retrieved from the log file and monitored
         for confirmations.
@@ -1273,7 +1279,7 @@ communicates with the Bitcoin Core Application Programming Interface
         received before a transaction is deemed confirmed.  If
         a transaction is being monitored by the {\tt -watch}
         option, @<CW@> will exit after this number of
-        confirmations arrive.
+        confirmations have arrived.
 
     \item[{\tt -help}] ~\\
         Print a summary of how to call and command line options.
@@ -1309,7 +1315,7 @@ communicates with the Bitcoin Core Application Programming Interface
 \section{Transaction Fee Watch}
 \label{UG:TFW}
 
-Bitcoin transactions submitted for inclusion in the blockchan are
+Bitcoin transactions submitted for inclusion in the blockchain are
 accompanied by a transaction fee paid to the miner who
 includes the transaction in a block published to the blockchain.
 Transactions can be selected by miners at their discretion, but in
@@ -1357,7 +1363,7 @@ communicates with the Bitcoin Core Application Programming Interface
         Print a summary of how to call and command line options.
 
     \item[{\tt -poll} {\em time}] ~\\
-        Query and report transction fee estimates and statistics
+        Query and report transaction fee estimates and statistics
         every {\em time} seconds, by default 300 seconds (five
         minutes).
 
@@ -1381,7 +1387,7 @@ communicates with the Bitcoin Core Application Programming Interface
 When the {\tt -ffile} option is specified, @<FW@> writes a log file
 recording the transaction fee information it collects.  This file
 is written in Comma Separated Value (CSV) format, and consists of
-two type of records, as follows.
+two types of records, as follows.
 
 \subsubsection{Estimated fee record}
 
@@ -1449,12 +1455,13 @@ node.  Access to this interface can be via three mechanisms:
 
     \item[{\tt ssh}]    Access a remote Bitcoin Core node by submitting
         commands to its {\tt bitcoin-cli} utility via the Secure Shell
-        (SSH) facility.  The client and node machine must be configured
-        to permit password-less access via public key authentication.
+        (SSH) facility.  The client and node machines must be
+        configured to permit password-less access via public key
+        authentication.
 \end{description}
 
 The following options, common to all of these programs, allow you to
-confgure access to the API.  These options may be set on the command
+configure access to the API.  These options may be set on the command
 line or via a configuration file common to all of the programs.
 
 \begin{description}
@@ -1507,11 +1514,11 @@ X, and available for many other systems.  Consequently, you can run any
 of the pre-built versions of the tools, all of which have file types of
 ``{\tt .pl}'' or ``{\tt .py} by simply invoking them with the {\tt
 perl} or {\tt python3} commands.  The programs use a number of modules,
-some of which are ``core'' or ``standard''---included as part of
-current language distributions, and others which may have to be
+some of which are ``core'' or ``standard'' (included as part of
+current language distributions), and others which may have to be
 installed either from the operating system's software library or the
 \href{https://www.cpan.org/}{Comprehensive Perl Archive Network} and
-its search engine, \href{https://metacpan.org/}{MetaCPAN} ot with the
+its search engine, \href{https://metacpan.org/}{MetaCPAN} or with the
 {\tt pip3} utility for Python.  If a module is available from your
 operating system's distribution library, that's generally the best way
 to install it, since it will be automatically updated by the system's
@@ -1559,7 +1566,7 @@ avoiding single points of failure when validating the correctness
 of generated wallets, the @<VW@> program is written in the Python
 language (version 3 or greater), and requires the following modules
 be installed on systems that run it.  Modules marked ``{\em standard}''
-are part of Python's standard libraries should be installed on most
+are part of Python's standard libraries and should be installed on most
 systems that support the language.  If you don't run @<VW@>, you
 needn't bother installing these modules.
 
@@ -1615,10 +1622,10 @@ from the distribution archives of most Unix-like systems.
 
 When you build from source code, a number of build-time configuration
 parameters are incorporated from the Web file {\tt configuration.w}.
-Please see the documentation for that file in the source code listing,
-in the Introduction chapter, section ``Configuration''.  Most of the
+Please see the documentation for that file in the source code listing
+(in the Introduction chapter, section ``Configuration'').  Most of the
 configuration parameters set defaults which can be overridden by
-command-line options, so usually setting them is a convenience to
+command-line options, so setting them is normally a convenience to
 avoid having to specify the options you prefer, not a necessity.
 
 \section{License and Disclaimer of Warranty and Liability}
@@ -1638,7 +1645,7 @@ contributions under the same license as the original.
 This product is provided with no warranty, either expressed or implied,
 including but not limited to any implied warranties of merchantability
 or fitness for a particular purpose, regarding these materials and is
-made available available solely on an ``as-is'' basis.
+made available solely on an ``as-is'' basis.
 
 In no event shall John Walker be liable to anyone for special,
 collateral, incidental, or consequential damages in connection with or
@@ -1647,7 +1654,7 @@ exclusive liability of John Walker, regardless of the form of action,
 shall not exceed the compensation received by the author for the
 product.
 
-John Walker reserves the right to revise and improve this products as
+John Walker reserves the right to revise and improve this product as
 he sees fit.  This publication describes the state of this product at
 the time of its publication, and may not reflect the product at all
 times in the future.
@@ -1709,7 +1716,7 @@ addresses from them, and their output in a variety of formats.
 \subsection{Process command line options}
 
 If project- or program-level configuration files are present, process
-them, then process command line options.
+them first, then process options on the command line.
 
 @o perl/blockchain_address.pl
 @{
@@ -2517,7 +2524,7 @@ the result.
 
 \subsubsection{{\tt arg\_zero} --- {\tt -zero}: Push all zeroes on the stack}
 
-Push a value of all zero bits on the stack.  This is shortcut for
+Push a value of all zero bits on the stack.  This is a shortcut for
 explicitly specifying such a value with {\tt -seed}.
 
 @d arg\_zero: Push all zeroes on the stack
@@ -3038,7 +3045,7 @@ Search for a Bitcoin mini key that passes the checksum test,
 then return the mini key and corresponding full hexadecimal
 private key.  Since there is no way to encode an arbitrary
 seed into a mini key, we simply search the name space with
-pseudorandomly generated strings until we find one whose hash
+pseudo-randomly generated strings until we find one whose hash
 is correct, then generate the seed from it.
 
 @d findMiniKey: Find a Bitcoin mini key
@@ -3128,7 +3135,7 @@ perl blockchain_address.pl [ command... ]
     -outfile filename   Redirect key generation output to file or - for console
     -over               Duplicate second item on stack to top
     -p                  Print top item on stack
-    -phrase words...    Specify seed as BIP39 menemonic phrase
+    -phrase words...    Specify seed as BIP39 mnemonic phrase
     -pick n             Duplicate the nth item on the stack to top
     -pseudo             Generate pseudorandom seed and push on stack
     -pseudoseed         Set seed for pseudorandom generator
@@ -3367,9 +3374,10 @@ quality check.
 
 Now that we've generated the parts for this address and written them to
 the parts files, using copies of the parts squirreled away in the {\tt
-@@hexpart} array, re-assemble them in random order as many different
-ways as there are parts. This verifies that when the time comes we'll
-actually be able to reconstruct the original keys from the parts files.
+@@hexpart} array, we re-assemble them in random order in as many
+different ways as there are parts. This verifies that when the time
+comes we'll actually be able to reconstruct the original keys from the
+parts files.
 
 @o perl/multi_key.pl
 @{
@@ -3695,7 +3703,7 @@ status}, {\em partNumber}, {\em partValue}).
 \subsection{{\tt parseKey} --- Parse encoded key record}
 
 Parse an encoded key record, extracting the length, key, and checksum,
-then validate the checksum.  This used to validate key records after
+then validate the checksum.  This is used to validate key records after
 they are reassembled from parts.  A list is returned with a status
 indicating validity of the checksum and the extracted private key.
 
@@ -3905,7 +3913,7 @@ generate the HTML output.
 \subsubsection{{\tt addrFormat} --- Format address with separators}
 
 Format a public address or private key.  If a nonblank separator has
-been set, insert them between groups of four characters in the
+been set, insert it between groups of four characters in the
 string to make it more primate-readable.
 
 @o perl/paper_wallet.pl
@@ -3998,7 +4006,7 @@ EOD
 
 \subsubsection{{\tt HTMLrec} --- Output one address record to HTML file}
 
-Emit the record for one blockchain address / private key pair.  Note
+Generate the record for one blockchain address / private key pair.  Note
 that our @<VW@> program is sensitively dependent upon the
 format of these records; if you change them indiscriminately, you're
 likely to break that program.
@@ -4076,7 +4084,7 @@ EOD
 
 This CSS style sheet is embedded in the HTML file we generate.  It is
 embedded in the interest of its being entirely self-contained and thus
-more easily transferred from, for example, an air-gapped computer on
+more easily transferred from, for example, the air-gapped computer on
 which it is generated and another machine with a direct connection
 to a printer.
 
@@ -4185,8 +4193,8 @@ wallet file correspond to the public addresses generated from them.  It
 avoids the tragedy when, for whatever cause, funds are sent to a public
 address for which the corresponding private key is not known.  It can
 validate either a CSV wallet generated by @<BA@>, or a printable HTML
-file created from it with @<PW@>.  This program cannot directly
-validate multi-part keys created by @<MK@>, it may be used to
+file created from it with @<PW@>.  Although this program cannot
+directly validate multi-part keys created by @<MK@>, it may be used to
 validate their reconstruction after the parts are joined.
 
 To avoid any commonality with the wallet generation code, it is
@@ -4198,7 +4206,7 @@ language's libraries.  This program requires Python version 3 or above.
 \subsubsection{Bitcoin library modules}
 
 The following Python library modules are used to manipulate Bitcoin
-public addresses amd private keys.
+public addresses and private keys.
 
 @d Bitcoin library modules
 @{
@@ -4314,11 +4322,11 @@ offline cold storage wallets.  This allows verifying the correctness of
 both formats of wallets, guarding against corruption creating HTML from
 the CSV master (or corruption after they are created).
 
-Errors are dignosed internally, with error messages giving
-the line number in the file.  At end of file, a triple consisting
-of three blank strings is returned.  This function is agnostic
-as to currency type and address variants.  It's up to the caller
-to recognise what the record represents.
+Errors are dignosed internally, with error messages giving the line
+number in the file.  At the end of the file, a triple consisting of
+three blank strings is returned.  This function is agnostic as to
+currency type and address variants.  It's up to the caller to recognise
+what the record represents.
 
 @d Get next address, key pair
 @{
@@ -4755,7 +4763,7 @@ as a hard fail and abandoned.
 
 If we've shuffled the order in which addresses will be queried and the
 {\tt -sort} option was specified, we defer reporting the results of
-queries when the arrive and, instead, save them in the {\tt @@repRec}
+queries when they arrive and, instead, save them in the {\tt @@repRec}
 array, tagged with the address queried.  At the end of a pass over all
 of the addresses, these are sorted back into the order the addresses
 were originally specified and reported in order.  This produces an
@@ -4843,11 +4851,11 @@ EOD
 
 \subsection{Pseudorandom number generator}
 
-The pseudorandom number generator is used only for shuffling
-the order in which addresses are queried if selected and determining
-the stochastic component of the delay between queries.  A full-blown
-Mersenne twister generator is overkill for such purposes, but we have
-one laying around, so why not use it?
+The pseudorandom number generator is used only for shuffling the order
+in which addresses are queried (if {\tt -shuffle} is specified) and
+determining the stochastic component of the delay between queries.  A
+full-blown Mersenne twister generator is overkill for such purposes,
+but we have one lying around, so why not use it?
 
 @o perl/cold_comfort.pl
 @{
@@ -5221,7 +5229,7 @@ not be re-scanned.
 
 \subsection{Retrieve and scan blocks}
 
-Having determined the range to blocks to scan, proceed to scan them and
+Having determined the range of blocks to scan, proceed to scan them and
 accumulate references to addresses we're watching within them. Before
 entering the scanning loop, we perform an initial scan of the wallet
 for addresses with unspent balances.  This avoids missing any address
@@ -5320,7 +5328,7 @@ examined.
 
 \subsection{Local and utility functions}
 
-Import local (program-specific) functions defined below and utlity
+Import local (program-specific) functions defined below and utility
 functions common to multiple programs.
 
 @o perl/address_watch.pl
@@ -5760,9 +5768,9 @@ label.
 \section{For test mode, choose transaction from recent block}
 
 When {\tt -testmode} is specified, rather than taking the transaction
-ID and block hash from the command, line we scan recent blocks,
+ID and block hash from the command line, we scan recent blocks,
 starting with the newest, looking for the non-codebase transaction with
-the fewest inputs and outputs.  We'll usually find one with the mininum
+the fewest inputs and outputs.  We'll usually find one with the minimum
 of one input and output early in the first block we scan.  We then use
 that as the transaction to watch, allowing easy testing without the
 need to submit an actual transaction or manually dig out a transaction
@@ -5800,7 +5808,7 @@ without a transaction index.
 
 If an address is specified, try looking up in the Address Watch log to
 find the transaction ID and block hash.  We accept either the Bitcoin
-address or the label the user assigned to it.  If a single argument if
+address or the label the user assigned to it.  If a single argument is
 specified, we have a kludgelet to decide whether it's a label or a
 transaction ID: if the length is less than 48 characters or it contains
 a character which isn't a valid hexadecimal digit, we deem it a label,
@@ -5860,12 +5868,12 @@ If the user has specified just a transaction ID with no
 block hash, we can only process the request if the Bitcoin
 node to which we're talking is configured to maintain a
 transaction index.  We verify whether this is the case and
-reject the request if it isn't.  It would be possible to
+reject the request if it isn't.  (It would be possible to
 handle the case where a transaction ID has been assigned
 but the transaction hasn't been mined from the mempool onto
 the blockchain, waiting for it to show up in a block the
 same way we do polling for a label or address to appear
-in the @<AW@> log, but this isn't presently implemented.
+in the @<AW@> log, but this isn't presently implemented.)
 
 @o perl/confirmation_watch.pl
 @{
@@ -6042,8 +6050,8 @@ Iterate over the transactions in the block, keeping track of
 the transaction with the minimum number of both inputs and
 outputs.  Coinbase transactions (rewards to miners) are ignored.
 If we find a transaction with just one input and output, we
-aren't going to see anything better, we quit immediately at
-that point choose it.
+aren't going to see anything better, so we quit immediately at
+that point and choose it.
 
 @d getRecentTransaction: Choose recent transaction for test mode
 @{
@@ -6552,7 +6560,7 @@ with echo disabled in the interest of security.
 
 This function sends a command to the Bitcoin RPC/JSON API and returns
 its result, or an undefined value in case of error. Its argument is a
-reference of an array of arguments in precisely the form they would be
+reference to an array of arguments in precisely the form they would be
 submitted on the {\tt bitcoin-cli} command line.  The query is sent by
 the means specified by the {\tt \$RPCmethod} variable, as follows.
 
@@ -6749,12 +6757,10 @@ Bitcoin API access configuration options:
 
 \section{{\tt blockReward} --- Compute reward for mining block}
 
-When a miner solves a hash and publishes a block, they receive a
-reward composed of a fee for the block plus all of the fees for
-transactions packed into the block.  The block reward in
-Bitcoin, $R_b$, is
-computed on a scale which declines with the block number $b$
-according to:
+A miner who solves a hash and publishes a block receives a reward
+composed of a fee for the block plus all of the fees for transactions
+packed into the block.  The block reward in Bitcoin, $R_b$, is computed
+on a scale which declines with the block number $b$ according to:
 
 \[
     R_b = \frac{50}{2^{\lfloor (b+1)/210000\rfloor}}
