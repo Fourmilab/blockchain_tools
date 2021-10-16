@@ -1628,6 +1628,32 @@ configuration parameters set defaults which can be overridden by
 command-line options, so setting them is normally a convenience to
 avoid having to specify the options you prefer, not a necessity.
 
+\subsection{Build procedure}
+
+Once you have installed all of the required utilities ({\bf nuweb},
+XeTeX, Perl, Python, and the modules required), you can build the
+programs by entering the top level directory of the distribution
+(the one which contains the {\tt blockchain\_tools.w} file) and
+entering the following commands.  (I've added comments to the commands
+to explain what they do---you need not enter them.)
+
+\begin{verbatim}
+    make dist       # Build all programs and documents
+    make regress    # Run regression test
+\end{verbatim}
+
+It is not unusual to see a few differences in the balances reported
+for some of the addresses in the regression test output: the
+blockchains never sleep and balances sometimes change.  If that's the
+only discrepancy reported in the regression test, you can run
+``{\tt make regress\_update}'' to incorporate the changes in the
+expected output of the regression test.
+
+After the build process, the ready-to-run Perl and Python programs will
+be in the {\tt bin} subdirectory while User Guide and program listing
+PDF files will be in the {\tt doc} subdirectory.  You can, if you wish,
+re-generate the distribution archive with ``{\tt make release}''.
+
 \section{License and Disclaimer of Warranty and Liability}
 
 This product (software, documents, and data files) is licensed under a
@@ -1747,6 +1773,9 @@ them first, then process options on the command line.
         "minigen"   =>  \&arg_minigen,
         "minikey=s" =>  \&arg_minikey,
         "mnemonic"  =>  \&arg_mnemonic,
+@}
+@o perl/blockchain_address.pl
+@{
         "not"       =>  \&arg_not,
         "outfile=s" =>  \&arg_outfile,
         "over"      =>  \&arg_over,
@@ -2084,7 +2113,6 @@ the stack, and output the mini key.  This command responds to the
         @<Open output file@>
         @<Begin command repeat@>
             my ($minikey, $privkey) = findMiniKey();
-# my ($minikey, $privkey) = ("SoEGNB7gNfVnnjUFK4YYmuPgJD2t7M", "A71E1257AEF63B24BBB37D294C7E09096F921622D6D92600F25A3F250C20E0D9");
             if ($keep) {
                 push(@@kept, $privkey);
             }
@@ -7125,7 +7153,8 @@ release:
         rm -rf $(PROJECT)-$(VERSION)
         tar cfv release_temp.tar \
             *.w Makefile bin doc \
-            figures perl/.keep python/.keep tools
+            figures perl/.keep python/.keep tools \
+            --exclude="test/test_output" test
         mkdir $(PROJECT)-$(VERSION)
         ( cd $(PROJECT)-$(VERSION) ; tar xfv ../release_temp.tar )
         rm release_temp.tar

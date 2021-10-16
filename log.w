@@ -766,10 +766,13 @@ the files named on the command line.  This makes the output easier to
 interpret but defers output until all addresses have been
 queried.
 
-\chapter{To do}
+\date{2021 October 15}
 
-Accumulate value in to address as well as value out in @<AW@>
-and report in statistics.
+Added the {\tt test} subdirectory to the distribution archive so that
+the regression test may be run after building from it.
 
-Options which request passwords prompt the user interactively if given
-a blank argument.
+Added instructions for rebuilding from the distribution archive to
+the ``Installation'' section of the documents.
+
+Updated {\tt test/watch\_addrs.csv} to replace some volatile Ethereum
+addresses with ones I hope will be more stable.
