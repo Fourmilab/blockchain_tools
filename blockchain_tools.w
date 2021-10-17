@@ -7181,13 +7181,13 @@ squeaky:
 
 \subsection{Regression testing}
 
-The main regression test for the stand-alone blockchain utilities
-resides in the {\tt test} subdirectory but may be run from any
-directory.  It writes its temporary output in a {\tt test/test\_output}
-directory, which it cleans up every time it runs.  Tests are run
-on programs from the {\tt bin} subdirectory where the {\tt dist}
-target installs them.  To avoid confusion, we make sure the most
-recently built version of one program is the same as the one in
+The \hyperref[RT:script]{regression test} for the stand-alone
+blockchain utilities resides in the {\tt test} subdirectory but may be
+run from any directory.  It writes its temporary output in a {\tt
+test/test\_output} directory, which it cleans up every time it runs.
+Tests are run on programs from the {\tt bin} subdirectory where the
+{\tt dist} target installs them.  To avoid confusion, we make sure the
+most recently built version of one program is the same as the one in
 that directory and warn if it looks like we're testing an old version.
 
 @o Makefile.mkf
@@ -7197,7 +7197,7 @@ regress:
         then \
             echo "Did you forget to make dist?" ; \
         fi
-        test/test.sh
+        /bin/bash test/test.sh
 
 @}
 
@@ -7287,6 +7287,283 @@ tools
 *.pl
 *.py
 *.gz
+@}
+
+\section{Regression test}
+\label{RT:script}
+
+The regression test runs all of the stand-along blockchain utilities.
+The Bitcoin utilities which require access to a Bitcoin node are
+not tested, as it is more difficult to set up the connection to a
+node and the nature of a live node makes the repeatability of
+results necessary for a regression test difficult to achieve.  The
+test is run by the {\tt regress} target in the {\tt Makefile}.
+When necessary, the reference output from the test may be updated
+by the {\tt regress\_update} target.
+
+\subsection{Test script}
+
+This shell script runs the regression test, using the executable
+programs installed in the {\tt bin} directory by the {\tt dist} target
+in the {\tt Makefile}.  Intermediate output from the script is written
+in the {\tt test/test\_output} directory, and the results are compared
+against the reference in the {\tt test\_log\_expected.txt} file.  The
+script must be run with the {\tt bash} shell, as it uses some features
+that are specific to it.
+
+@o test/test.sh
+@{#! /bin/bash
+
+@<Explanatory header for shell-like files@>
+    #
+    #   Build @<Build number@>  @<Build date and time@>
+
+#   Regression test for stand-alone Fourmilab Blockchain utilities
+
+MYDIR="`dirname \"$0\"`"
+PATH=$MYDIR/../bin:$PATH
+TESTOUT=$MYDIR/test_output
+
+rm -rf $TESTOUT
+mkdir $TESTOUT
+
+O=$TESTOUT/test_log.txt
+@}
+
+Generate test addresses.  Note that we must make them deterministic
+in order to compare with reference output.  This constitutes the
+test for the @<BA@> program, and exercises most of its facilities.
+In order that the output be repeatable on each run of the test, we
+use the {\tt -seed} command to fix the seed for the pseudorandom
+number generator used throughout the tests.
+
+@o test/test.sh
+@{
+echo -e         \\nGenerate Bitcoin and Ethereum address/key pairs\\n >$O
+
+blockchain_address.pl \
+    -testmode 1 \
+    -seed 0x1b34f57bcdc7bd5368136ebe1e019bc7013884d0f7d8754d5b0ff6fb5f923f9a \
+    -dup        \
+    -pseudoseed \
+    -dup        \
+    -sha2       \
+    -swap       \
+    -sha3       \
+    -over       \
+    -over       \
+    -swap       \
+    -xor        \
+    -not        \
+    -rot        \
+    -rrot       \
+    -dup        \
+    -shuffle    \
+    -test       \
+    -wif L1eqjiRSttGmZFiWqmzF43PJHNt64NgyvGFKUeqQj4G3LXw2hLaU \
+    -wif 5JpYS5rVXLKXV9mkTunbT4iJWYEqizvvDyUG4YgWqx7acLEbecW  \
+    -pick 2     \
+    -zero       \
+    -xor        \
+    -minikey S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy \
+    -minikey S4b3N3oGqDqR5jNuxEvDwf         \
+    -repeat 2   \
+    -minigen    \
+    -format CSVk    \
+    -minigen    \
+    -format CSVkb   \
+    -minigen    \
+    -dump       \
+    -clear      \
+    -repeat 3   \
+    -pseudo     \
+    -format k   \
+    -btc        \
+    -eth        \
+    -format CSVk    \
+    -btc        \
+    -eth        \
+    -format CSVbk   \
+    -btc        \
+    -eth        \
+    -format CSVk    \
+    -outfile $TESTOUT/btc.csv \
+    -btc        \
+    -outfile $TESTOUT/eth.csv \
+    -eth        \
+        >>$O
+@}
+
+Next, we use the @<VW@> program to validate the Bitcoin and Ethereum
+addresses we generated.  This both tests their generation and the
+validation process.
+
+@o test/test.sh
+@{
+echo -e         \\nValidate generated addresses\\n >>$O
+
+validate_wallet.py $TESTOUT/btc.csv >>$O
+validate_wallet.py $TESTOUT/eth.csv >>$O
+@}
+
+Generate paper wallets from both the Bitcoin and Ethereum addresses.
+We add the SHA-256 addresses of the paper wallets to the test log
+to detect any discrepancies from the expected output.
+
+@o test/test.sh
+@{
+echo -e         \\nGenerate paper wallet HTML from the addresses\\n >>$O
+
+paper_wallet.pl -date Today $TESTOUT/btc.csv >$TESTOUT/btc.html
+paper_wallet.pl -date Today $TESTOUT/eth.csv >$TESTOUT/eth.html
+sha256sum $TESTOUT/btc.html $TESTOUT/eth.html >>$O
+@}
+
+Validate the paper wallets, testing both @<PW@> and @<VW@>.
+
+@o test/test.sh
+@{
+echo -e         \\nValidate the HTML paper wallets\\n >>$O
+
+validate_wallet.py $TESTOUT/btc.html >>$O
+validate_wallet.py $TESTOUT/eth.html >>$O
+@}
+
+Begin the testing of @<MK@> by generating multi-part split keys for
+the Bitcoin and Ethereum addresses we've previously generated, split
+five ways with three needed for the former and eleven ways with seven
+needed for the latter.
+
+@o test/test.sh
+@{
+echo -e         \\nSplit the generated addresses into parts, different for BTC and ETH\\n >>$O
+
+multi_key.pl -parts 5 -needed 3 $TESTOUT/btc.csv
+sha256sum $TESTOUT/btc-*.csv >>$O
+multi_key.pl -parts 11 -needed 7 $TESTOUT/eth.csv
+sha256sum $TESTOUT/eth-*.csv >>$O
+@}
+
+Re-join the split keys, creating new key files.
+
+@o test/test.sh
+@{
+echo -e         \\nJoin the parts of the generated address into reconstituted address/key files\\n >>$O
+
+multi_key.pl -join $TESTOUT/btc-5.csv $TESTOUT/btc-3.csv $TESTOUT/btc-1.csv
+multi_key.pl -join $TESTOUT/eth-10.csv $TESTOUT/eth-06.csv $TESTOUT/eth-09.csv \
+    $TESTOUT/eth-02.csv $TESTOUT/eth-01.csv $TESTOUT/eth-08.csv $TESTOUT/eth-04.csv
+@}
+
+Compare the keys reconstructed from the split parts with the originals.
+They should be identical, except for the comment identifying the parts
+used in the join process.
+
+@o test/test.sh
+@{
+echo -e         \\nCompare the re-constructed keys with the originals. >>$O
+echo -e         They should differ only in the comment specifying the parts used.\\n >>$O
+
+diff $TESTOUT/btc.csv $TESTOUT/btc-merged.csv >>$O
+diff $TESTOUT/eth.csv $TESTOUT/eth-merged.csv >>$O
+@}
+
+Validate the reconstructed keys.  If they passed the comparison test
+above, they ought to validate, but you never know\ldots.
+
+@o test/test.sh
+@{
+echo -e         \\nValidate keys re-constructed from parts\\n >>$O
+
+validate_wallet.py $TESTOUT/btc-merged.csv >>$O
+validate_wallet.py $TESTOUT/eth-merged.csv >>$O
+@}
+
+Generate paper wallets from parts of split keys.  We compare these with
+the reference via SHA-256 sums.  It is not possible to validate split
+key paper wallets since the keys in them do not represent complete
+private keys.
+
+@o test/test.sh
+@{
+echo -e         \\nMake paper wallets of parts of generated addresses\\n >>$O
+paper_wallet.pl -date Today $TESTOUT/btc-3.csv >$TESTOUT/btc-3.html
+paper_wallet.pl -date Today $TESTOUT/eth-09.csv >$TESTOUT/eth-09.html
+sha256sum $TESTOUT/btc-3.html $TESTOUT/eth-09.html >>$O
+@}
+
+Test @<CC@> by checking some Bitcoin and Ethereum addresses with large
+balances which haven't had any transfers out for a long period
+of time.  The addresses (particularly Bitcoin, which seems to be a
+spam/scam-rich environment) may accrete dust which may either be
+ignored or fixed by updating the expected balances.
+
+@o test/test.sh
+@{
+echo -e         \\nRun Cold Comfort on some large Bitcoin and Ethereum addresses\\n >>$O
+
+cold_comfort.pl -verbose -waitconst 5 -waitrand 0 -zero \
+    $MYDIR/watch_addrs.csv >>$O
+@}
+
+All tests have been run, placing the output in the
+{\tt test\_output/test\_log.txt} file.  Compare this to the expected
+output, report any discrepancies, and set the exit status so
+{\tt make} will error the command.
+
+@o test/test.sh
+@{
+#   Compare the test report with the reference results and set status
+
+diff $MYDIR/test_log_expected.txt $O
+if [ $? -ne 0 ]
+then
+    echo "Discrepancies found in test results."
+    exit 1
+else
+    echo "All tests passed."
+fi
+exit 0
+@}
+
+\subsection{Watch addresses definition}
+
+In order to test @<CC@>, we need to query some Bitcoin and Ethereum
+addresses and validate their balances.  Ideally, these addresses should
+be ones which do not change, which would create discrepancies in the
+validation of test output.  Toward that end, we query known addresses
+with large balances which have seen no outflows since their first
+appearance on the blockchain.  For Bitcoin, we use well-known dormant
+``whale'' addresses, and for Ethereum, addresses which are almost
+certainly typographical errors entering known addresses, and hence lost
+forever to the sender of funds.  Unfortunately, especially for Bitcoin,
+spammers and scammers spew tiny ``dust'' transactions which deposit
+funds in addresses, resulting in the balance in these addresses
+changing occasionally.  These changes may either be ignored or
+accommodated by adjusting the expected balances in this file.
+
+@o test/watch_addrs.csv
+@{
+@<Explanatory header for shell-like files@>
+    #
+    #   Build @<Build number@>  @<Build date and time@>
+#
+#   A few Bitcoin and Ethereum addresses with large balances
+#   and no payments out (at the time of this writing).  These
+#   are used for testing Cold Comfort.  It is normal for these
+#   addresses to accrete "dust" over time as they are targets
+#   of spammers and scammers.  If these discrepancies bother
+#   you, update the balances to include the dust.
+#
+#                   Bitcoin
+#
+BTC1,"12tkqA9xSoowkzoERHMWNKsTey55YEBqkv","",28151.05837084
+BTC2,"1PeizMg76Cf96nUQrYg8xuoZWLQozU5zGW","",19414.43070193
+#
+#                   Ethereum
+#
+ETH1,"0xc9b83ab54C84AAC4445B56a63033dB3D5B017764","",2400.0
+ETH2,"0x9A0B7ba68f0f534cbAE5A8AE301542eF0298613B","",1000.0
 @}
 
 \clearpage

@@ -776,3 +776,13 @@ the ``Installation'' section of the documents.
 
 Updated {\tt test/watch\_addrs.csv} to replace some volatile Ethereum
 addresses with ones I hope will be more stable.
+
+\date{2021 October 17}
+
+Integrated the regression test into the main Web.  The
+{\tt watch\_addrs.csv} file it uses to test @<CC@> is also defined in
+the Web.
+
+Replaced watched addresses for the regression test with well-known
+dormant Bitcoin addresses and likely typographic error Ethereum
+addresses.
