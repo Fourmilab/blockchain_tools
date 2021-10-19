@@ -23,7 +23,7 @@ read.
 
 Added the ability in @<CW@> to specify the RPC password from the
 keyboard with no echo or piped from standard input. This is handled by
-a new function, {\tt getPassword(}{\em prompt>}{\tt )}, which we can
+a new function, {\tt getPassword(}{\em prompt}{\tt )}, which we can
 use in other cases where passwords are required.
 
 If no {\tt -wfile} was specified to @<AW@> but explicit addresses were
@@ -181,7 +181,7 @@ means for more than one address to be present in the
 
 With this analysis in place, I added analysis of inbound transactions
 to @<AW@>.  For the cold storage monitoring application,
-this is arguably the most important, since is somebody has obtained
+this is arguably the most important, since if somebody has obtained
 the private key of a cold storage vault address, the first indication
 will be a transfer to another address with the cold storage as the
 inbound funds of the thief's transaction.  The real world blockchain
@@ -323,7 +323,7 @@ Added a ``{\tt bl}'' target to the {\tt Makefile} to do a {\tt build}
 and then {\tt lint}, aborting the make if an error occurs in the build.
 
 Added code to force hexadecimal letter digits to upper case when
-loading seeds with {\tt -seed} or {\tt hexfile} in @<BA@>.
+loading seeds with {\tt -seed} or {\tt -hexfile} in @<BA@>.
 
 Our strategy in @<AW@> of purging addresses from the wallet containing
 unspent funds and retrieving a new list before each scan of a block had
@@ -332,7 +332,7 @@ in a wallet address.  This happens because when using funds from a
 wallet address, its balance is zeroed out and replaced with a new
 address containing the change (if any).  These changes happen in the
 wallet when the transaction is broadcast to the mempool, but don't
-appear in the blockchain until the first confirmation for the
+appear on the blockchain until the first confirmation for the
 transaction arrives.  When that happens, however, the sending address
 will no longer appear in the list returned by {\tt listunspent} since
 it has been zeroed out when the transaction was broadcast.
@@ -444,10 +444,10 @@ with:
 \end{quotation}
 
 A new {\tt guide} target in the {\tt Makefile} generates the complete
-document, then runs {\tt sed} filters over it to remove everything
-marked to be expunged and expand the material which appears only in
-the User Guide, compiles the document, and displays the resulting
-PDF\@@.  The {\tt geek} target just views this PDF.
+User Guide document, then runs {\tt sed} filters over it to remove
+everything marked to be expunged and expand the material which appears
+only in the User Guide, compiles the document, and displays the
+resulting PDF\@@.  The {\tt geek} target just views this PDF.
 
 These targets are intended for the development cycle.  For release,
 a general target to build distribution files will be added and used.
@@ -548,7 +548,7 @@ if invoked in interactive ({\tt -inter}) mode.
 
 Added a {\tt -bindump} command to @<BA@> which writes the entire
 contents of the stack in binary to a specified file.  Such files can
-be loaded back on the stack with the {\tt -binfile} command.
+be loaded back onto the stack with the {\tt -binfile} command.
 
 Replaced all \verb+\ref{LBL}+ references with \verb+\hyperref[LBL]{}+
 wrapped around the referenced text.
@@ -569,15 +569,15 @@ Makefile}.  Added a {\tt dist} target which copies the generated Perl
 and Python files to a {\tt bin} directory, where there are pre-created
 symbolic links to invoke the programs without the file type extension,
 and to copy the PDF documentation to a {\tt doc} directory.  A new {\tt
-release} target builds a Gzipped tar archive containing the web files,
+release} target builds a gzipped tar archive containing the web files,
 the {\tt Makefile}, and the {\tt bin}, {\tt doc}, {\tt figures}, and
 {\tt tools} directories.  I have yet to see if this is sufficient to
 rebuild everything from bare metal.
 
 \date{2021 September 8}
 
-Added README.md, LICENSE.md, and CONTRIBUTING.md to the main archive
-in preparation for publication on GitHub.
+Added {\tt README.md}, {\tt LICENSE.md}, and {\tt CONTRIBUTING.md} to
+the main archive in preparation for publication on GitHub.
 
 \date{2021 September 9}
 
@@ -598,7 +598,7 @@ facility is the requirement that all of the objects upon which @<BA@>
 operates be 256 bit quantities.  Typical use of AES encryption in,
 for example, cipher-block-chaining mode, is not length-preserving:
 the encrypted text is longer than the plaintext, with a header
-containing the (usually random) initial vector used to encrypt the it.
+containing the (usually random) initial vector used to encrypt it.
 This complete message is required, then, to decrypt the shorter
 plaintext.  But since things we might want to encrypt are 256 bits
 and we can only pass quantities of that length along our pipelines,
@@ -610,20 +610,20 @@ from the encryption key in the interest of security.  (Of course, for
 most such applications, splitting keys into parts with @<MK@> is a
 better solution.)  The main rationale for a random initial vector is to
 avoid known plaintext attacks.  But the private keys that people will
-be encryption will be near-maximal entropy random or pseudorandom bit
+be encrypting will be near-maximal entropy random or pseudorandom bit
 strings (unless the user is doing something stupid which, of course,
 with a toolbox utility like this, they are entitled to do).
 Consequently, the additional security provided by a random initial
 vector is not as important as for potentially low entropy text.  To
 maintain a secure form of encryption and not increase message length,
 we synthesise an initial vector from the encryption key, forming its
-256 bit SHA2 digest, then using the first 16 bytes of this as the
+256 bit SHA2 digest, then use the first 16 bytes of this as the
 initial vector.  Used with the cipher feedback mode and no header, the
 encrypted data remain 256 bits long.  To decrypt it with the key, we
 rebuild the initial vector from the key, then pass it to decryption.
 
 Encryption is now done by an {\tt -aesenc} command with decryption
-performed by {\tt aesdec}, both of which take the encryption key from
+performed by {\tt -aesdec}, both of which take the encryption key from
 the top of the stack and the plaintext or codetext from the second item
 and place the result back on the stack.
 
@@ -640,7 +640,7 @@ command is thus no longer strictly necessary, but left in as a
 convenience so you don't have to fiddle with the repeat setting when
 loading keys from a binary or hexadecimal file, for example.
 
-Modified @<BA@>'s {-tt shuffle} command to respect the {\tt -repeat}
+Modified @<BA@>'s {\tt -shuffle} command to respect the {\tt -repeat}
 setting instead of blindly shuffling the entire contents of the stack.
 This also provides the useful capability to shuffle just the bytes of
 the top item on the stack.
@@ -779,9 +779,9 @@ addresses with ones I hope will be more stable.
 
 \date{2021 October 17}
 
-Integrated the regression test into the main Web.  The
+Integrated the regression test into the main web.  The
 {\tt watch\_addrs.csv} file it uses to test @<CC@> is also defined in
-the Web.
+the web.
 
 Replaced watched addresses for the regression test with well-known
 dormant Bitcoin addresses and likely typographic error Ethereum
