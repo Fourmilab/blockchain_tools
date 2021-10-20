@@ -792,3 +792,7 @@ addresses.
 Removed the build number and date from {\tt test/test.sh} and
 {\tt test/watch\_addrs.csv} to avoid proliferating changes to the
 Git archive for changes only to build ID.
+
+\date{2021 October 20}
+
+Release 1.0, Build 806.
