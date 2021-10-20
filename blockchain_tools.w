@@ -7315,8 +7315,6 @@ that are specific to it.
 @{#! /bin/bash
 
 @<Explanatory header for shell-like files@>
-    #
-    #   Build @<Build number@>  @<Build date and time@>
 
 #   Regression test for stand-alone Fourmilab Blockchain utilities
 
@@ -7545,8 +7543,6 @@ accommodated by adjusting the expected balances in this file.
 @o test/watch_addrs.csv
 @{
 @<Explanatory header for shell-like files@>
-    #
-    #   Build @<Build number@>  @<Build date and time@>
 #
 #   A few Bitcoin and Ethereum addresses with large balances
 #   and no payments out (at the time of this writing).  These

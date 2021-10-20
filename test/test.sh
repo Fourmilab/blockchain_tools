@@ -10,8 +10,6 @@
     #   and is documented in the file blockchain_tools.pdf in the root directory
     #   of that repository.
 
-    #
-    #   Build 800  2021-10-17 22:29
 
 #   Regression test for stand-alone Fourmilab Blockchain utilities
 

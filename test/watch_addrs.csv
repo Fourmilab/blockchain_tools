@@ -9,8 +9,6 @@
     #   and is documented in the file blockchain_tools.pdf in the root directory
     #   of that repository.
 
-    #
-    #   Build 800  2021-10-17 22:29
 #
 #   A few Bitcoin and Ethereum addresses with large balances
 #   and no payments out (at the time of this writing).  These

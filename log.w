@@ -786,3 +786,9 @@ the web.
 Replaced watched addresses for the regression test with well-known
 dormant Bitcoin addresses and likely typographic error Ethereum
 addresses.
+
+\date{2021 October 19}
+
+Removed the build number and date from {\tt test/test.sh} and
+{\tt test/watch\_addrs.csv} to avoid proliferating changes to the
+Git archive for changes only to build ID.
