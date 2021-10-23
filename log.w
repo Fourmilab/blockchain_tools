@@ -802,4 +802,4 @@ Release 1.0, Build 806.
 Removed the {\tt Makefile} from {\tt .gitignore} so it is included
 in the Git repository.  It is needed to bootstrap the build process.
 
-Release 1.0.1, Build 807.
+Release 1.0.1, Build 808.
