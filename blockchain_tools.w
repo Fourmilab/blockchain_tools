@@ -105,7 +105,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
-@d Project Version @{1.0@}
+@d Project Version @{1.0.1@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -7271,7 +7271,6 @@ document from version control.
 @o .gitignore
 @{
 .gitignore
-Makefile
 Makefile.mkf
 *.aux
 *.log
