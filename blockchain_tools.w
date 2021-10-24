@@ -758,7 +758,7 @@ locations).  A cold storage wallet consists simply of a list of one
 or more pairs of blockchain public addresses and private keys.
 Funds are sent to the public address and the corresponding private
 key is never used until the funds are needed and they are ``swept''
-into an online wallet by entering the public key.
+into an online wallet by entering the private key.
 
 The @<BA@> program makes it easy to generate address and key pairs for
 offline cold storage, encoding them as comma-separated value (CSV)
@@ -7270,7 +7270,6 @@ document from version control.
 
 @o .gitignore
 @{
-.gitignore
 Makefile.mkf
 *.aux
 *.log
@@ -7280,10 +7279,9 @@ Makefile.mkf
 *.toc
 bin/*.pl
 bin/*.py
+perl/*.pl
 run
 test/test_output
-tools
-*.pl
 *.py
 *.gz
 @}

@@ -803,3 +803,23 @@ Removed the {\tt Makefile} from {\tt .gitignore} so it is included
 in the Git repository.  It is needed to bootstrap the build process.
 
 Release 1.0.1, Build 808.
+
+\date{2021 October 24}
+
+The utility {\tt tools/build/update\_build.pl} which was required for
+the ``bare metal'' rebuild process was missing from the Git repository
+because it was excluded by a too-inclusive rule of ``{\tt *.pl}'' in
+{\tt .gitignore}.  I changed this to only exclude Perl files in the
+{\tt perl} directory so the file and its parent directories are
+included in the repository.  Further, there was an explicit ignore of
+the entire {\tt tools} directory tree dating from the days when it
+contained things unrelated to the build process: I removed it.
+
+The {\tt .gitignore} file ignored itself, meaning that those who clone 
+the repository and then set up a remote repository would, by default, 
+commit the derivative files we exclude.  Since today's exercise 
+demonstrates how difficult it is to get this right, I'm going to remove 
+that exclude so {\tt .gitignore} is in the repository.
+
+Release 1.0.2, Build ???
+

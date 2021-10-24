@@ -1,0 +1,15 @@
+
+Makefile.mkf
+*.aux
+*.log
+*.out
+/*.pdf
+*.tex
+*.toc
+bin/*.pl
+bin/*.py
+perl/*.pl
+run
+test/test_output
+*.py
+*.gz
