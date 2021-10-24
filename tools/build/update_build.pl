@@ -10,9 +10,6 @@
     #   and is documented in the file blockchain_tools.pdf in the root directory
     #   of that repository.
 
-    #
-    #   Build 813  2021-10-24 10:56
-
 
     
         require 5;

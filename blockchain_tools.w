@@ -105,7 +105,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
-@d Project Version @{1.0.1@}
+@d Project Version @{1.0.2@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -1577,8 +1577,8 @@ needn't bother installing these modules.
     \item {\tt coincurve}
     \item {\tt cryptos}
     \item {\tt fileinput} {\em standard}
+    \item {\tt pysha3} (If {\tt sha3} is installed, it must be removed.)
     \item {\tt re} {\em standard}
-    \item {\tt sha3}
     \item {\tt sys} {\em standard}
 \end{itemize}
 
@@ -7221,7 +7221,9 @@ UTC date and time in the {\tt build.w} file which is included here to
 implement build number consistency checking.
 
 @o tools/build/update_build.pl
-@{@<Explanatory header for Perl files@>
+@{#! @<Perl directory@>
+
+@<Explanatory header for shell-like files@>
 
     @<Perl language modes@>
 

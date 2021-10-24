@@ -821,5 +821,10 @@ commit the derivative files we exclude.  Since today's exercise
 demonstrates how difficult it is to get this right, I'm going to remove 
 that exclude so {\tt .gitignore} is in the repository.
 
-Release 1.0.2, Build ???
+Removed the build number comment from {\tt tools/build/update\_build.pl}.
+This was causing it to be updated in the Git repository every time it
+ran, which is unnecessary for this program, which is part of the build
+process and serves only to update {\tt build.w}.
+
+Release 1.0.2, Build 816.
 
