@@ -815,10 +815,10 @@ included in the repository.  Further, there was an explicit ignore of
 the entire {\tt tools} directory tree dating from the days when it
 contained things unrelated to the build process: I removed it.
 
-The {\tt .gitignore} file ignored itself, meaning that those who clone 
-the repository and then set up a remote repository would, by default, 
-commit the derivative files we exclude.  Since today's exercise 
-demonstrates how difficult it is to get this right, I'm going to remove 
+The {\tt .gitignore} file ignored itself, meaning that those who clone
+the repository and then set up a remote repository would, by default,
+commit the derivative files we exclude.  Since today's exercise
+demonstrates how difficult it is to get this right, I'm going to remove
 that exclude so {\tt .gitignore} is in the repository.
 
 Removed the build number comment from {\tt tools/build/update\_build.pl}.
@@ -828,3 +828,14 @@ process and serves only to update {\tt build.w}.
 
 Release 1.0.2, Build 816.
 
+The regression test performed diffs to compare the output of some tests
+with reference output with no command line options.  According to the
+GNU Diffutils manual, this produces ``normal'' output as specified by
+POSIX\@@.  But apparently some versions of Linux diff produce a
+``context'' diff by default and this, of course, differs from the
+``normal'' output in the reference output.  I added code to {\tt
+test/test.sh} to specify the {\tt --normal} option on all diff comand
+lines to guarantee that format output rather than counting on the
+default behaving as expected.
+
+Release 1.0.3, Build 818.

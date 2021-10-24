@@ -16,6 +16,7 @@
 MYDIR="`dirname \"$0\"`"
 PATH=$MYDIR/../bin:$PATH
 TESTOUT=$MYDIR/test_output
+DIFFOPTS=--normal
 
 rm -rf $TESTOUT
 mkdir $TESTOUT
@@ -108,8 +109,8 @@ multi_key.pl -join $TESTOUT/eth-10.csv $TESTOUT/eth-06.csv $TESTOUT/eth-09.csv \
 echo -e         \\nCompare the re-constructed keys with the originals. >>$O
 echo -e         They should differ only in the comment specifying the parts used.\\n >>$O
 
-diff $TESTOUT/btc.csv $TESTOUT/btc-merged.csv >>$O
-diff $TESTOUT/eth.csv $TESTOUT/eth-merged.csv >>$O
+diff $DIFFOPTS $TESTOUT/btc.csv $TESTOUT/btc-merged.csv >>$O
+diff $DIFFOPTS $TESTOUT/eth.csv $TESTOUT/eth-merged.csv >>$O
 
 echo -e         \\nValidate keys re-constructed from parts\\n >>$O
 
@@ -128,7 +129,7 @@ cold_comfort.pl -verbose -waitconst 5 -waitrand 0 -zero \
 
 #   Compare the test report with the reference results and set status
 
-diff $MYDIR/test_log_expected.txt $O
+diff $DIFFOPTS $MYDIR/test_log_expected.txt $O
 if [ $? -ne 0 ]
 then
     echo "Discrepancies found in test results."

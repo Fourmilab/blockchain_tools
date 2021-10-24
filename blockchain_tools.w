@@ -105,7 +105,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
-@d Project Version @{1.0.2@}
+@d Project Version @{1.0.3@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -7320,6 +7320,7 @@ that are specific to it.
 MYDIR="`dirname \"$0\"`"
 PATH=$MYDIR/../bin:$PATH
 TESTOUT=$MYDIR/test_output
+DIFFOPTS=--normal
 
 rm -rf $TESTOUT
 mkdir $TESTOUT
@@ -7461,8 +7462,8 @@ used in the join process.
 echo -e         \\nCompare the re-constructed keys with the originals. >>$O
 echo -e         They should differ only in the comment specifying the parts used.\\n >>$O
 
-diff $TESTOUT/btc.csv $TESTOUT/btc-merged.csv >>$O
-diff $TESTOUT/eth.csv $TESTOUT/eth-merged.csv >>$O
+diff $DIFFOPTS $TESTOUT/btc.csv $TESTOUT/btc-merged.csv >>$O
+diff $DIFFOPTS $TESTOUT/eth.csv $TESTOUT/eth-merged.csv >>$O
 @}
 
 Validate the reconstructed keys.  If they passed the comparison test
@@ -7512,7 +7513,7 @@ output, report any discrepancies, and set the exit status so
 @{
 #   Compare the test report with the reference results and set status
 
-diff $MYDIR/test_log_expected.txt $O
+diff $DIFFOPTS $MYDIR/test_log_expected.txt $O
 if [ $? -ne 0 ]
 then
     echo "Discrepancies found in test results."
