@@ -839,3 +839,17 @@ lines to guarantee that format output rather than counting on the
 default behaving as expected.
 
 Release 1.0.3, Build 818.
+
+\date{2021 November 15}
+
+Starting with Bitcoin Core 22.0, the Bitcoin API call {\tt
+getrawtransaction} returns a single {\tt address} item if the
+transaction's {\tt vout} item specifies a single transaction, while
+previously it always included an {\tt addresses} array containing just
+a single address.  This broke both @<AW@> and @<CW@>, which extract
+addresses from transactions.  I added code to the transaction parsing
+in these programs to handle either form of return from a transaction
+query, allowing them to work with either pre- or post-22.0 versions of
+Bitcoin Core.
+
+Release 1.0.4, Build 821.

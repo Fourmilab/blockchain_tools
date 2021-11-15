@@ -67,7 +67,7 @@
 }
 \date{
     Version @<Project Version@> \\
-    October 2021 \\
+    November 2021 \\
     \vspace{12ex}
     \includegraphics[width=3cm]{figures/fourlogo_640.png} \\
     \vspace{2cm}
@@ -105,7 +105,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
-@d Project Version @{1.0.3@}
+@d Project Version @{1.0.4@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -5475,6 +5475,14 @@ and hence no addresses in their ``{\tt vout}'' section.  Since there
 are no addresses to check, we needn't examine such transactions
 further.
 
+When we scan the spent transactions in the ``{\tt vin}'' section,
+there's a bit of fancy footwork due to a change introduced in Bitcoin
+Core 22.0.  Previously, the {\tt scriptPubKey} object included an array
+of {\tt addresses} while, starting with that release, if there is only
+one address, a single {\tt address} field is present which directly
+specifies the address.  We process this with code that should work with
+either form of address specification.
+
 @d scanBlock: Scan a block by index on the blockchain
 @{
             my $t_nvin = scalar(@@{$r->{tx}->[$t]->{vin}});
@@ -5493,7 +5501,15 @@ further.
                         $vi = decode_json($vitx);
                         $vincache{$vintx} = $vi;
                     }
-                    if (defined($vi->{vout}->[$vinn]->{scriptPubKey}->{addresses})) {
+                    if (defined($vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}) ||
+                        defined($vi->{vout}->[$vinn]->{scriptPubKey}->{address})) {
+                        if (defined($vi->{vout}->[$vinn]->{scriptPubKey}->{address})) {
+                            if (!defined($vi->{vout}->[$vinn]->{scriptPubKey}->{addresses})) {
+                                $vi->{vout}->[$vinn]->{scriptPubKey}->{addresses} = [ ];
+                            }
+                            push(@@{$vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}},
+                                 $vi->{vout}->[$vinn]->{scriptPubKey}->{address});
+                        }
                         #   This is not a "coinbase" transaction.  Scan source addresses
                         my $vi_naddr = scalar(@@{$vi->{vout}->[$vinn]->{scriptPubKey}->{addresses}});
                         #   Loop over addresses in vout item
@@ -5524,12 +5540,25 @@ straightforward to process than ``{\tt vin}'' items, as they contain
 the actual address and do not require us to look up a transaction to
 find it.
 
+We use the same logic we did with the transactions cited in the ``{\tt
+vin}'' section above to cope with the different address specification
+format introduced in Bitcoin Core 22.0 while remaining compatible with
+earlier releases.
+
 @d scanBlock: Scan a block by index on the blockchain
 @{
             #   Loop over vout items
             for (my $v = 0; $v < $t_nvout; $v++) {
                 if (defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}) &&
-                    defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                    (defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses}) ||
+                     defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{address}))) {
+                    if (defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{address})) {
+                        if (!defined($r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                            $r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses} = [ ];
+                        }
+                        push(@@{$r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses}},
+                             $r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{address});
+                    }
                     my $v_naddr = scalar(@@{$r->{tx}->[$t]->{vout}->[$v]->{scriptPubKey}->{addresses}});
                     #   Loop over addresses in vout item
                     for (my $a = 0; $a < $v_naddr; $a++) {
@@ -5977,14 +6006,32 @@ block mined before we received it.
 
             #   Show date and time and number of confirmations
             print(etime($t_time) . "  Confirmations: $t_confirmations\n");
+@}
 
+Walk through the destination address (``{\tt vout}'') items in the
+transaction and see if any are addresses we're watching.  If so, and
+{\tt -verbose} is two or greater, show the destinations and amounts.
+The fiddling with {\tt addresses} and {\tt address} is to accommodate
+the change in how addresses are returned by the API starting in Bitcoin
+Core 22.0 without breaking compatibility with older versions.
+
+@o perl/confirmation_watch.pl
+@{
             if (($verbose >= 2) && ($t_confirmations == 1)) {
                 #   Number of "vout" items in transaction
                 my $t_nvout = scalar(@@{$tx->{vout}});
                 #   Loop over vout items
                 for (my $v = 0; $v < $t_nvout; $v++) {
                     if (defined($tx->{vout}->[$v]->{scriptPubKey}) &&
-                        defined($tx->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                        (defined($tx->{vout}->[$v]->{scriptPubKey}->{addresses}) ||
+                         defined($tx->{vout}->[$v]->{scriptPubKey}->{address}))) {
+                        if (defined($tx->{vout}->[$v]->{scriptPubKey}->{address})) {
+                            if (!defined($tx->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                                $tx->{vout}->[$v]->{scriptPubKey}->{addresses} = [ ];
+                            }
+                            push(@@{$tx->{vout}->[$v]->{scriptPubKey}->{addresses}},
+                                 $tx->{vout}->[$v]->{scriptPubKey}->{address});
+                        }
                         my $v_naddr = scalar(@@{$tx->{vout}->[$v]->{scriptPubKey}->{addresses}});
                         my $v_value = $tx->{vout}->[$v]->{value};
                         #   Loop over addresses in vout item
@@ -6127,8 +6174,19 @@ values in each.  If no suitable transaction was found, return
             my $v_addr = "";
             #   Loop over vout items to collect addresses and values
             for (my $v = 0; $v < scalar(@@{$r->{tx}->[$strans]->{vout}}); $v++) {
+                #   The "addresses"/"address" fiddling is to handle
+                #   the change in API transaction representation in
+                #   Bitcoin Core 22.0 without breaking earlier releases.
                 if (defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}) &&
-                    defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                    (defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses}) ||
+                     defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{address}))) {
+                    if (defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{address})) {
+                        if (!defined($r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses})) {
+                            $r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses} = [ ];
+                        }
+                        push(@@{$r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses}},
+                             $r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{address});
+                    }
                     my $v_naddr = scalar(@@{$r->{tx}->[$strans]->{vout}->[$v]->{scriptPubKey}->{addresses}});
                     my $v_value = $r->{tx}->[$strans]->{vout}->[$v]->{value};
                     #   Loop over addresses in vout item
