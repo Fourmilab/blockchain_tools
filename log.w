@@ -853,3 +853,17 @@ query, allowing them to work with either pre- or post-22.0 versions of
 Bitcoin Core.
 
 Release 1.0.4, Build 821.
+
+\date{2023 February 20}
+
+Modified the {\tt s\_e\_etherscan} function to parse the new format
+for Ethereum balances that {\tt etherscan.io} began to return in
+early 2023.
+
+\date{2023 August 20}
+
+Modified the {\tt s\_e\_etherscan} function once again to parse the
+even newer format for Ethereum balances that {\tt etherscan.io} began
+to return in summer 2023.
+
+Release 1.0.5, Build 825.

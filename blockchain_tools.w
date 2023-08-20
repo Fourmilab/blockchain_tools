@@ -105,7 +105,7 @@ others may be able to be used on nodes which have ``pruned'' the
 blockchain to include only more recent blocks.
 
 @d Project Title @{Blockchain Tools@}
-@d Project Version @{1.0.4@}
+@d Project Version @{1.0.5@}
 @d Project File Name @{blockchain_tools@}
 
 %   The following allows disabling the build number and date and
@@ -5018,7 +5018,8 @@ currency units or {\tt undef} if the query fails.
         my $response = $request->get("https://etherscan.io/address/$address");
         if ($response->is_success) {
             my $reply = $response->content;
-            if ($reply =~ m:<div\s+class="col\-md\-8">([\d\.,<>/b]+)\s+Ether</div>:) {
+#            if ($reply =~ m:<div\s+class="col\-md\-8">([\d\.,<>/b]+)\s+Ether</div>:) {
+            if ($reply =~ m:<div><i\s+class=['"].*fa-ethereum.*?['"]></i>([\d\.,<>/b]+)\s+ETH</div>:) {
                 $balance = $1;
                 $balance =~ s:[,<>/b]::g;
                 $balance = $balance + 0;

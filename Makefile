@@ -11,7 +11,7 @@
 
 
 PROJECT = blockchain_tools
-VERSION = 1.0.4
+VERSION = 1.0.5
 
 #       Path names for build utilities
 
